@@ -6,17 +6,7 @@
 
 ![](https://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif)
 
-<iframe width="640" height="480" src="//www.youtube.com/embed/ThW1GhpZ3Xs" frameborder="0" allowfullscreen></iframe>
-<div class="centerdiv">
-    <video width="854" height="480" controls>
-      <source src="http://0.0.0.0:8090//twoslit854x480.webm" type="video/webm">
-      <source src="http://0.0.0.0:8090//twoslit854x480.mp4" type="video/mp4">
-      I'm sorry; your browser doesn't support HTML5 video in WebM with VP8 or MP4 with H.264.
-      <!-- You can embed a Flash player here, to play your mp4 video in older browsers -->
-      
-    </video>
-</div>
-
+<a href="https://www.youtube.com/watch?v=oQTFktvFbbg" rel="">![](https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif)]</a>
 
 * general
     - FDTD simulation of wave propagation in 2-dimensional environments
