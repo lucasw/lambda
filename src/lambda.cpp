@@ -1887,8 +1887,8 @@ void lambda::processAvi()
 {
 
  	int videoFrameSize = 0;	// Revel stores video frame size here
-	int pow16_4 = (int)pow(16.f, (int)4);
-	int pow16_2 = (int)pow(16.f, (int)2);
+	//int pow16_4 = 65536; //(int)pow(16.f, (int)4);
+	//int pow16_2 = 256 //(int)pow(16.f, (int)2);
 	//CImg<float> frame(config.nX,config.nY, 1, 3);		// Create new frame
 	//processFrame(&frame, index.presPres);
     processFrame(graphics.vidframe, index.presPres);
@@ -1898,11 +1898,7 @@ void lambda::processAvi()
     printf("processing video frame of size: %d x %d\n", vidX, vidY);
 	int *videobuf = (int *)files.videoFrame.pixels;
 	int r, g, b;
-    /*
-	float *fr = frame.data();
-    float *fg = fr + config.nNodes;
-    float *fb = fr + config.nNodes*2;
-    */
+    
     float *fr = graphics.vidframe->data();
     float *fg = fr + config.nNodes;
     float *fb = fr + config.nNodes*2;
@@ -1925,17 +1921,21 @@ void lambda::processAvi()
         r = (int)fr[i];
         g = (int)fg[i];
         b = (int)fb[i];
-        *videobuf = 0xFF000000+r+g*pow16_2+b*pow16_4;
+        //*videobuf = 0xFF000000+r+g*pow16_2+b*pow16_4;
+        //*videobuf = 0xFF000000+r+g*256+b*65536;
+        //*videobuf = 0xFF000000+r+(g<<8)+(b<<16);
+        *videobuf = 0xFF000000|r|(g<<8)|(b<<16);
         videobuf++;
     }
 
 	// Encode this frame and add it to the video file
-	Revel_Error error = Revel_EncodeFrame(files.videoStream, &files.videoFrame, &videoFrameSize);
+    Revel_Error error = Revel_EncodeFrame(files.videoStream, &files.videoFrame, &videoFrameSize);
 	if( error != REVEL_ERR_NONE ) {
 		printf("Revel Error while writing frame: %d  -- error number: %d\n", config.n, error);
 		// cout << "Error encoding frame: " << config.n << " --- error number: " << error << "\n" << std::flush;
 		gui.stopButton->click();
 	} 
+
 	if(config.n % 100 == 0)
 		printf("Frame %d of %d: %d bytes\n", config.n, config.nN, videoFrameSize);
 }

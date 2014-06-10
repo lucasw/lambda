@@ -2,18 +2,6 @@
 
 ![](https://raw.githubusercontent.com/gesellkammer/lambda/master/pics/icon2/lambdaicon128.png)
 
-## Contents
-
-* Installation  
-	- Installing the prebuilt binaries  
-	- Building from source  
-    	+ Linux   
-		+ Windows  
-		+ OSX  
-* Usage
-* Simulation Format
-* Using the Lambda binary
-
 # INSTALLATION
 
 You can either run the prebuilt binaries from this package or make your own build from the source. 
@@ -29,15 +17,7 @@ If you have the Windows package (suffix "w32"), extract the contents of "bin" fr
 ## OSX
 
 * Install [X11](http://xquartz.macosforge.org/landing/)
-* Install Qt4
-
-Lambda depends on the Qt4 library being present in your system. Currently the best way to install Qt4 is via [Homebrew](http://brew.sh/).
-
-	$ brew install qt
-	
-* [Download the latest binary](https://github.com/gesellkammer/lambda/releases)
-
-Copy Lambda.app to your /Applications folder
+* [Download the latest binary](https://github.com/gesellkammer/lambda/releases) and copy it to your `/Applications` folder
 
 ---
 
@@ -93,10 +73,8 @@ Required software:
 
 	$ brew install xvid
 
-Compile and install revel (used for video output)
-
 	$ cd dependencies
-	$ export CFLAGS="-I/opt/local/include -I/usr/include/malloc"
+	$ export CFLAGS="-I/usr/include/malloc"
 	$ ./configure
 	$ make
 	$ sudo make install
@@ -109,18 +87,14 @@ Now go to the `src` directory. If necessary, modify the following lines in src/L
 Now run:
 
 	$ qmake Lambda-OSX.pro
-	
-This will generate a Makefile. Modify it to match your system if necessary. Then:
-
-	$ make
-	
-In `src` you should have now see a `Lambda.app` inside. Move it to `/Applications`. First launch `XQuartz`, then open the Lambda app.
-
+    $ make
+    $ cp -r Lambda.app /Applications
+		
 # Usage
 
 ## Open a simulation
 
-* Start XQuartz.app (this is needed to display simulations)
+* In OSX, first start XQuartz.app (at the moment, this is needed to display simulations)
 * Start Lambda.app
 * Click on the button `Open file`. ![](https://raw.githubusercontent.com/gesellkammer/lambda/master/doc/openfile.png)
 * If you installed `Lambda` from source, you will find some examples in the `sims` folder. Otherwise look in the [github repo](https://github.com/gesellkammer/lambda/tree/master/sims). Click on one of the .sim files and then on `Raw`: this will download the file.

@@ -51,7 +51,6 @@
 #define MAKEDIR mkdir((char*)dirFile.c_str(),0777);
 #else
 #define MAKEDIR
-#endif
 
 using namespace std;
 using namespace cimg_library;
