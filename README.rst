@@ -10,6 +10,10 @@ Features
 
 .. image:: pics/muffle.gif
 
+.. raw :: html
+
+<iframe width="420" height="315" src="//www.youtube.com/embed/oQTFktvFbbg" frameborder="0" allowfullscreen></iframe>
+
 * general
     - FDTD simulation of wave propagation in 2-dimensional environments
     - reflective walls with real-valued reflection coefficients

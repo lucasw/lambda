@@ -125,42 +125,74 @@ inline void colormap_paint(float v, int cmap, int &r, int &g, int &b) {
 
 void colormap_heat(float v, int &r, int &g, int &b) {
 	// v should be 0-1
-	switch( int(v*4) ) {
+    switch( int(v*4) ) {
 		case 0:
-			interpolcol(v/0.25, 0, 0, 0, 69, 25, 94, r, g, b);
-			break;
+			//interpolcol(v/0.25, 0, 0, 0, 69, 25, 94, r, g, b);
+            v *= 4;
+            r = v*69;
+            g = v*25;
+            b = v*94;
+			return;
 		case 1:
-			interpolcol((v-0.25)/0.25, 60, 25, 94, 216, 82, 50, r, g, b);
-			break;
+			//interpolcol((v-0.25)/0.25, 60, 25, 94, 216, 82, 50, r, g, b);
+            v = (v-0.25) * 4;
+            r = 60+v*(216-60);
+            g = 25+v*(82-25);
+            b = 94+v*(50-94);
+			return;
 		case 2:
-			interpolcol((v-0.5)/0.25, 216, 82, 50, 253, 162, 28, r, g, b);
-			break;
+			//interpolcol((v-0.5)*4, 216, 82, 50, 253, 162, 28, r, g, b);
+            v = (v-0.5)*4;
+            r = 216+v*(253-216);
+            g = 82+v*(162-82);
+            b = 50+v*(28-50);
+			return;
 		case 3:
-			interpolcol((v-0.75)/0.25, 253, 162, 28, 255, 255, 255, r, g, b);
+			//interpolcol((v-0.75)*4, 253, 162, 28, 255, 255, 255, r, g, b);
+            v = (v-0.75)*4;
+            r = 253+v*(255-253);
+            g = 162+v*(255-162);
+            b = 28+v*(255-28);
 			break;
-		default:
+        case 4:
 			r = 255; g = 255; b = 255;
-			break;
+			return;
 	}
 }
 
 void colormap_temp(float v, int &r, int &g, int &b) {
 	switch( int(v*4) ) {
 		case 0:
-			interpolcol(v/0.25, 0, 0, 102, 87, 113, 234, r, g, b);
-			break;
+            //interpolcol(v/0.25, 0, 0, 102, 87, 113, 234, r, g, b);
+            v *= 4;
+            r = v*87;
+            g = v*113;
+            b = 102+v*(234-102);
+			return;
 		case 1:
-			interpolcol((v-0.25)/0.25, 87, 113, 234, 228, 234, 252, r, g, b);
-			break;
+			//interpolcol((v-0.25)/0.25, 87, 113, 234, 228, 234, 252, r, g, b);
+            v = (v-0.25)*4;
+            r = 87+v*(228-87);
+            g = 113+v*(234-113);
+            b = 234+v*(252-234);
+			return;
 		case 2:
-			interpolcol((v-0.5)/0.25, 228, 234, 252, 253, 251, 130, r, g, b);
-			break;
+			//interpolcol((v-0.5)/0.25, 228, 234, 252, 253, 251, 130, r, g, b);
+            v = (v-0.5)*4;
+            r = 228+v*(253-228);
+            g = 234+v*(251-234);
+            b = 252+v*(130-252);
+			return;
 		case 3:
-			interpolcol((v-0.75)/0.25, 253, 251, 130, 208, 34, 41, r, g, b);
-			break;
-		default:
+			//interpolcol((v-0.75)/0.25, 253, 251, 130, 208, 34, 41, r, g, b);
+            v = (v-0.75)*4;
+            r = 253+v*(208-253);
+            g = 251+v*(34-251);
+            b = 130+v*(41-130);
+			return;
+		case 4:
 			r = 208; g = 34; b = 41;
-			break;
+			return;
 	}	
 }
 
@@ -357,6 +389,8 @@ void lambda::initGui(const char *name)
 	gui.statusLine = new QLabel(gui.statusBox);
 	gui.statusLine->setText("<font color=red>Bad Data</font>");	// No data is loaded at startup
 	gui.statusLine->setAlignment(Qt::AlignHCenter);
+    QFont *statusfont = new QFont("Helvetica", 10);
+    gui.statusLine->setFont( *statusfont );
 	// Initialize copyright label
 	gui.copyright1 = new QLabel(this);
 	//gui.copyright1->setText("&#169;IHA Oldenburg<br>M.Ruhland, M.Blau,<br>and others");
@@ -1001,7 +1035,7 @@ void lambda::handleParameters(int argc, char *argv[])
 			        "-rco            : activate the recording of the visualization (as a .rco file)\n"
 			        "-zoom           : set the zoom level of a visualization (an integer number)\n"
 			        "-skip           : set number of frames to skip (default 0)\n"
-			        "-framerate      : set the framerate of the simulation (default 25)\n"
+			        "-fps            : set the framerate of the simulation (default 25)\n"
 			        "-exit           : exit the program after finishing (good for batch processes)\n"
 			        "\n"
 
@@ -1498,6 +1532,8 @@ void lambda::avi()
 {
 	Revel_Error error;
  	if (gui.aviBox->isChecked()){
+        printf("creating video frame of size: %d x %d\n", config.nX, config.nY);
+        graphics.vidframe = new CImg<float>(config.nX,config.nY, 1, 3);
 		// If encoder got switched ON, create file name first (see lambda::rce())
 		char *dot = strrchr((char *)files.lastFileName.c_str(),'.');
 		if (dot != NULL) {
@@ -1525,8 +1561,11 @@ void lambda::avi()
 		
 		// Video Frames can't have uneven dimensions, 
 		// we discard one "pixel" if necessary.
-		videoParams.width = config.nX >> 2 << 2;
-		videoParams.height = config.nY >> 2 << 2;
+        if((config.nX % 2 != 0) || (config.nY % 2 != 0)) {
+            printf("Video frame with uneven size: %d x %d\n", config.nX, config.nY);
+        }
+		videoParams.width = config.nX;
+		videoParams.height = config.nY;
 		videoParams.frameRate = (float)AVI_FRAMERATE;
 		videoParams.quality = graphics.quality/100;
 		videoParams.codec = REVEL_CD_XVID;
@@ -1592,6 +1631,7 @@ void lambda::avi()
 		}
 		Revel_DestroyEncoder(files.videoStream);
 		delete[] (float *)files.videoFrame.pixels;
+        delete graphics.vidframe;
 	}
 }
 
@@ -1618,6 +1658,7 @@ void lambda::showbounds()
 {
 	// make sure to call processVis() if checkbox walls is checked/unchecked
 	// so that the change has an immediate effect on the vis screen
+
 	if ((status!=RUNNING)&&(gui.visBox->isChecked()))
 	    drawLambda();
 	if (((status==RUNNING)||(status==PAUSED))&&(gui.visBox->isChecked()))
@@ -1675,61 +1716,93 @@ void lambda::processVis()
 {
 	if (graphics.screen!=NULL)
 	{
-		processFrame(graphics.frame);
+		processFrame(graphics.frame, index.presPres);
 		// show frame on screen	
 		graphics.screen->display(*graphics.frame);
 		if (graphics.screen->is_closed()) gui.visBox->click();
 	}
 }
 
-void lambda::processFrame(CImg<float> *frame) {
-	int r, g, b;
+void lambda::processFrame(CImg<float> *frame, float *pressure) {
+	int r, g, b, r0, g0, b0;
 	float v;
+    char textbuf[16];
 	float contrast = (float)graphics.contrast/255.f;
 	colormap_t cm = get_colormap(config.colormap);
     //int cmap = config.colormap;
 	unsigned int nNodes = config.nNodes;
 	unsigned int nNodes2 = nNodes*2;
 	float *framedata = frame->data();
-    float *presPres = index.presPres;
+    bool showbounds = gui.showboundsBox->isChecked();
+    //float *pressure = index.presPres;
+    float *fr = framedata;
+    float *fg = framedata + nNodes;
+    float *fb = framedata + nNodes2;
+
     bool *deadnodes = data.deadnode;
     float *envi = data.envi;
+    cm(0.5, r0, g0, b0);
+    
 	for (register unsigned int n=0;n<nNodes;n++) {
-		//v = index.presPres[n] * contrast + 0.5;
-        v = presPres[n] * contrast + 0.5;
-		if (v > 1) v = 1;
-		else if (v < 0) v = 0;
-		cm(v, r, g, b);
-        //colormap_paint(v, cmap, r, g, b);
-        framedata[n] = r;
-		framedata[n+nNodes] = g;
-		framedata[n+nNodes2] = b;
+        if( deadnodes[n]) {
+            /*
+            fr[n] = showbounds ? 40  : r0;
+            fg[n] = showbounds ? 200 : g0;
+            fb[n] = showbounds ? 40  : b0;
+            */
+            
+            if(showbounds) {
+                fr[n] = 40; fg[n] = 200; fb[n] = 40;
+            } else {
+                fr[n] = r0; fg[n] = g0; fb[n] = b0;
+            }
+        } else {
+            if( showbounds && envi[n]!=0.f ) {
+                // is it a wall?
+                fr[n] = 50; fg[n] = 50; fb[n] = 255;
+            } else {
+                v = pressure[n] * contrast + 0.5;
+                if (v > 1) v = 1;
+                else if (v < 0) v = 0;
+                cm(v, r, g, b);
+                //colormap_paint(v, cmap, r, g, b);
+                fr[n] = r;
+                fg[n] = g;
+                fb[n] = b;        
+            } 
+            
+        }
 	};
-
+    /*
 	// draw walls and receivers, if walls-checkbox is checked
+    float *fr = framedata;
+    float *fg = framedata + nNodes;
+    float *fb = framedata + nNodes2;
 	if (gui.showboundsBox->isChecked())
 	{
 		for (register unsigned int n=0;n<nNodes;n++) {
-			if( deadnodes[n] ) {
-                // is it a deadnode?
-				framedata[n]         = 40;
-				framedata[n+nNodes]  = 200;
-				framedata[n+nNodes2] = 40;
-			} else if( envi[n]!=0.f ) {
+            if (deadnodes[n]) {
+                fr[n] = 40;
+                fg[n] = 200;
+                fb[n] = 40;
+            }    
+            else if( envi[n]!=0.f ) {
                 // is it a wall?
-				framedata[n]         = 50;
-				framedata[n+nNodes]  = 50;
-				framedata[n+nNodes2] = 255;
+				fr[n] = 50;
+				fg[n] = 50;
+				fb[n] = 255;
 			} 
+            
 		}
 	}
+    */
 	
-	char buf[40];
-	sprintf(buf, "%05i: %-#.2f ms", config.n+1,config.n*config.tSample*1E3);
-	cm(0.5, r, g, b);
-    //colormap_paint(0.5, cmap, r, g, b);
-	float bg[3] = {r, g, b};
-	frame->draw_text(0, 0, buf, graphics.colors.black, bg);
+	float bg[3] = {r0, g0, b0};
+    sprintf(textbuf, "C%1.1f F%05i", contrast, config.n+1);
+    frame->draw_text(0, -2, textbuf, graphics.colors.black, bg, 0.5);
+    sprintf(textbuf, "ms%.1f", config.n*config.tSample*1E3);
+    frame->draw_text(0, 11, textbuf, graphics.colors.black, bg, 0.5);
+    graphics.frame_ready = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1812,18 +1885,28 @@ void lambda::processRco()
 //
 void lambda::processAvi()
 {
+
  	int videoFrameSize = 0;	// Revel stores video frame size here
 	int pow16_4 = (int)pow(16.f, (int)4);
 	int pow16_2 = (int)pow(16.f, (int)2);
-	CImg<float> frame(config.nX,config.nY, 1, 3);		// Create new frame
-	processFrame(&frame);
+	//CImg<float> frame(config.nX,config.nY, 1, 3);		// Create new frame
+	//processFrame(&frame, index.presPres);
+    processFrame(graphics.vidframe, index.presPres);
 	
 	int vidX = files.videoFrame.width;
 	int vidY = files.videoFrame.height;
+    printf("processing video frame of size: %d x %d\n", vidX, vidY);
 	int *videobuf = (int *)files.videoFrame.pixels;
 	int r, g, b;
-	float *framedata = frame.data();
-
+    /*
+	float *fr = frame.data();
+    float *fg = fr + config.nNodes;
+    float *fb = fr + config.nNodes*2;
+    */
+    float *fr = graphics.vidframe->data();
+    float *fg = fr + config.nNodes;
+    float *fb = fr + config.nNodes*2;
+    /*
 	for (int k=0; k<vidY;k++) {
 		float *framedata_row = framedata + k*config.nX;
 		for (int l=0; l<vidX;l++) {
@@ -1836,6 +1919,15 @@ void lambda::processAvi()
 			framedata_row++;
 		}
 	}
+    */
+    for (int i=0; i<config.nNodes;i++) {
+        //r = (int)*(fr[i]);
+        r = (int)fr[i];
+        g = (int)fg[i];
+        b = (int)fb[i];
+        *videobuf = 0xFF000000+r+g*pow16_2+b*pow16_4;
+        videobuf++;
+    }
 
 	// Encode this frame and add it to the video file
 	Revel_Error error = Revel_EncodeFrame(files.videoStream, &files.videoFrame, &videoFrameSize);
@@ -2155,12 +2247,9 @@ template<class T> simError lambda::set(const string what,const T value)
 //
 simError lambda::defineSource(const int idx,const simSource *srcData)
 {
-	cout << "defining source\n";
 	// Check if coordinates are in range of environment size
-	cout << "checking coords\n";
 	if ((srcData->y<0)||(srcData->y>=config.nY)||(srcData->x<0)||(srcData->x>=config.nX)) return SRC_COORDS_BAD;
 	// Check if source has legal source function type
-	cout << "checking type: " << srcData->type << "\n";
 	if ((srcData->type<1)||(srcData->type>100)) return SRC_TYPE_BAD;
 	// Check for positive frequency
 	// if (srcData->freq<=0) return SRC_FREQ_BAD;
@@ -3247,46 +3336,15 @@ simError lambda::initSimulation()
 void lambda::processRep()
 {
 	// Skip this frame if demanded
-	float *data;
 	if (config.n%graphics.skip==0)
 	{
-		// Set the frame to the right position in the recorded data array
-		//*graphics.frame=data.record+config.n*config.nNodes;
-
-		// Scale frame for contrast
-		*graphics.frame*=(float)graphics.contrast;
-		*graphics.frame+=128;
-		// Prevent clipping
-		data = graphics.frame->data();
-		for (int n=0; n<config.nNodes; n++)
-		{
-			//if (graphics.frame->data[n]>255) graphics.frame->data[n]=255;
-			//else if (graphics.frame->data[n]<0) graphics.frame->data[n]=0;
-			if( data[n] > 255) data[n] = 255;
-			else if (data[n] < 0) data[n] = 0;
-			
-		}
-		// Resize to meet zoom setting
-		// graphics.frame->resize(graphics.dispSizeX,graphics.dispSizeY,-100,-100,1);
-		// Write frame data and authoring notes into frame
-		
-		
-		// graphics.frame->draw_text(2,0,graphics.colors.white,graphics.colors.grey,0.5,"#%i: %-#.2f ms",config.n+1,config.n*config.tSample*1E3);
-		
-
-		//graphics.frame->draw_text(config.nX-242,config.nY-12,graphics.colors.white,graphics.colors.grey,0.5,"M.Ruhland, M.Blau, and others; IHA Oldenburg");
+		processFrame(graphics.frame, data.record+config.n*config.nNodes);
 		// Display frame on screen
 		graphics.screen->display(*graphics.frame);
-		// Resize to normal size again
-		// graphics.frame->resize(config.nX,config.nY,-100,-100,0);
 	}
-	// Count number of processed frames up
 	config.n++;
-	// Stop replay if vis window is closed
-	//if (graphics.screen->closed) gui.stopButton->click();
-	if (graphics.screen->is_closed()) gui.stopButton->click();
-	// And also stop if end of record (or desired nr. of frames) is reached
-	if (config.n >= config.nN) gui.stopButton->click();
+	if (graphics.screen->is_closed() || config.n >= config.nN) 
+        gui.stopButton->click();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3379,6 +3437,7 @@ void lambda::processSim()
 			float hann;
 			float magnitude=0.f;
 			float twopi_freq = twopi*freq;
+            float tmp0, tmp1;
 			//float onepi_phi_180 = onepi*phi/180.f;
 			float onepi_phi_180 = phi*0.034906585f;
 			float b0, b1, b2, white;
@@ -3420,26 +3479,30 @@ void lambda::processSim()
 					if ((alpha>=0.f)&&(alpha<90.f))
 					{
 						// alpha between 0 and 90 degrees? -> left and top incidence
-						data.velo_left[srcxy]=cos(alpha*(3.1415926f/180.f))*magnitude;
-						data.velo_top[srcxy]=sin(alpha*(3.1415926f/180.f))*magnitude;
+                        tmp0 = alpha*(3.1415926f/180.f);
+						data.velo_left[srcxy]=cos(tmp0)*magnitude;
+						data.velo_top[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=90.f)&&(alpha<180.f))
 					{
 						// alpha between 90 and 180 degrees? -> top and right incidence
-						data.velo_top[srcxy]=cos((alpha-90.f)*((3.1415926f/180.f)))*magnitude;
-						data.velo_right[srcxy]=sin((alpha-90.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-90.f)*(3.1415926f/180.f);
+						data.velo_top[srcxy]=cos(tmp0)*magnitude;
+						data.velo_right[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=180.f)&&(alpha<270.f))
 					{
 						// alpha between 180 and 270 degrees? -> right and bottom incidence
-						data.velo_right[srcxy]=cos((alpha-180.f)*(3.1415926f/180.f))*magnitude;
-						data.velo_bottom[srcxy]=sin((alpha-180.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-180.f)*(3.1415926f/180.f);
+						data.velo_right[srcxy]=cos(tmp0)*magnitude;
+						data.velo_bottom[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=270.f)&&(alpha<360.f))
 					{
 						// alpha between 270 and 360 degrees? -> bottom and left incidence
-						data.velo_bottom[srcxy]=cos((alpha-270.f)*(3.1415926f/180.f))*magnitude;
-						data.velo_left[srcxy]=sin((alpha-270.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-270.f)*(3.1415926f/180.f);
+						data.velo_bottom[srcxy]=cos(tmp0)*magnitude;
+						data.velo_left[srcxy]=sin(tmp0)*magnitude;
 					}
 					break;
 				case 7: // rectangular velocity source
@@ -3450,26 +3513,30 @@ void lambda::processSim()
 					if ((alpha>=0.f)&&(alpha<90.f))
 					{
 						// alpha between 0 and 90 degrees? -> left and top incidence
-						data.velo_left[srcxy]=cos(alpha*(3.1415926f/180.f))*magnitude;
-						data.velo_top[srcxy]=sin(alpha*(3.1415926f/180.f))*magnitude;
+                        tmp0 = alpha*(3.1415926f/180.f);
+						data.velo_left[srcxy]=cos(tmp0)*magnitude;
+						data.velo_top[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=90.f)&&(alpha<180.f))
 					{
 						// alpha between 90 and 180 degrees? -> top and right incidence
-						data.velo_top[srcxy]=cos((alpha-90.f)*(3.1415926f/180.f))*magnitude;
-						data.velo_right[srcxy]=sin((alpha-90.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-90.f)*(3.1415926f/180.f);
+						data.velo_top[srcxy]=cos(tmp0)*magnitude;
+						data.velo_right[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=180.f)&&(alpha<270.f))
 					{
 						// alpha between 180 and 270 degrees? -> right and bottom incidence
-						data.velo_right[srcxy]=cos((alpha-180.f)*(3.1415926f/180.f))*magnitude;
-						data.velo_bottom[srcxy]=sin((alpha-180.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-180.f)*(3.1415926f/180.f);
+						data.velo_right[srcxy]=cos(tmp0)*magnitude;
+						data.velo_bottom[srcxy]=sin(tmp0)*magnitude;
 					}
 					else if ((alpha>=270.f)&&(alpha<360.f))
 					{
 						// alpha between 270 and 360 degrees? -> bottom and left incidence
-						data.velo_bottom[srcxy]=cos((alpha-270.f)*(3.1415926f/180.f))*magnitude;
-						data.velo_left[srcxy]=sin((alpha-270.f)*(3.1415926f/180.f))*magnitude;
+                        tmp0 = (alpha-270.f)*(3.1415926f/180.f);
+						data.velo_bottom[srcxy]=cos(tmp0)*magnitude;
+						data.velo_left[srcxy]=sin(tmp0)*magnitude;
 					}
 					break;
 				case 8: // delta-pulse velocity source
@@ -3593,7 +3660,7 @@ void lambda::processSim()
 		float yn; // filter output
 		int config_nX = config.nX;
 		// Work through all the nodes in the environment
-		for (register int pos=0;pos<config.nNodes;pos++)
+		for (int pos=0;pos<config.nNodes;pos++)
 		{
 			index_presFutu[pos]=0.f;
 			if (!data.deadnode[pos]) // deadnode? --> no calculation needed!
@@ -3728,20 +3795,21 @@ void lambda::processSim()
 				}
 				else // no boundary node: do the fast standard propagation
 				{
-					index_presFutu[pos]=(presPres[pos-1]
-										+presPres[pos-config_nX]
-										+presPres[pos+1]
-										+presPres[pos+config_nX])*0.5f-index.presPast[pos];
+					index_presFutu[pos]=( presPres[pos-1]
+										 +presPres[pos-config_nX]
+										 +presPres[pos+1]
+										 +presPres[pos+config_nX]
+                                        ) *0.5f - index.presPast[pos];
 				}
 			}
 		}
-
+        graphics.frame_ready = false;
 		// Process actions like rce, rco, avi or vis if required
 		if (gui.rceBox->isChecked()) processRce();
 		if (gui.rcoBox->isChecked()) if (config.n%graphics.skip==0) processRco();
 		if (gui.visBox->isChecked()) if (config.n%graphics.skip==0)	processVis();
 		if (gui.aviBox->isChecked()) if (config.n%graphics.skip==0) processAvi();
-		// update the progress indicator every 20th iteration
+		// update the progress indicator 
 		time_t t1;
 		static time_t t0;
 		static size_t lastn;
@@ -3750,7 +3818,8 @@ void lambda::processSim()
 		double dif = difftime(t1, t0);
 		if( dif > 0.25) {
 			t0 = t1;
-			sprintf(buf, "<font color=red>step %d %lu/sec", config.n, (config.n - lastn));
+            int ms = config.n*config.tSample*1E3;
+			sprintf(buf, "ms:%d step:%d fps:%lu", ms, config.n, (config.n - lastn));
 			lastn = config.n;
 			gui.statusLine->setText(buf);
 		}
@@ -3837,6 +3906,7 @@ void lambda::drawLambda()
 			if (abs(data.envi[n])!=0.f) pixbuf[n] = 255;
 	}
 	graphics.screen->display(*graphics.frame);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -37,6 +37,7 @@
 #include <QTimer>
 #include <QDialog>
 #include <QLabel>
+#include <QQueue>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -161,7 +162,9 @@ struct simGraphics{
 	int quality;
 	simColors colors;
 	CImg<float> *frame;
+    CImg<float> *vidframe;
 	CImgDisplay *screen;
+    bool frame_ready;
 };
 
 // Gui elements.
@@ -971,7 +974,7 @@ private:
 //
 	virtual void processVis();
 
-	virtual void processFrame(CImg<float> *frame);
+	virtual void processFrame(CImg<float> *frame, float* pressure);
 
 
 
