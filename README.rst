@@ -1,14 +1,20 @@
-![](https://github.com/gesellkammer/lambda/raw/master/pics/icon2/lambdaicon128.png)
+.. image:: https://github.com/gesellkammer/lambda/raw/master/pics/icon2/lambdaicon128.png
 
-# LAMBDA
+======
+LAMBDA
+======
 
-## Features
+Features
+--------
 
-![](https://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif)
+.. image:: http://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif
+   :align: center
 
-<a href="https://www.youtube.com/watch?v=oQTFktvFbbg" rel="">
-    ![](https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif)
-</a>
+.. image:: https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif
+   :align: center
+   :class: span
+   :name: span
+   :target: https://www.youtube.com/watch?v=oQTFktvFbbg
 
 * general
     - FDTD simulation of wave propagation in 2-dimensional environments
@@ -39,21 +45,24 @@
       or in octave/matlab using matrices.
 
 
-# Installation & Documentation
+Installation & Documentation
+----------------------------
 
-Please refer to the [manual]
+Please refer to the manual_
 
 ------------------------
 
-### Copyright
+Copyright
+~~~~~~~~~
 
 Copyright (C) 2006-2007 Simon Ahrens, Matthias Blau, IHA Oldenburg
-            <simon.ahrens AT stud.fh-oldenburg.de>
+``<simon.ahrens AT stud.fh-oldenburg.de>``
+
 Copyright (C) 2008-2009 Marco Ruhland, Matthias Blau, IHA Oldenburg
-                        <marco.ruhland AT stud.fh-oldenburg.de>
+``<marco.ruhland AT stud.fh-oldenburg.de>``
 
 
-[LICENSE]
+LICENSE_
 
-[LICENSE]: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
-[manual]: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
+.. _LICENSE: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
+.. _manual: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
