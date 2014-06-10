@@ -6,18 +6,14 @@
 
 ![](https://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif)
 
-<style type="text/css"> 
-.centerdiv { 
-    margin: 0 auto;  
-} 
-</style>
+<iframe width="640" height="480" src="//www.youtube.com/embed/ThW1GhpZ3Xs" frameborder="0" allowfullscreen></iframe>
 <div class="centerdiv">
     <video width="854" height="480" controls>
       <source src="http://0.0.0.0:8090//twoslit854x480.webm" type="video/webm">
       <source src="http://0.0.0.0:8090//twoslit854x480.mp4" type="video/mp4">
       I'm sorry; your browser doesn't support HTML5 video in WebM with VP8 or MP4 with H.264.
       <!-- You can embed a Flash player here, to play your mp4 video in older browsers -->
-      <iframe width="640" height="480" src="//www.youtube.com/embed/ThW1GhpZ3Xs" frameborder="0" allowfullscreen></iframe>
+      
     </video>
 </div>
 
