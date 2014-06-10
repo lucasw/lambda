@@ -1,18 +1,26 @@
+![](https://github.com/gesellkammer/lambda/raw/master/pics/icon2/lambdaicon128.png)
 
-.. image:: pics/icon2/lambdaicon128.png
+# LAMBDA
 
-======
-LAMBDA
-======
+## Features
 
-Features
---------
+![](https://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif)
 
-.. image:: pics/muffle.gif
+<style type="text/css"> 
+.centerdiv { 
+    margin: 0 auto;  
+} 
+</style>
+<div class="centerdiv">
+    <video width="854" height="480" controls>
+      <source src="http://0.0.0.0:8090//twoslit854x480.webm" type="video/webm">
+      <source src="http://0.0.0.0:8090//twoslit854x480.mp4" type="video/mp4">
+      I'm sorry; your browser doesn't support HTML5 video in WebM with VP8 or MP4 with H.264.
+      <!-- You can embed a Flash player here, to play your mp4 video in older browsers -->
+      <iframe width="640" height="480" src="//www.youtube.com/embed/ThW1GhpZ3Xs" frameborder="0" allowfullscreen></iframe>
+    </video>
+</div>
 
-.. raw :: html
-
-<iframe width="420" height="315" src="//www.youtube.com/embed/oQTFktvFbbg" frameborder="0" allowfullscreen></iframe>
 
 * general
     - FDTD simulation of wave propagation in 2-dimensional environments
@@ -43,15 +51,13 @@ Features
       or in octave/matlab using matrices.
 
 
-Installation & Documentation
-============================
+# Installation & Documentation
 
-Please refer to the manual_
+Please refer to the [manual]
 
 ------------------------
 
-Copyright
-=========
+### Copyright
 
 Copyright (C) 2006-2007 Simon Ahrens, Matthias Blau, IHA Oldenburg
             <simon.ahrens AT stud.fh-oldenburg.de>
@@ -59,8 +65,7 @@ Copyright (C) 2008-2009 Marco Ruhland, Matthias Blau, IHA Oldenburg
                         <marco.ruhland AT stud.fh-oldenburg.de>
 
 
-LICENSE_
+[LICENSE]
 
-.. _INSTALL: https://github.com/gesellkammer/lambda/blob/master/INSTALL.md
-.. _LICENSE: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
-.. _manual: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
+[LICENSE]: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
+[manual]: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
