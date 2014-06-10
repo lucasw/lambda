@@ -6,7 +6,11 @@
 
 ![](https://github.com/gesellkammer/lambda/raw/master/pics/muffle.gif)
 
-<a href="https://www.youtube.com/watch?v=oQTFktvFbbg" rel="">![](https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif)]</a>
+<p style="text-align:center;">
+a href="https://www.youtube.com/watch?v=oQTFktvFbbg" rel="" style="text-align:center;">
+    ![](https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif)
+</a>
+</p>
 
 * general
     - FDTD simulation of wave propagation in 2-dimensional environments
