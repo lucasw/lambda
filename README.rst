@@ -12,8 +12,6 @@ Features
 
 .. image:: https://dl.dropboxusercontent.com/u/264776/web/lambda/doubleslit.gif
    :align: center
-   :class: span
-   :name: span
    :target: https://www.youtube.com/watch?v=oQTFktvFbbg
 
 * general
