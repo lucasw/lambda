@@ -48,6 +48,11 @@ Installation & Documentation
 
 Please refer to the manual_
 
+Examples 
+--------
+
+See the wiki_
+
 ------------------------
 
 Copyright
@@ -64,3 +69,4 @@ LICENSE_
 
 .. _LICENSE: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
 .. _manual: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
+.. _wiki: https://github.com/gesellkammer/lambda/wiki
