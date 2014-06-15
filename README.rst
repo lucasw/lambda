@@ -40,7 +40,7 @@ Features
 
 * scripting
     - lambda simulations can be written in python using vector shapes,
-      or in octave/matlab using matrices.
+      or in octave/matlab using matrices. See lambdasim_.
 
 
 Installation & Documentation
@@ -70,3 +70,4 @@ LICENSE_
 .. _LICENSE: https://github.com/gesellkammer/lambda/blob/master/LICENSE.md
 .. _manual: https://github.com/gesellkammer/lambda/blob/master/doc/lambda-manual.md
 .. _wiki: https://github.com/gesellkammer/lambda/wiki
+.. _lambdasim: https://github.com/gesellkammer/lambdasim
