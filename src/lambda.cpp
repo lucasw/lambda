@@ -1530,6 +1530,7 @@ void lambda::rco()
 //
 void lambda::avi()
 {
+#ifdef USE_REVEL
 	Revel_Error error;
  	if (gui.aviBox->isChecked()){
         printf("creating video frame of size: %d x %d\n", config.nX, config.nY);
@@ -1633,6 +1634,7 @@ void lambda::avi()
 		delete[] (float *)files.videoFrame.pixels;
         delete graphics.vidframe;
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1885,6 +1887,7 @@ void lambda::processRco()
 //
 void lambda::processAvi()
 {
+#ifdef USE_REVEL
 
  	int videoFrameSize = 0;	// Revel stores video frame size here
 	//int pow16_4 = 65536; //(int)pow(16.f, (int)4);
@@ -1938,6 +1941,7 @@ void lambda::processAvi()
 
 	if(config.n % 100 == 0)
 		printf("Frame %d of %d: %d bytes\n", config.n, config.nN, videoFrameSize);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
