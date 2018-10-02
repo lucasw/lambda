@@ -383,6 +383,23 @@ private:
   simGraphics graphics;
   simStatus status;
   simFiles files;
+
+  int GFX_MAXCONTRAST = 100;    // Max value for contrast control
+  int GFX_MINCONTRAST = 0;      // Min value for conrast control
+  int GFX_STDCONTRAST = 50;     // Standard value for contrast control
+  int GFX_MAXSAMPLES = 9999999; // Max value for number of iterations
+  int GFX_MINSAMPLES = 0;       // Min value for number of iterations
+  int GFX_STDSAMPLES = 0;       // Standard value for number of iterations
+  int GFX_MAXSKIP = 999;        // Max value for number of iterations to skip
+  int GFX_MINSKIP = 0;          // Min value for number of iterations to skip
+  int GFX_STDSKIP = 0;          // Standard value for number of iterations to skip
+  int GFX_MAXZOOM = 999;        // Max value for zoom control
+  int GFX_MINZOOM = 1;          // Min value for zoom control
+  int GFX_STDZOOM = 1;          // Standard value for zoom control
+  bool AUTOEXIT = false;        // automatic exit when simulation end is reached
+  int MEMSRC = 20;
+  int COLORMAP = 1;
+
 };
 
 #endif

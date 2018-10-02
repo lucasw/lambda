@@ -21,24 +21,6 @@
 
 #include <lambda_ros/lambda.h>
 
-// Set some global parameters.
-
-int GFX_MAXCONTRAST = 100;    // Max value for contrast control
-int GFX_MINCONTRAST = 0;      // Min value for conrast control
-int GFX_STDCONTRAST = 50;     // Standard value for contrast control
-int GFX_MAXSAMPLES = 9999999; // Max value for number of iterations
-int GFX_MINSAMPLES = 0;       // Min value for number of iterations
-int GFX_STDSAMPLES = 0;       // Standard value for number of iterations
-int GFX_MAXSKIP = 999;        // Max value for number of iterations to skip
-int GFX_MINSKIP = 0;          // Min value for number of iterations to skip
-int GFX_STDSKIP = 0;          // Standard value for number of iterations to skip
-int GFX_MAXZOOM = 999;        // Max value for zoom control
-int GFX_MINZOOM = 1;          // Min value for zoom control
-int GFX_STDZOOM = 1;          // Standard value for zoom control
-bool AUTOEXIT = false;        // automatic exit when simulation end is reached
-int MEMSRC = 20;
-int COLORMAP = 1;
-
 simSample **new_simSample_array(int n) {
   simSample **out = new simSample *[n];
   simSample *sample;
@@ -235,9 +217,23 @@ colormap_t get_colormap(int colormap_index) {
 //05/06	1.0 	M. Ruhland 	no changes
 //05/09	2.0
 //
-lambda::lambda(const char *name, int argc, char *argv[])
+lambda::lambda(const char *name, int argc, char *argv[]) :
+  GFX_MAXCONTRAST(100),
+  GFX_MINCONTRAST(0),
+  GFX_STDCONTRAST(50),
+  GFX_MAXSAMPLES(9999999),
+  GFX_MINSAMPLES(0),
+  GFX_STDSAMPLES(0),
+  GFX_MAXSKIP(999),
+  GFX_MINSKIP(0),
+  GFX_STDSKIP(0),
+  GFX_MAXZOOM(999),
+  GFX_MINZOOM(1),
+  GFX_STDZOOM(1),
+  AUTOEXIT(false),
+  MEMSRC(20),
+  COLORMAP(1)
 {
-  // Initialize variables
   initVariables();
   // Process input parameters that might be provided in argv
   handleParameters(argc, argv);
