@@ -36,8 +36,6 @@
 #define MAKEDIR
 #endif
 
-using namespace cimg_library;
-
 // This struct provides 3 colors for writing text / painting.
 struct simColors {
   float white[3];
