@@ -206,7 +206,7 @@ typedef enum {
   MISMATCH,
 } simStatus;
 
-// Main class
+// TODO(lucasw) capitalize
 class lambda {
 public:
   lambda(const char *name = 0, int argc = 0,

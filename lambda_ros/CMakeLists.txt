@@ -49,13 +49,16 @@ include_directories(
 #   ${lambda_INCLUDE_DIRES}
 )
 
-add_library(${PROJECT_NAME}
+add_library(lambda_synth
   src/lambda.cpp
 )
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${lambda_LIBRARIES})
+target_link_libraries(lambda_synth ${catkin_LIBRARIES})
 # add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
+# add_dependencies(lambda_synth ${PROJECT_NAME}_gencpp)
+
+add_executable(${PROJECT_NAME} src/lambda_ros.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} lambda_synth)
 
 # TODO(lucasw) is this needed?
 if(catkin_EXPORTED_LIBRARIES)
