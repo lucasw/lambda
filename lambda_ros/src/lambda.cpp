@@ -821,27 +821,7 @@ void lambda::handleParameters(int argc, char *argv[]) {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::stop()
-//
-// PURPOSE
-//   QT Slot connected to the Reset button. Stops simulation or replay and
-//   resets simulation data.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
+#if 0
 void lambda::stop() {
   resetSimulation();
   // Reset display, if vis was on and simulation was reset manually
@@ -857,53 +837,7 @@ void lambda::stop() {
     // Was replaying, set status ready for replay.
     set("status", PLAYER);
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::snap()
-//
-// PURPOSE
-//   QT Slot connected to the Screenshot button. Saves a .jpg copy of the
-//   current frame to disk.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::snap() {
-  // Create file name: <sim file name>_<Nr. of frame>.jpg
-  // First, create the part with _<Nr. of frame>.jpg in buffer
-  char buffer[20];
-  sprintf(buffer, "_%i.bmp", config.n + 1);
-  // Search for a dot in the name of the last opened file...
-  char *dot = strrchr((char *)files.lastFileName.c_str(), '.');
-  // and delete all characters from that position on to erase the old file
-  // extension if any was found.
-  if (dot != NULL)
-    memset(dot, '\0', strlen(dot));
-  // Prepend the last file name (without extension now) to the part stored in
-  // buffer and save that new filename in files.lastFileName
-  files.lastFileName = (char *)files.lastFileName.c_str();
-  files.lastFileName += buffer;
-  // Save .jpg file of current frame
-  graphics.frame->save_bmp((char *)files.lastFileName.c_str());
-  // Erase the part _<Nr. of frame>.jpg from the file name again to leave it
-  // clean
-  dot = strrchr((char *)files.lastFileName.c_str(), '_');
-  if (dot != NULL)
-    memset(dot, '\0', strlen(dot));
-}
-
-
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // lambda::vis()
