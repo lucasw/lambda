@@ -211,7 +211,6 @@ Lambda::Lambda(const char *name, int argc, char *argv[]) :
   GFX_MAXZOOM(999),
   GFX_MINZOOM(1),
   GFX_STDZOOM(1),
-  AUTOEXIT(false),
   MEMSRC(20),
   COLORMAP(1)
 {
@@ -766,10 +765,6 @@ void Lambda::handleParameters(int argc, char *argv[]) {
                (argument == "-WALLS") || (argument == "/walls") ||
                (argument == "/Walls") || (argument == "/WALLS")) {
       clickWalls = true; // check walls checkbox
-    } else if ((argument == "-exit") || (argument == "-Exit") ||
-               (argument == "-EXIT") || (argument == "/exit") ||
-               (argument == "/Exit") || (argument == "/EXIT")) {
-      AUTOEXIT = true; // enable automatic exit at the end of simulation
     } else if ((argument == "-help") || (argument == "--help") ||
                (argument == "/help")) {
       std::cout << "lambda [options]\n"
@@ -2375,7 +2370,6 @@ void Lambda::processRep() {
 //              Added new source types. Added progress
 //              indicator. Former walls removed. All
 //              walls are now treated as filters. Added
-//              AUTOEXIT-functionality.
 //
 
 void Lambda::processSim() {
@@ -2828,10 +2822,6 @@ void Lambda::processSim() {
 
     // update counter. Stop simulation if desired nr. of iterations is reached.
     config.n++;
-    if ((config.n >= config.nN) && (config.nN != 0)) {
-      // if AUTOEXIT is set, terminate lambda by self-clicking the quit-button
-      // TODO(lucasw)
-    }
   }
 }
 

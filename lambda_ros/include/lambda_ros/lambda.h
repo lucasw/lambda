@@ -392,7 +392,6 @@ private:
   int GFX_MAXZOOM = 999;        // Max value for zoom control
   int GFX_MINZOOM = 1;          // Min value for zoom control
   int GFX_STDZOOM = 1;          // Standard value for zoom control
-  bool AUTOEXIT = false;        // automatic exit when simulation end is reached
   int MEMSRC = 20;
   int COLORMAP = 1;
 
