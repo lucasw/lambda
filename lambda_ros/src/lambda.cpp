@@ -718,7 +718,7 @@ void lambda::resetSimulation() {
 //              "-exit" parameter
 //
 void lambda::handleParameters(int argc, char *argv[]) {
-  string argument;
+  std::string argument;
   int arg;
   // Order of parameters is random, but rce, rco and vis must be
   // activated after loading a file, if requested. If a file is requested,
@@ -740,7 +740,7 @@ void lambda::handleParameters(int argc, char *argv[]) {
       // this one, try to load the file named like that following parameter.
       if (arg < argc - 1) {
         startSim = true;
-        string fileName = argv[arg + 1];
+        std::string fileName = argv[arg + 1];
         if (loadFile(fileName) != NONE)
           startSim = false;
       }
@@ -791,7 +791,7 @@ void lambda::handleParameters(int argc, char *argv[]) {
       AUTOEXIT = true; // enable automatic exit at the end of simulation
     } else if ((argument == "-help") || (argument == "--help") ||
                (argument == "/help")) {
-      cout << "lambda [options]\n"
+      std::cout << "lambda [options]\n"
               "\n"
               "-file simfile   : open the .sim file\n"
               "-vis            : activate visualization\n"
@@ -1138,7 +1138,7 @@ void lambda::processRco() {
 //              and removed config.FourFields, which is
 //              no longer needed
 //
-template <class T> simError lambda::set(const string what, const T value) {
+template <class T> simError lambda::set(const std::string what, const T value) {
   if (what == "nX") {
     // If nX is to be set, check if new X-size is greater than 0.
     if ((int)value < 1)
@@ -1418,7 +1418,7 @@ simError lambda::defineSource(const int idx, const simSource *srcData) {
 //   Tries to load a simulation file.
 //
 // INPUT
-//   const string fileName : name of the file to be opened.
+//   const std::string fileName : name of the file to be opened.
 //
 // OUTPUT
 //   None
@@ -1434,7 +1434,7 @@ simError lambda::defineSource(const int idx, const simSource *srcData) {
 //  M. Ruhland  Completely rewritten for new 2.0 file       05/09   2.0
 //              structure and computation model.
 //
-simError lambda::loadSimulation(const string fileName) {
+simError lambda::loadSimulation(const std::string fileName) {
   // some variables needed during the read-in process
   struct stat results;
   char *pblockid;
@@ -1452,10 +1452,10 @@ simError lambda::loadSimulation(const string fileName) {
   // reset all variables
   resetAll();
   // open the simfile
-  ifstream simFile((char *)fileName.c_str(), ios::in | ios::binary);
+  std::ifstream simFile((char *)fileName.c_str(), std::ios::in | std::ios::binary);
 
   //  ------ HEADER ------
-  //  read the simfile header. it consists of the string "LAMBDASIM200".
+  //  read the simfile header. it consists of the std::string "LAMBDASIM200".
   // otherwise, the file is corrupt or wrong version
   pblockid = new char[12];
   simFile.read(pblockid, sizeof(char) * 12);
@@ -1472,7 +1472,7 @@ simError lambda::loadSimulation(const string fileName) {
   simFile.read(pblockid, sizeof(char) * 3);
   if (strncmp(pblockid, "DEF", 3) == 0) // DEF-Chunk exists?
   {
-    cout << "parsing DEF chunk\n";
+    std::cout << "parsing DEF chunk\n";
     pdummy = new double[6];
     simFile.read((char *)pdummy, sizeof(double) * 6); // read the data
     if (error == NONE)
@@ -1499,7 +1499,7 @@ simError lambda::loadSimulation(const string fileName) {
     }
   } else // if no DEF-Chunk exists, close the file and exit
   {
-    cout << "no DEF-Chunk exists, close the file and exit\n";
+    std::cout << "no DEF-Chunk exists, close the file and exit\n";
     simFile.close();
     delete[] pblockid;
     return FILE_DEF_BLOCK_BAD;
@@ -1510,7 +1510,7 @@ simError lambda::loadSimulation(const string fileName) {
   simFile.read(pblockid, sizeof(char) * 3);
   if (strncmp(pblockid, "ENV", 3) == 0) // ENV-Chunk exists?
   {
-    cout << "parsing ENV chunk\n";
+    std::cout << "parsing ENV chunk\n";
     pdummy =
         new double[config.nNodes]; // reserve memory for env-data in simfile
     data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
@@ -1541,7 +1541,7 @@ simError lambda::loadSimulation(const string fileName) {
   simFile.read(pblockid, sizeof(char) * 3);
   if (strncmp(pblockid, "ANG", 3) == 0) // ANG-Chunk exists?
   {
-    cout << "parsing ANG chunk\n";
+    std::cout << "parsing ANG chunk\n";
     pdummy =
         new double[config.nNodes]; // reserve memory for ang-data in simfile
     data.angle = new float[config.nNodes]; // reserve memory for angle-matrix
@@ -1557,7 +1557,7 @@ simError lambda::loadSimulation(const string fileName) {
              (strncmp(pblockid, "SMP", 3) ==
               0)) { // if angle-matrix does not exist and the next Chunk is FLT
                     // or SMP or SRC
-    cout << "angle-matrix does not exist and the next Chunk is FLT or SMP or "
+    std::cout << "angle-matrix does not exist and the next Chunk is FLT or SMP or "
             "SRC\n";
     data.angle = new float[config.nNodes];        // create empty angle matrix
     for (int pos = 0; pos < config.nNodes; pos++) // and fill it with 400.f
@@ -1567,7 +1567,7 @@ simError lambda::loadSimulation(const string fileName) {
         true; // do not read the next Chunk ID, because we have it already
   } else      // if angle-matrix does not exist and no valid chunk is following
   {
-    cout << "angle matrix does not exist and no valid chunk is following\n";
+    std::cout << "angle matrix does not exist and no valid chunk is following\n";
     simFile.close();
     delete[] pblockid;
     return FILE_ANG_BLOCK_BAD;
@@ -1586,7 +1586,7 @@ simError lambda::loadSimulation(const string fileName) {
     simFile.read(pblockid, sizeof(char) * 3);
   if (strncmp(pblockid, "FLT", 3) == 0) // FLT-Chunk exists?
   {
-    cout << "parsing FLT chunk\n";
+    std::cout << "parsing FLT chunk\n";
     pdummy = new double;
     simFile.read((char *)pdummy,
                  sizeof(double)); // yes, read in number of filters in chunk
@@ -1615,7 +1615,7 @@ simError lambda::loadSimulation(const string fileName) {
       numcoeffsB = (int)*pdummy;
       delete pdummy;
 
-      tmp_filtnumcoeffs[n] = max(numcoeffsA, numcoeffsB); // numcoeffs=maximum
+      tmp_filtnumcoeffs[n] = std::max(numcoeffsA, numcoeffsB); // numcoeffs=maximum
 
       pdummy = new double[numcoeffsA];
       simFile.read((char *)pdummy,
@@ -1652,7 +1652,7 @@ simError lambda::loadSimulation(const string fileName) {
              (strncmp(pblockid, "SMP", 3) ==
               0)) // the FLT-chunk is missing, is this a valid chunk?
   {
-    cout << "the FLT-chunk is missing, this a valid chunk, initialize filters "
+    std::cout << "the FLT-chunk is missing, this a valid chunk, initialize filters "
             "to 0\n";
     tmp_numfilters = 1; // if yes, initialize only the 0 filter
     tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
@@ -1672,7 +1672,7 @@ simError lambda::loadSimulation(const string fileName) {
                                        // because we already have it
   } else // if FLT-chunk does not exist and no valid chunk is following
   {
-    cout << "FLT-chunk does not exist and no valid chunk is following\n";
+    std::cout << "FLT-chunk does not exist and no valid chunk is following\n";
     simFile.close();
     delete[] pblockid;
     return FILE_FLT_BLOCK_BAD;
@@ -1944,42 +1944,42 @@ simError lambda::loadSimulation(const string fileName) {
   simSample *sample = NULL;
   if (strncmp(pblockid, "SMP", 3) == 0) // is it a SMP-chuck
   {
-    cout << "parsing SMP\n";
+    std::cout << "parsing SMP\n";
     pdummy = new double;
     simFile.read((char *)pdummy, sizeof(double));
     set("nSamples", (int)*pdummy);
     delete[] pdummy;
-    cout << "found " << config.nSamples << " sources\n";
+    std::cout << "found " << config.nSamples << " sources\n";
     data.samples = new_simSample_array(config.nSamples);
     for (int n = 0; n < config.nSamples; n++) // read all the samples
     {
-      cout << "reading source " << n << "\n";
+      std::cout << "reading source " << n << "\n";
       pdummy = new double;
       sample = data.samples[n];
       simFile.read((char *)pdummy, sizeof(double)); // read sample ID
       sample->id = (int)*pdummy;
-      cout << "IDX: " << sample->id << "\n";
+      std::cout << "IDX: " << sample->id << "\n";
       simFile.read((char *)pdummy, sizeof(double)); // read sample SR
       sample->sr = (int)*pdummy;
-      cout << "SR: " << sample->sr << "\n";
+      std::cout << "SR: " << sample->sr << "\n";
       simFile.read((char *)pdummy, sizeof(double)); // read numsamples
       sample->nsamples = (int)*pdummy;
-      cout << "nsamples: " << sample->nsamples << "\n";
+      std::cout << "nsamples: " << sample->nsamples << "\n";
       sample->data = new float[sample->nsamples]; // allocate memory
       delete[] pdummy;
 
       pdummy = new double[sample->nsamples];
-      cout << "reading sample data\n";
+      std::cout << "reading sample data\n";
       simFile.read((char *)pdummy, sizeof(double) * sample->nsamples);
-      cout << "finished reading sample data\n";
+      std::cout << "finished reading sample data\n";
       for (int pos = 0; pos < sample->nsamples; pos++) // convert it to float
       {
         sample->data[pos] = (float)pdummy[pos];
       }
       delete[] pdummy;
-      cout << "\nfinished reading samples\n";
+      std::cout << "\nfinished reading samples\n";
     }
-    cout << "finished reading all samples\n";
+    std::cout << "finished reading all samples\n";
     donotreadnextblockid = false;
   }
 
@@ -1995,14 +1995,14 @@ simError lambda::loadSimulation(const string fileName) {
   if (!donotreadnextblockid) // read the chunk header if it is required (see
                              // above)
   {
-    cout << "reading block ID\n";
+    std::cout << "reading block ID\n";
     simFile.read(pblockid, sizeof(char) * 3);
-    cout << "found: " << pblockid << "\n";
+    std::cout << "found: " << pblockid << "\n";
   } else
-    cout << "skipping reading blockid for SRC chunk\n";
+    std::cout << "skipping reading blockid for SRC chunk\n";
   if (strncmp(pblockid, "SRC", 3) == 0) // is it a SRC-chunk?
   {
-    cout << "parsing SRC chunk\n";
+    std::cout << "parsing SRC chunk\n";
     pdummy = new double;
     simFile.read((char *)pdummy,
                  sizeof(double)); // yes, read in the number of sources
@@ -2031,19 +2031,19 @@ simError lambda::loadSimulation(const string fileName) {
       // a sample source
       if (curSource.type == 30) {
         sample = data.samples[(int)curSource.freq];
-        cout << "sample source: IDX=" << sample->id << " SR=" << sample->sr
+        std::cout << "sample source: IDX=" << sample->id << " SR=" << sample->sr
              << " NSAMPLES=" << sample->nsamples
              << " DURATION(ms)=" << (sample->nsamples * 1000) / sample->sr
              << "\n";
       }
       defineSource(n, &curSource); // and add the source to the simulation
-      cout << "finished defining source of type " << curSource.type << "\n";
+      std::cout << "finished defining source of type " << curSource.type << "\n";
     }
     delete pdummy;
   } else // no SRC-chunk found --> delete all our work we've done so far
   {
-    cout << "no SRC-chunk found, found instead " << pblockid << "\n";
-    cout << "no SRC-chunk found --> delete all our work we've done so far\n";
+    std::cout << "no SRC-chunk found, found instead " << pblockid << "\n";
+    std::cout << "no SRC-chunk found --> delete all our work we've done so far\n";
     simFile.close();
     delete[] pblockid;
     delete[] isvelosource;
@@ -2133,7 +2133,7 @@ simError lambda::loadSimulation(const string fileName) {
 //   Tries to load a recorded playback file.
 //
 // INPUT
-//   const string fileName : name of the file to be opened.
+//   const std::string fileName : name of the file to be opened.
 //
 // OUTPUT
 //   None
@@ -2146,7 +2146,7 @@ simError lambda::loadSimulation(const string fileName) {
 //05/06	1.0 	M. Ruhland 	no changes
 //05/09	2.0
 //
-simError lambda::loadRecord(const string fileName) {
+simError lambda::loadRecord(const std::string fileName) {
   struct stat results; // File info
   // Try to get file info, return error if file could not be opened
   if (stat((char *)fileName.c_str(), &results) != 0)
@@ -2158,7 +2158,7 @@ simError lambda::loadRecord(const string fileName) {
   set("status", MISMATCH);
   resetAll();
   // open recfile and create pointer
-  ifstream recFile((char *)fileName.c_str(), ios::in | ios::binary);
+  std::ifstream recFile((char *)fileName.c_str(), std::ios::in | std::ios::binary);
   // read nY and nX into the dim array
   double *dim = new double[2];
   recFile.read((char *)dim, sizeof(double) * 2);

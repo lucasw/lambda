@@ -36,7 +36,6 @@
 #define MAKEDIR
 #endif
 
-using namespace std;
 using namespace cimg_library;
 
 // This struct provides 3 colors for writing text / painting.
@@ -150,10 +149,10 @@ struct simGraphics {
 
 // Files used in the program.
 struct simFiles {
-  string lastFileName;
-  ofstream aviFile;
-  ofstream rceFile;
-  ofstream rcoFile;
+  std::string lastFileName;
+  std::ofstream aviFile;
+  std::ofstream rceFile;
+  std::ofstream rcoFile;
 };
 
 // Source data.
@@ -278,7 +277,7 @@ private:
   //   value for nX
   //   (>0) and will update nNodes (which should always be nX*nY at any time)
   //   and dispSizeX automatically.
-  template <class T> simError set(const string what, const T value);
+  template <class T> simError set(const std::string what, const T value);
 
   //   Loads a simulation or replay file into the program. If no filename is
   //   provided, opens a dialog for file selection. loadFile tries to load the
@@ -287,20 +286,20 @@ private:
   // RETURN VALUE
   //   simError: NONE if file was opened successfully, error identfier
   //   otherwise.
-  virtual simError loadFile(string fileName = "NONE");
+  virtual simError loadFile(std::string fileName = "NONE");
 
   // PURPOSE
   //   Tries to load a recorded playback file.
   // RETURN VALUE
   //   simError: NONE if file was opened successfully, error identfier
   //   otherwise.
-  virtual simError loadRecord(const string fileName);
+  virtual simError loadRecord(const std::string fileName);
 
   // load a simulation file.
   // RETURN VALUE
   //   simError: NONE if file was opened successfully, error identfier
   //   otherwise.
-  virtual simError loadSimulation(const string fileName);
+  virtual simError loadSimulation(const std::string fileName);
 
   //   Prepares variables needed for simulation.
   // RETURN VALUE
