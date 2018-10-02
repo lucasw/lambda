@@ -207,18 +207,15 @@ typedef enum {
 } simStatus;
 
 // Main class
-class lambda : public QWidget {
-  Q_OBJECT
+class lambda {
 public:
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   // lambda::lambda()
   //
   // PURPOSE
-  //   Constructor for the program's main class, initializes program and builds
-  //   up GUI.
+  //   Constructor for the program's main class, initializes program.
   //
   // INPUT
-  //   QWidget *parent :  Parent QT widget
   //   const char *name : Window title
   //   int argc         : Number of elements in input vector argv
   //   char *argv[]     : Array of variable input parameters
@@ -234,35 +231,10 @@ public:
   //05/06	1.0 	M. Ruhland 	no changes
   //05/09	2.0
   //
-  lambda(QWidget *parent = 0, const char *name = 0, int argc = 0,
+  lambda(const char *name = 0, int argc = 0,
          char *argv[] = NULL);
 
-private slots:
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
-  // lambda::open()
-  //
-  // PURPOSE
-  //   QT Slot connected to the open file button. This is actually just a
-  //   redirection. loadFile must return a value for other reasons, but QT slots
-  //   must always be void. So this is just a function call to loadFile, dumping
-  //   its return value.
-  //
-  // INPUT
-  //   None
-  //
-  // OUTPUT
-  //   None
-  //
-  // RETURN VALUE
-  //   None
-  //
-  //	AUTHOR		CHANGES										DATE
-  //VERSION 	S. Ahrens 	First build
-  //05/06	1.0 	M. Ruhland 	no changes
-  //05/09	2.0
-  //
-  void open();
-
+private:
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   // lambda::vis()
   //
@@ -641,30 +613,6 @@ private slots:
 
 private:
   ///////////////////////////////////////////////////////////////////////////////////////////////////
-  // lambda::initGui()
-  //
-  // PURPOSE
-  //   Creates the programs GUI by initializing QT Widgets and designing the
-  //   layout. QT Widgets become connected to provide the GUI's functionality.
-  //
-  // INPUT
-  //   None
-  //
-  // OUTPUT
-  //   None
-  //
-  // RETURN VALUE
-  //   None
-  //
-  //	AUTHOR		CHANGES										DATE
-  //VERSION 	S. Ahrens	First build
-  //05/06	1.0
-  //  M. Ruhland  changed copyright line                      04/08
-  //	M. Ruhland	added "Walls"-Checkbox                      05/09   2.0
-  //
-  void initGui(const char *name);
-
-  ///////////////////////////////////////////////////////////////////////////////////////////////////
   // lambda::initVariables()
   //
   // PURPOSE
@@ -950,7 +898,8 @@ private:
   //
   virtual void processVis();
 
-  virtual void processFrame(CImg<float> *frame, float *pressure);
+  virtual void processFrame(CImg<float> *frame, float *pressure,
+      const bool showbounds_box=false);
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////
   // lambda::processRce()
@@ -1124,7 +1073,6 @@ private:
   simData data;
   simIndex index;
   simGraphics graphics;
-  simGui gui;
   simStatus status;
   simFiles files;
 };

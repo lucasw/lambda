@@ -26,9 +26,6 @@
 int GFX_MAXCONTRAST = 100;    // Max value for contrast control
 int GFX_MINCONTRAST = 0;      // Min value for conrast control
 int GFX_STDCONTRAST = 50;     // Standard value for contrast control
-int GFX_MAXQUALITY = 100;     // Max value for JPG encoding quality
-int GFX_MINQUALITY = 1;       // Min value for JPG encoding quality
-int GFX_STDQUALITY = 100;     // Standard value for JPG encoding quality
 int GFX_MAXSAMPLES = 9999999; // Max value for number of iterations
 int GFX_MINSAMPLES = 0;       // Min value for number of iterations
 int GFX_STDSAMPLES = 0;       // Standard value for number of iterations
@@ -282,7 +279,6 @@ void lambda::initVariables() {
   graphics.skip = GFX_STDSKIP + 1;
   graphics.dispSizeX = 0;
   graphics.dispSizeY = 0;
-  graphics.quality = GFX_STDQUALITY;
   graphics.colors.white[0] = 255.f;
   graphics.colors.grey[0] = 127.f;
   graphics.colors.black[0] = 0.f;
@@ -337,18 +333,6 @@ void lambda::initVariables() {
   data.samples = NULL;
 
   resetAll();
-
-  // These timers control the simulation's timing.
-  simTimer = new QTimer(this);
-  simTimer->setInterval(0);
-  connect(simTimer, SIGNAL(timeout()), this, SLOT(processSim()));
-  repTimer = new QTimer(this);
-  repTimer->setInterval((int)(1000 / GFX_FRAMERATE));
-  connect(repTimer, SIGNAL(timeout()), this, SLOT(processRep()));
-  visTimer = new QTimer(this);
-  visTimer->setInterval(100);
-  connect(visTimer, SIGNAL(timeout()), this, SLOT(checkScreen()));
-  timer = simTimer;
 
   status = MISMATCH;
 }
@@ -740,7 +724,7 @@ void lambda::resetSimulation() {
 void lambda::handleParameters(int argc, char *argv[]) {
   string argument;
   int arg;
-  // Order of parameters is random, but avi, rce, rco and vis must be
+  // Order of parameters is random, but rce, rco and vis must be
   // activated after loading a file, if requested. If a file is requested,
   // the last step must be starting the simulation.
   // To achieve this order of processing, the parameters are checked and read in
@@ -779,11 +763,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
                (argument == "/Skip") || (argument == "/SKIP")) {
       if (arg < argc - 1)
         set("skip", atoi(argv[arg + 1])); // set the skip value
-    } else if ((argument == "-quality") || (argument == "-Quality") ||
-               (argument == "-QUALITY") || (argument == "/quality") ||
-               (argument == "/Quality") || (argument == "/QUALITY")) {
-      if (arg < argc - 1)
-        set("quality", atoi(argv[arg + 1])); // set the quality value
     } else if ((argument == "-iterations") || (argument == "-Iterations") ||
                (argument == "-ITERATIONS") || (argument == "/iterations") ||
                (argument == "/Iterations") || (argument == "/ITERATIONS")) {
@@ -794,14 +773,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
                (argument == "/colormap") || (argument == "/colormap")) {
       if (arg < argc - 1)
         set("colormap", atoi(argv[arg + 1]));
-    } else if ((argument == "-avi") || (argument == "-Avi") ||
-               (argument == "-AVI") || (argument == "/avi") ||
-               (argument == "/Avi") || (argument == "/AVI")) {
-      clickAvi = true; // check avi checkbox
-    } else if ((argument == "-avifps") || (argument == "/avifps")) {
-      if (arg < argc - 1) {
-        AVI_FRAMERATE = atoi(argv[arg + 1]);
-      }
     } else if ((argument == "-rce") || (argument == "-Rce") ||
                (argument == "-RCE") || (argument == "/rce") ||
                (argument == "/Rce") || (argument == "/RCE")) {
@@ -830,10 +801,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
               "-vis            : activate visualization\n"
               "-rce            : activate recording at receivers, if defined\n"
               "-walls          : show walls, if defined\n"
-              "-avi            : record the simulation as an avi\n"
-              "-avifps N       : set the framerate of the generate avi "
-              "(default=25)\n"
-              "-quality N  (0-100)  : adjust the quality of the avi rendering "
               "(default 100)\n"
               "-contrast N (0-100)  : adjust the contrast of the visualization "
               "(default 50)\n"
@@ -844,8 +811,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
               "-zoom           : set the zoom level of a visualization (an "
               "integer number)\n"
               "-skip           : set number of frames to skip (default 0)\n"
-              "-fps            : set the framerate of the simulation (default "
-              "25)\n"
               "-exit           : exit the program after finishing (good for "
               "batch processes)\n"
               "\n"
@@ -853,56 +818,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
           ;
       exit(0);
     }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::start()
-//
-// PURPOSE
-//   QT Slot connected to the Simulate/Pause button. Effects depend on current
-//   status.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::start() {
-  if (status == RUNNING) {
-    // If simulation is running, pause it by changing the status
-    // and halting the timer.
-    set("status", PAUSED);
-    timer->stop();
-  } else if (status == PAUSED) {
-    // If simulation is paused, resume it by changing the status
-    // and starting the timer again.
-    set("status", RUNNING);
-    timer->start();
-  } else if (status == SIMULATOR) {
-    // If simulation is ready to go, start it by changing the status
-    // and starting the timer. Call initSimulation to prepare all the
-    // variables for the new run.
-    initSimulation();
-    set("status", RUNNING);
-    timer->start();
-  } else if (status == PLAYER) {
-    // If program is ready to replay a recorded file, start the replay
-    // by changing the status and starting the timer. Don't forget
-    // to reset the counter counting the frames already processed though.
-    // InitSimulation does that for simulation runs.
-    config.n = 0;
-    set("status", RUNNING);
-    timer->start();
   }
 }
 
@@ -928,8 +843,6 @@ void lambda::start() {
 //05/09	2.0
 //
 void lambda::stop() {
-  // Stop the timer, reset all simulation data
-  timer->stop();
   resetSimulation();
   // Reset display, if vis was on and simulation was reset manually
   // (don't change picture if simulation ended automatically)
@@ -1040,19 +953,11 @@ void lambda::vis() {
     // been calculated yet).
     if ((status == RUNNING) || (status == PAUSED))
       processVis();
-    // Set the timer interval to match the desired visualization framerate
-    timer->setInterval((int)(1000 / GFX_FRAMERATE));
-    cout << "visualization interval: " << (int)(1000 / GFX_FRAMERATE) << "\n";
-    // Launch visualization timer
-    if (status != RUNNING)
-      visTimer->start();
-  } else {
+  }
+  #if 0
+  else {
     // If visualization got switched OFF, tidy up the leftovers
     // Screenshots are not available anymore, since no frames will be calculated
-    // Set timer interval to zero -> proceed as fast as possible
-    timer->setInterval(0);
-    // Stop visualization timer
-    visTimer->stop();
     if ((graphics.screen != NULL) && (graphics.frame != NULL)) {
       // delete frame and screen, reset to NULL
       delete graphics.frame;
@@ -1061,6 +966,7 @@ void lambda::vis() {
       graphics.screen = NULL;
     }
   }
+  #endif
 }
 
 
@@ -1206,7 +1112,7 @@ void lambda::processFrame(CImg<float> *frame, float *pressure,
       }
   */
 
-  float bg[3] = {r0, g0, b0};
+  float bg[3] = {static_cast<float>(r0), static_cast<float>(g0), static_cast<float>(b0)};
   sprintf(textbuf, "C%1.1f F%05i", contrast, config.n + 1);
   frame->draw_text(0, -2, textbuf, graphics.colors.black, bg, 0.5);
   sprintf(textbuf, "ms%.1f", config.n * config.tSample * 1E3);
@@ -1328,7 +1234,6 @@ template <class T> simError lambda::set(const string what, const T value) {
     if ((int)value < 0)
       return NO_SAMPLES;
     config.nN = (int)value;
-    gui.samplesBox->setValue((int)value);
     return NONE;
   }
   if (what == "cTube") {
@@ -1369,12 +1274,11 @@ template <class T> simError lambda::set(const string what, const T value) {
                 5 * ((float)value -
                      1)); //(unsigned int)exp(.075*(unsigned int)value);
     // Update Gui (contrast might have been set by input parameter)
-    gui.contrastBox->setValue((int)value);
     // If visualization is on and paused, update the screen with the new
     // contrast setting. If the simulation is not paused, the new contrast will
     // be used for the next frame anyways.
-    if ((status == PAUSED) && (gui.visBox->isChecked()))
-      processVis();
+    // if ((status == PAUSED) && (gui.visBox->isChecked()))
+    //  processVis();
     return NONE;
   }
   if (what == "zoom") {
@@ -1383,7 +1287,6 @@ template <class T> simError lambda::set(const string what, const T value) {
       return ZOOM_OUT_OF_RANGE;
     graphics.zoom = (int)value;
     // Update Gui (zoom change might have been invoked from somewhere else)
-    gui.zoomBox->setValue((int)value);
     // Adjust vis screen size
     set("dispSizeX", (int)value * config.nX);
     set("dispSizeY", (int)value * config.nY);
@@ -1402,27 +1305,11 @@ template <class T> simError lambda::set(const string what, const T value) {
     // selected value, e.g. 1 if 0 frames are to be skipped
     graphics.skip = (int)value + 1;
     // Update Gui
-    gui.skipBox->setValue((int)value);
-    return NONE;
-  }
-  if (what == "quality") {
-    // If quality is to be set, check if new contrast is between 1 and 100.
-    if (((int)value < 1) || ((int)value > 100))
-      return QUALITY_OUT_OF_RANGE;
-    graphics.quality = (int)value;
-    // Update Gui
-    gui.qualityBox->setValue((int)value);
-    return NONE;
-  }
-  if (what == "framerate") {
-    GFX_FRAMERATE = (int)value;
-    gui.framerateBox->setValue((int)value);
     return NONE;
   }
   if (what == "colormap") {
     COLORMAP = (int)value;
     config.colormap = (int)value;
-    gui.colormap->setValue((int)value);
     return NONE;
   }
   if (what == "nRec") {
@@ -1472,9 +1359,8 @@ template <class T> simError lambda::set(const string what, const T value) {
     switch ((simStatus)value) {
     // Take necessary actions for the new status
     case PLAYER:
-      // gui.statusLine->setText("<font color=red>Ready for replay</font>");
+      // statusLine->setText("<font color=red>Ready for replay</font>");
       // During replays, repTimer is resonsible for correct timing. Make
-      // repTimer the active timer by having timer point to it.
       // Replays always have the visualization feature switched on
       // But all the other features are disabled
       // Show empty frame in vis window
@@ -1482,12 +1368,10 @@ template <class T> simError lambda::set(const string what, const T value) {
       break;
 
     case PAUSED:
-      // gui.statusLine->setText("<font color=red>Paused</font>");
-      // Since the simulation/replay procedure is halted, let the vis timer take
-      // care of the vis window again.
+      // statusLine->setText("<font color=red>Paused</font>");
       break;
     case MISMATCH:
-      // gui.statusLine->setText("<font color=red>Bad data</font>");
+      // statusLine->setText("<font color=red>Bad data</font>");
       // If no data is loaded, disable everything. No action can be performed.
 
       break;
@@ -2369,7 +2253,6 @@ simError lambda::loadRecord(const string fileName) {
   set("nN",
       (results.st_size - 2 * sizeof(double)) / (config.nNodes * sizeof(float)));
   // Make sure that the user cannot choose to watch more frames than available
-  gui.samplesBox->setRange(0, config.nN);
   // Prepare recorded data array
   data.record = new float[config.nNodes * config.nN];
   // read recorded data
@@ -2525,7 +2408,7 @@ simError lambda::initSimulation() {
 // lambda::processRep
 //
 // PURPOSE
-//   Processes the next replay frame. QT-connected to repTimer.
+//   Processes the next replay frame.
 //
 // INPUT
 //   None
@@ -2551,8 +2434,8 @@ void lambda::processRep() {
     graphics.screen->display(*graphics.frame);
   }
   config.n++;
-  if (graphics.screen->is_closed() || config.n >= config.nN)
-    gui.stopButton->click();
+  // if (graphics.screen->is_closed() || config.n >= config.nN)
+  //   stopButton->click();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3006,14 +2889,14 @@ void lambda::processSim() {
       }
     }
     graphics.frame_ready = false;
-    // Process actions like rce, rco, avi or vis if required
+    // Process actions like rce, rco or vis if required
     #if 0
-    if (gui.rceBox->isChecked())
+    if (rceBox->isChecked())
       processRce();
-    if (gui.rcoBox->isChecked())
+    if (rcoBox->isChecked())
       if (config.n % graphics.skip == 0)
         processRco();
-    if (gui.visBox->isChecked())
+    if (visBox->isChecked())
       if (config.n % graphics.skip == 0)
         processVis();
     #endif
@@ -3029,7 +2912,7 @@ void lambda::processSim() {
       int ms = config.n * config.tSample * 1E3;
       sprintf(buf, "ms:%d step:%d fps:%lu", ms, config.n, (config.n - lastn));
       lastn = config.n;
-      gui.statusLine->setText(buf);
+      // gui.statusLine->setText(buf);
     }
 
     // update counter. Stop simulation if desired nr. of iterations is reached.

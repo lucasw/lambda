@@ -43,12 +43,13 @@ catkin_package(
 )
 
 include_directories(
+  include
   ${CMAKE_CURRENT_SOURCE_DIR}/../src
   ${catkin_INCLUDE_DIRS}
 #   ${lambda_INCLUDE_DIRES}
 )
 
-add_executable(${PROJECT_NAME}
+add_library(${PROJECT_NAME}
   src/lambda.cpp
 )
 
