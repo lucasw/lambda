@@ -23,23 +23,6 @@
 #define LAMBDA_H
 
 #include "CImg.h"
-#include "revel.h"
-#include <QApplication>
-#include <QCheckBox>
-#include <QDialog>
-#include <QFileDialog>
-#include <QGroupBox>
-#include <QImage>
-#include <QLabel>
-#include <QLayout>
-#include <QLineEdit>
-#include <QPainter>
-#include <QPushButton>
-#include <QQueue>
-#include <QSpinBox>
-#include <QString>
-#include <QTimer>
-#include <QVBoxLayout>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -55,15 +38,6 @@
 
 using namespace std;
 using namespace cimg_library;
-
-class QPushButton;
-class QLabel;
-class QSpinBox;
-class QCheckBox;
-class QGroupBox;
-class QLineEdit;
-class QImage;
-class QTimer;
 
 // This struct provides 3 colors for writing text / painting.
 struct simColors {
@@ -174,57 +148,12 @@ struct simGraphics {
   bool frame_ready;
 };
 
-// Gui elements.
-struct simGui {
-  QPushButton *openFileButton;
-
-  QCheckBox *visBox;
-  QCheckBox *rceBox;
-  QCheckBox *rcoBox;
-  QCheckBox *aviBox;
-  QCheckBox *showboundsBox;
-
-  QPushButton *startButton;
-  QPushButton *stopButton;
-  QPushButton *snapButton;
-  QPushButton *quitButton;
-
-  QSpinBox *contrastBox;
-  QLabel *contrastLabel;
-
-  QSpinBox *framerateBox;
-  QLabel *framerateLabel;
-
-  QSpinBox *zoomBox;
-  QLabel *zoomLabel;
-  QSpinBox *skipBox;
-  QLabel *skipLabel;
-  QSpinBox *qualityBox;
-  QLabel *qualityLabel;
-  QSpinBox *samplesBox;
-  QLabel *samplesLabel;
-  QSpinBox *colormap;
-  QLabel *colormapLabel;
-
-  QLabel *statusLine;
-  QLabel *copyright1;
-
-  QGroupBox *inputBox;
-  QGroupBox *configBox;
-  QGroupBox *outputBox;
-  QGroupBox *controlBox;
-  QGroupBox *statusBox;
-  QGroupBox *displayBox;
-};
-
 // Files used in the program.
 struct simFiles {
   string lastFileName;
   ofstream aviFile;
   ofstream rceFile;
   ofstream rcoFile;
-  int videoStream;
-  Revel_VideoFrame videoFrame;
 };
 
 // Source data.
@@ -1198,11 +1127,6 @@ private:
   simGui gui;
   simStatus status;
   simFiles files;
-
-  QTimer *simTimer;
-  QTimer *repTimer;
-  QTimer *timer;
-  QTimer *visTimer;
 };
 
 #endif

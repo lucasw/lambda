@@ -19,13 +19,9 @@
 //  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //  or visit http://www.gnu.org/licenses/gpl.html
 
-#include "lambda.h"
+#include <lambda_ros/lambda.h>
 
 // Set some global parameters.
-
-int AVI_FRAMERATE = 25; // Framerate for AVI-encoding
-int GFX_FRAMERATE = 25; // Framerate for visualization
-// int GFX_FRAMERATE   = 60;	// Framerate for visualization
 
 int GFX_MAXCONTRAST = 100;    // Max value for contrast control
 int GFX_MINCONTRAST = 0;      // Min value for conrast control
@@ -42,13 +38,7 @@ int GFX_STDSKIP = 0;          // Standard value for number of iterations to skip
 int GFX_MAXZOOM = 999;        // Max value for zoom control
 int GFX_MINZOOM = 1;          // Min value for zoom control
 int GFX_STDZOOM = 1;          // Standard value for zoom control
-int GUI_BUTTONWIDTH = 110;    // Fixed GUI button width
-int GUI_MAINWIDTH = 140;      // Fixed GUI dialog width
-int GUI_SPINWIDTH = 57;       // Fixed GUI spinbox width
 bool AUTOEXIT = false;        // automatic exit when simulation end is reached
-int GFX_MINFRAMERATE = 10;
-int GFX_MAXFRAMERATE = 500;
-int GFX_STDFRAMERATE = 25;
 int MEMSRC = 20;
 int COLORMAP = 1;
 
@@ -232,11 +222,8 @@ colormap_t get_colormap(int colormap_index) {
 //
 // PURPOSE
 //   Constructor for the program's main class, initializes program and builds up
-//   GUI.
 //
 // INPUT
-//   QWidget *parent :  Parent QT widget
-//   const char *name : Window title
 //   int argc         : Number of elements in input vector argv
 //   char *argv[]     : Array of variable input parameters
 //
@@ -251,10 +238,8 @@ colormap_t get_colormap(int colormap_index) {
 //05/06	1.0 	M. Ruhland 	no changes
 //05/09	2.0
 //
-lambda::lambda(QWidget *parent, const char *name, int argc, char *argv[])
-    : QWidget(parent) {
-  // Create GUI
-  initGui(name);
+lambda::lambda(const char *name, int argc, char *argv[])
+{
   // Initialize variables
   initVariables();
   // Process input parameters that might be provided in argv
@@ -262,242 +247,6 @@ lambda::lambda(QWidget *parent, const char *name, int argc, char *argv[])
   srand(time(NULL));
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::initGui()
-//
-// PURPOSE
-//   Creates the programs GUI by initializing QT Widgets and designing the
-//   layout. QT Widgets become connected to provide the GUI's functionality.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens	First build
-//05/06	1.0
-//  M. Ruhland  changed copyright line                      04/08
-//	M. Ruhland	added "Walls"-Checkbox                      05/09   2.0
-//
-void lambda::initGui(const char *name) {
-  // Set window title and font style
-  setWindowTitle(name);
-  setFont(QFont("Helvetica", 11));
-  // Initialize group boxes
-  gui.inputBox = new QGroupBox("Input");
-  gui.outputBox = new QGroupBox("Output");
-  gui.controlBox = new QGroupBox("Controls");
-  gui.configBox = new QGroupBox("Config");
-  gui.statusBox = new QGroupBox("Status");
-  gui.displayBox = new QGroupBox("Visualization");
-  // Initialize open file button
-  gui.openFileButton = new QPushButton("Open &file", gui.inputBox);
-  gui.openFileButton->setFixedWidth(GUI_BUTTONWIDTH);
-  // Initialize output checkboxes, none of them is avilable at startup
-  gui.visBox = new QCheckBox("&Vis", gui.outputBox);
-  gui.visBox->setEnabled(false);
-  gui.rceBox = new QCheckBox("Rc&e", gui.outputBox);
-  gui.rceBox->setEnabled(false);
-  gui.rcoBox = new QCheckBox("Rc&o", gui.outputBox);
-  gui.rcoBox->setEnabled(false);
-  gui.aviBox = new QCheckBox("&Avi", gui.outputBox);
-  gui.aviBox->setEnabled(false);
-  gui.showboundsBox = new QCheckBox("&Walls", gui.outputBox);
-  gui.showboundsBox->setEnabled(false);
-  // Initialize control buttons, these are also unavailable (except for quit
-  // button)
-  gui.startButton = new QPushButton("St&art/Pause", gui.controlBox);
-  gui.startButton->setFixedWidth(GUI_BUTTONWIDTH);
-  gui.startButton->setEnabled(false);
-  gui.startButton->setCheckable(true); // This is a toggle button
-  gui.stopButton = new QPushButton("Rese&t", gui.controlBox);
-  gui.stopButton->setFixedWidth(GUI_BUTTONWIDTH);
-  gui.stopButton->setEnabled(false);
-  gui.snapButton = new QPushButton("Scree&nshot", gui.controlBox);
-  gui.snapButton->setFixedWidth(GUI_BUTTONWIDTH);
-  gui.snapButton->setEnabled(false);
-  gui.quitButton = new QPushButton("Q&uit", gui.controlBox);
-  gui.quitButton->setFixedWidth(GUI_BUTTONWIDTH);
-  // Initialize config spinboxes and their labels:
-  // Contrast
-  gui.contrastBox = new QSpinBox(gui.configBox);
-  gui.contrastLabel = new QLabel("&Contrast", gui.configBox);
-  gui.contrastLabel->setBuddy(
-      gui.contrastBox); // Relate Label to spinbox to enable keyboard selection
-  gui.contrastBox->setRange(GFX_MINCONTRAST, GFX_MAXCONTRAST);
-  gui.contrastBox->setValue(GFX_STDCONTRAST);
-  gui.contrastBox->setFrame(false);
-  gui.contrastBox->setSuffix("%");
-  gui.contrastBox->setAlignment(Qt::AlignRight);
-  gui.contrastBox->setFixedWidth(GUI_SPINWIDTH);
-  gui.contrastBox->setSingleStep(10);
-  // QFont* contrast_font = new QFont();
-  // contrast_font->setPixelSize(25);
-  // gui.contrastBox->setFont(*contrast_font);
-  // Zoom
-  gui.zoomBox = new QSpinBox(gui.configBox);
-  gui.zoomLabel = new QLabel("&Zoom", gui.configBox);
-  gui.zoomLabel->setBuddy(gui.zoomBox);
-  gui.zoomBox->setRange(GFX_MINZOOM, GFX_MAXZOOM);
-  gui.zoomBox->setValue(GFX_STDZOOM);
-  gui.zoomBox->setFrame(false);
-  gui.zoomBox->setSuffix("x");
-  gui.zoomBox->setAlignment(Qt::AlignRight);
-  gui.zoomBox->setFixedWidth(GUI_SPINWIDTH);
-  // Skip
-  gui.skipBox = new QSpinBox(gui.configBox);
-  gui.skipLabel = new QLabel("&Skip", gui.configBox);
-  gui.skipLabel->setBuddy(gui.skipBox);
-  gui.skipBox->setRange(GFX_MINSKIP, GFX_MAXSKIP);
-  gui.skipBox->setValue(GFX_STDSKIP);
-  gui.skipBox->setFrame(false);
-  gui.skipBox->setAlignment(Qt::AlignRight);
-  gui.skipBox->setFixedWidth(GUI_SPINWIDTH);
-  // Quality
-  gui.qualityBox = new QSpinBox(gui.configBox);
-  gui.qualityLabel = new QLabel("&Quality", gui.configBox);
-  gui.qualityLabel->setBuddy(gui.qualityBox);
-  gui.qualityBox->setRange(GFX_MINQUALITY, GFX_MAXQUALITY);
-  gui.qualityBox->setValue(GFX_STDQUALITY);
-  gui.qualityBox->setFrame(false);
-  gui.qualityBox->setSuffix("%");
-  gui.qualityBox->setAlignment(Qt::AlignRight);
-  gui.qualityBox->setFixedWidth(GUI_SPINWIDTH);
-  // FrameRate
-  gui.framerateBox = new QSpinBox(gui.configBox);
-  gui.framerateLabel = new QLabel("&Framerate", gui.configBox);
-  gui.framerateLabel->setBuddy(gui.framerateBox);
-  gui.framerateBox->setRange(GFX_MINFRAMERATE, GFX_MAXFRAMERATE);
-  gui.framerateBox->setValue(GFX_STDFRAMERATE);
-  gui.framerateBox->setFrame(false);
-  gui.framerateBox->setSuffix("fps");
-  gui.framerateBox->setAlignment(Qt::AlignRight);
-  gui.framerateBox->setFixedWidth(GUI_SPINWIDTH);
-  // Iterations
-  gui.samplesBox = new QSpinBox(gui.configBox);
-  gui.samplesLabel = new QLabel("&Iterations", gui.configBox);
-  gui.samplesLabel->setBuddy(gui.samplesBox);
-  gui.samplesBox->setValue(GFX_STDSAMPLES);
-  gui.samplesBox->setFrame(false);
-  gui.samplesBox->setSpecialValueText("INF");
-  gui.samplesBox->setAlignment(Qt::AlignRight);
-  gui.samplesBox->setFixedWidth(GUI_SPINWIDTH);
-  gui.samplesBox->setRange(0, GFX_MAXSAMPLES);
-  // Colormap
-  gui.colormap = new QSpinBox(gui.configBox);
-  gui.colormapLabel = new QLabel("Colormap", gui.configBox);
-  gui.colormapLabel->setBuddy(gui.colormap);
-  gui.colormap->setRange(0, 2);
-  gui.colormap->setValue(COLORMAP);
-  gui.colormap->setAlignment(Qt::AlignRight);
-  gui.colormap->setFixedWidth(GUI_SPINWIDTH);
-
-  // Initialize status display
-  gui.statusLine = new QLabel(gui.statusBox);
-  gui.statusLine->setText(
-      "<font color=red>Bad Data</font>"); // No data is loaded at startup
-  gui.statusLine->setAlignment(Qt::AlignHCenter);
-  QFont *statusfont = new QFont("Helvetica", 10);
-  gui.statusLine->setFont(*statusfont);
-  // Initialize copyright label
-  gui.copyright1 = new QLabel(this);
-  // gui.copyright1->setText("&#169;IHA Oldenburg<br>M.Ruhland, M.Blau,<br>and
-  // others"); gui.copyright1->setAlignment(Qt::AlignRight);
-  // gui.copyright1->setAlignment(Qt::AlignCenter);
-  // Initialize layout for input section
-  QHBoxLayout *inputLayout = new QHBoxLayout;
-  // Add open file button to the input section
-  inputLayout->addWidget(gui.openFileButton);
-  inputLayout->setMargin(5);
-  inputLayout->setSpacing(2);
-  // Assign layout to the right section
-  gui.inputBox->setLayout(inputLayout);
-  // Same for other sections
-  QGridLayout *outputLayout = new QGridLayout;
-  outputLayout->addWidget(gui.visBox, 0, 0);
-  outputLayout->addWidget(gui.aviBox, 0, 1);
-  outputLayout->addWidget(gui.rceBox, 1, 0);
-  outputLayout->addWidget(gui.rcoBox, 1, 1);
-  outputLayout->addWidget(gui.showboundsBox, 2, 0);
-  outputLayout->setMargin(2);
-  outputLayout->setSpacing(2);
-  gui.outputBox->setLayout(outputLayout);
-  QVBoxLayout *controlLayout = new QVBoxLayout;
-  controlLayout->addWidget(gui.startButton);
-  controlLayout->addWidget(gui.stopButton);
-  controlLayout->addWidget(gui.snapButton);
-  controlLayout->addWidget(gui.quitButton);
-  controlLayout->setAlignment(gui.startButton, Qt::AlignHCenter);
-  controlLayout->setAlignment(gui.stopButton, Qt::AlignHCenter);
-  controlLayout->setAlignment(gui.snapButton, Qt::AlignHCenter);
-  controlLayout->setAlignment(gui.quitButton, Qt::AlignHCenter);
-  controlLayout->setMargin(5);
-  controlLayout->setSpacing(2);
-  gui.controlBox->setLayout(controlLayout);
-  QGridLayout *configLayout = new QGridLayout;
-  configLayout->addWidget(gui.contrastBox, 0, 0);
-  configLayout->addWidget(gui.contrastLabel, 0, 1);
-  configLayout->addWidget(gui.zoomBox, 1, 0);
-  configLayout->addWidget(gui.zoomLabel, 1, 1);
-  configLayout->addWidget(gui.skipBox, 2, 0);
-  configLayout->addWidget(gui.skipLabel, 2, 1);
-  configLayout->addWidget(gui.qualityBox, 3, 0);
-  configLayout->addWidget(gui.qualityLabel, 3, 1);
-  configLayout->addWidget(gui.samplesBox, 4, 0);
-  configLayout->addWidget(gui.samplesLabel, 4, 1);
-  configLayout->addWidget(gui.framerateBox, 5, 0);
-  configLayout->addWidget(gui.framerateLabel, 5, 1);
-  configLayout->addWidget(gui.colormap, 6, 0);
-  configLayout->addWidget(gui.colormapLabel, 6, 1);
-  configLayout->setMargin(2);
-  configLayout->setSpacing(2);
-  gui.configBox->setLayout(configLayout);
-  QVBoxLayout *statusLayout = new QVBoxLayout;
-  statusLayout->addWidget(gui.statusLine);
-  statusLayout->setMargin(0);
-  statusLayout->setSpacing(0);
-  gui.statusBox->setLayout(statusLayout);
-  // Initialize the GUI's main layout: Arrange subgroups
-  QGridLayout *mainLayout = new QGridLayout;
-  mainLayout->setMargin(2);
-  mainLayout->setSpacing(2);
-  mainLayout->addWidget(gui.inputBox, 0, 0);
-  mainLayout->addWidget(gui.outputBox, 1, 0);
-  mainLayout->addWidget(gui.controlBox, 2, 0);
-  mainLayout->addWidget(gui.configBox, 3, 0);
-  mainLayout->addWidget(gui.statusBox, 4, 0);
-  mainLayout->addWidget(gui.copyright1, 6, 0);
-  mainLayout->setColumnStretch(0, 10);
-  setLayout(mainLayout);
-  setFixedWidth(GUI_MAINWIDTH);
-  // Connect QT widgets. This is where we decide what happens when the user
-  // clicks on some element of the GUI
-  connect(gui.openFileButton, SIGNAL(clicked()), this, SLOT(open()));
-  connect(gui.visBox, SIGNAL(stateChanged(int)), this, SLOT(vis()));
-  connect(gui.rceBox, SIGNAL(stateChanged(int)), this, SLOT(rce()));
-  connect(gui.rcoBox, SIGNAL(stateChanged(int)), this, SLOT(rco()));
-  connect(gui.aviBox, SIGNAL(stateChanged(int)), this, SLOT(avi()));
-  connect(gui.showboundsBox, SIGNAL(stateChanged(int)), this,
-          SLOT(showbounds()));
-  connect(gui.startButton, SIGNAL(clicked()), this, SLOT(start()));
-  connect(gui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
-  connect(gui.snapButton, SIGNAL(clicked()), this, SLOT(snap()));
-  connect(gui.quitButton, SIGNAL(clicked()), qApp, SLOT(quit()));
-  connect(gui.contrastBox, SIGNAL(valueChanged(int)), this,
-          SLOT(setContrast()));
-  connect(gui.zoomBox, SIGNAL(valueChanged(int)), this, SLOT(setZoom()));
-  connect(gui.skipBox, SIGNAL(valueChanged(int)), this, SLOT(setSkip()));
-  connect(gui.qualityBox, SIGNAL(valueChanged(int)), this, SLOT(setQuality()));
-  connect(gui.samplesBox, SIGNAL(valueChanged(int)), this, SLOT(setSamples()));
-  connect(gui.framerateBox, SIGNAL(valueChanged(int)), this,
-          SLOT(setFramerate()));
-  connect(gui.colormap, SIGNAL(valueChanged(int)), this, SLOT(setColormap()));
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // lambda::initVariables()
@@ -1105,22 +854,6 @@ void lambda::handleParameters(int argc, char *argv[]) {
       exit(0);
     }
   }
-
-  // Take necessary steps
-  if (clickAvi)
-    gui.aviBox->setChecked(true);
-  if (clickRce)
-    gui.rceBox->setChecked(true);
-  if (clickRco)
-    gui.rcoBox->setChecked(true);
-  if (clickVis) {
-    gui.visBox->setEnabled(true);
-    gui.visBox->setChecked(true);
-  }
-  if (clickWalls)
-    gui.showboundsBox->setChecked(true);
-  if (startSim)
-    gui.startButton->click();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1200,10 +933,7 @@ void lambda::stop() {
   resetSimulation();
   // Reset display, if vis was on and simulation was reset manually
   // (don't change picture if simulation ended automatically)
-  if ((gui.visBox->isChecked()) &&
-      ((config.n < config.nN) || (config.nN == 0))) {
-    drawLambda();
-  }
+  //  drawLambda();
   config.n = 0;
   // And set new status. If the stopped process was a simulation, data.envi must
   // have been initialized before and set to an adress != NULL.
@@ -1260,157 +990,7 @@ void lambda::snap() {
     memset(dot, '\0', strlen(dot));
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setContrast()
-//
-// PURPOSE
-//   QT Slot connected to the contrast spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setContrast() {
-  // Set contrast to the new value
-  set("contrast", gui.contrastBox->value());
-}
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setZoom()
-//
-// PURPOSE
-//   QT Slot connected to the zoom spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setZoom() {
-  // Set zoom to the new value
-  set("zoom", gui.zoomBox->value());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setSkip()
-//
-// PURPOSE
-//   QT Slot connected to the skip spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setSkip() {
-  // Set skip to the new value
-  set("skip", gui.skipBox->value());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setQuality()
-//
-// PURPOSE
-//   QT Slot connected to the quality spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setQuality() {
-  // Set quality to the new value
-  set("quality", gui.qualityBox->value());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setSamples()
-//
-// PURPOSE
-//   QT Slot connected to the iterations spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setSamples() {
-  // Set nr of iterations to the new value
-  set("nN", gui.samplesBox->value());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::setFramerate()
-//
-// PURPOSE
-//   QT Slot connected to the iterations spinbox.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::setFramerate() {
-  // Set nr of iterations to the new value
-  set("framerate", gui.framerateBox->value());
-}
-
-void lambda::setColormap() { set("colormap", gui.colormap->value()); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // lambda::vis()
@@ -1434,7 +1014,7 @@ void lambda::setColormap() { set("colormap", gui.colormap->value()); }
 //              needed for walls-visualization
 //
 void lambda::vis() {
-  if (gui.visBox->isChecked()) {
+  {
     // If visualization just got switched ON, prepare everything for
     // visualization First of all, make sure that the visualization has been
     // closed and reset or initialized properly before. Screen and frame ought
@@ -1459,8 +1039,6 @@ void lambda::vis() {
     // if status simulation is running or paused (in other cases, no frame has
     // been calculated yet).
     if ((status == RUNNING) || (status == PAUSED))
-      gui.snapButton->setEnabled(true);
-    if ((status == RUNNING) || (status == PAUSED))
       processVis();
     // Set the timer interval to match the desired visualization framerate
     timer->setInterval((int)(1000 / GFX_FRAMERATE));
@@ -1471,7 +1049,6 @@ void lambda::vis() {
   } else {
     // If visualization got switched OFF, tidy up the leftovers
     // Screenshots are not available anymore, since no frames will be calculated
-    gui.snapButton->setEnabled(false);
     // Set timer interval to zero -> proceed as fast as possible
     timer->setInterval(0);
     // Stop visualization timer
@@ -1486,223 +1063,6 @@ void lambda::vis() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::rce()
-//
-// PURPOSE
-//   QT Slot connected to the Rce checkbox, starts or quits receiver. The
-//   receiver stores sound pressure data at user specified receiver pixels to a
-//   file.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::rce() {
-  if (gui.rceBox->isChecked()) {
-    // If receiver got switched ON, create filename for the output:
-    // Find file extension that might still be part of the last opened filename
-    char *dot = strrchr((char *)files.lastFileName.c_str(), '.');
-    // If found, delete the extension
-    if (dot != NULL)
-      memset(dot, '\0', strlen(dot));
-    // Append new extension to file name
-    files.lastFileName = (char *)files.lastFileName.c_str();
-    files.lastFileName += ".rce";
-    // Open file for binary writing
-    files.rceFile.open((char *)files.lastFileName.c_str(),
-                       ios::out | ios::binary);
-    // Write file header: number of receivers in simulation matrix.
-    // Existence of receivers has been checked prior to enabling Rce button
-    double dummy = (double)config.nRec;
-    files.rceFile.write((char *)&dummy, sizeof(double));
-  } else {
-    // If receiver got switched OFF, just close the file.
-    files.rceFile.close();
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::rco()
-//
-// PURPOSE
-//   QT Slot connected to the Rco checkbox, starts or quits recorder. The
-//   recorder saves all simulation data into a file so that it can be replayed
-//   later.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::rco() {
-  if (gui.rcoBox->isChecked()) {
-    // If recorder got switched ON, create file name (see lambda::rce())
-    char *dot = strrchr((char *)files.lastFileName.c_str(), '.');
-    if (dot != NULL)
-      memset(dot, '\0', strlen(dot));
-    files.lastFileName = ((char *)files.lastFileName.c_str());
-    files.lastFileName += ".rco";
-    // Write file header: X and Y size of simulation area
-    double nY = (double)config.nY, nX = (double)config.nX;
-    files.rcoFile.open((char *)files.lastFileName.c_str(),
-                       ios::out | ios::binary);
-    files.rcoFile.write((char *)&nX, sizeof(double));
-    files.rcoFile.write((char *)&nY, sizeof(double));
-  } else {
-    // If recorder got switched OFF, just close the file
-    files.rcoFile.close();
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::avi()
-//
-// PURPOSE
-//   QT Slot connected to the Avi checkbox, starts or quits avi encoder.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::avi() {
-#ifdef USE_REVEL
-  Revel_Error error;
-  if (gui.aviBox->isChecked()) {
-    printf("creating video frame of size: %d x %d\n", config.nX, config.nY);
-    graphics.vidframe = new CImg<float>(config.nX, config.nY, 1, 3);
-    // If encoder got switched ON, create file name first (see lambda::rce())
-    char *dot = strrchr((char *)files.lastFileName.c_str(), '.');
-    if (dot != NULL) {
-      memset(dot, '\0', strlen(dot));
-    };
-
-    files.lastFileName = (char *)files.lastFileName.c_str();
-    files.lastFileName += ".avi";
-
-    // Make sure the API version of Revel we're compiling against matches the
-    // header files!  This is terribly important!
-    if (REVEL_API_VERSION != Revel_GetApiVersion()) {
-      printf("ERROR: Revel version mismatch!\n");
-      printf("Headers: version %06x, API version %d\n", REVEL_VERSION,
-             REVEL_API_VERSION);
-      printf("Library: version %06x, API version %d\n", Revel_GetVersion(),
-             Revel_GetApiVersion());
-      // TODO: return error codes
-      return;
-    }
-
-    Revel_Params videoParams;
-    Revel_InitializeParams(&videoParams);
-
-    // Video Frames can't have uneven dimensions,
-    // we discard one "pixel" if necessary.
-    if ((config.nX % 2 != 0) || (config.nY % 2 != 0)) {
-      printf("Video frame with uneven size: %d x %d\n", config.nX, config.nY);
-    }
-    videoParams.width = config.nX;
-    videoParams.height = config.nY;
-    videoParams.frameRate = (float)AVI_FRAMERATE;
-    videoParams.quality = graphics.quality / 100;
-    videoParams.codec = REVEL_CD_XVID;
-    videoParams.hasAudio = 0;
-
-    // Initialize and setup Revel encoder (see revel documentation for
-    // references)
-    int encoderHandle;
-    error = Revel_CreateEncoder(&encoderHandle, &videoParams);
-    if (error != REVEL_ERR_NONE) {
-      printf("Revel Error while creating encoder: %d\n", error);
-      return;
-    }
-
-    // Check that the encoder is valid
-    if (!Revel_IsEncoderValid(encoderHandle)) {
-      printf("Encoder created but not valid!");
-      return;
-    }
-
-    files.videoStream = encoderHandle;
-
-    /*
-    files.videoStream = -2;
-    error = Revel_CreateEncoder(&files.videoStream);
-    if( error != 0) {
-            cout << "error creating encoder: " << error << "\n";
-    } else {
-            cout << "created encoder-stream: " << files.videoStream << "\n";
-    }
-    */
-
-    if (1) {
-      cout << "lastFileName: " << (char *)files.lastFileName.c_str() << "\n";
-      cout << "width:  " << videoParams.width << "\n";
-      cout << "height: " << videoParams.height << "\n";
-      cout << "frameRate:" << videoParams.frameRate << "\n";
-      cout << "quality: " << videoParams.quality << "\n";
-      cout << "codec:  " << videoParams.codec << "\n";
-      cout << "framerate" << videoParams.frameRate << "\n";
-    };
-
-    error = Revel_EncodeStart(files.videoStream,
-                              (char *)files.lastFileName.c_str());
-    if (error != REVEL_ERR_NONE) {
-      printf("Revel Error while starting encoder: %d\n", error);
-      printf("encoder: %d\n", files.videoStream);
-      return;
-    };
-
-    files.videoFrame.width = videoParams.width;
-    files.videoFrame.height = videoParams.height;
-    files.videoFrame.bytesPerPixel = 4;
-    files.videoFrame.pixelFormat = REVEL_PF_RGBA;
-    files.videoFrame.pixels = new int[videoParams.width * videoParams.height];
-    memset(files.videoFrame.pixels, 0,
-           videoParams.width * videoParams.height * 4);
-  } else {
-    // If encoder got switched OFF, finish encoding process, destroy encoder,
-    // delete frame
-    int videoSize = 0;
-    error = Revel_EncodeEnd(files.videoStream, &videoSize);
-    if (error != REVEL_ERR_NONE) {
-      printf("Revel Error while ending encoding: %d\n", error);
-      return;
-    }
-    Revel_DestroyEncoder(files.videoStream);
-    delete[](float *) files.videoFrame.pixels;
-    delete graphics.vidframe;
-  }
-#endif
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // lambda::showbounds()
@@ -1728,38 +1088,10 @@ void lambda::showbounds() {
   // make sure to call processVis() if checkbox walls is checked/unchecked
   // so that the change has an immediate effect on the vis screen
 
-  if ((status != RUNNING) && (gui.visBox->isChecked()))
+  if (status != RUNNING)
     drawLambda();
-  if (((status == RUNNING) || (status == PAUSED)) && (gui.visBox->isChecked()))
+  if ((status == RUNNING) || (status == PAUSED))
     processVis();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::checkScreen()
-//
-// PURPOSE
-//   QT Slot connected to the visTimer. This makes sure that visBox gets
-//   unchecked if the user closes the visualization window by checking 10 times
-//   a second.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::checkScreen() {
-  // uncheck visbox if vis screen is closed
-  if (graphics.screen->is_closed())
-    gui.visBox->setChecked(false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1789,14 +1121,11 @@ void lambda::checkScreen() {
 void lambda::processVis() {
   if (graphics.screen != NULL) {
     processFrame(graphics.frame, index.presPres);
-    // show frame on screen
-    graphics.screen->display(*graphics.frame);
-    if (graphics.screen->is_closed())
-      gui.visBox->click();
   }
 }
 
-void lambda::processFrame(CImg<float> *frame, float *pressure) {
+void lambda::processFrame(CImg<float> *frame, float *pressure,
+    const bool showbounds_box) {
   int r, g, b, r0, g0, b0;
   float v;
   char textbuf[16];
@@ -1806,7 +1135,7 @@ void lambda::processFrame(CImg<float> *frame, float *pressure) {
   unsigned int nNodes = config.nNodes;
   unsigned int nNodes2 = nNodes * 2;
   float *framedata = frame->data();
-  bool showbounds = gui.showboundsBox->isChecked();
+  bool showbounds = showbounds_box;
   // float *pressure = index.presPres;
   float *fr = framedata;
   float *fg = framedata + nNodes;
@@ -1872,7 +1201,7 @@ void lambda::processFrame(CImg<float> *frame, float *pressure) {
                               fg[n] = 50;
                               fb[n] = 255;
                       }
-          
+          
               }
       }
   */
@@ -1941,91 +1270,6 @@ void lambda::processRce() {
 void lambda::processRco() {
   // just write all the future pressure data into the rco file...
   files.rcoFile.write((char *)index.presPres, sizeof(float) * config.nNodes);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processAvi()
-//
-// PURPOSE
-//   Processes the avi encoder output after each calculated sim iteration if Avi
-//   is switched on.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0
-//  M. Ruhland  changed copyright line                      04/08
-//	M. Ruhland 	Added drawing of the walls and receivers
-//05/09	2.0
-//              if the "walls"-checkbox is checked
-//
-void lambda::processAvi() {
-#ifdef USE_REVEL
-
-  int videoFrameSize = 0; // Revel stores video frame size here
-                          // int pow16_4 = 65536; //(int)pow(16.f, (int)4);
-  // int pow16_2 = 256 //(int)pow(16.f, (int)2);
-  // CImg<float> frame(config.nX,config.nY, 1, 3);		// Create new
-  // frame processFrame(&frame, index.presPres);
-  processFrame(graphics.vidframe, index.presPres);
-
-  int vidX = files.videoFrame.width;
-  int vidY = files.videoFrame.height;
-  printf("processing video frame of size: %d x %d\n", vidX, vidY);
-  int *videobuf = (int *)files.videoFrame.pixels;
-  int r, g, b;
-
-  float *fr = graphics.vidframe->data();
-  float *fg = fr + config.nNodes;
-  float *fb = fr + config.nNodes * 2;
-  /*
-      for (int k=0; k<vidY;k++) {
-              float *framedata_row = framedata + k*config.nX;
-              for (int l=0; l<vidX;l++) {
-                      //pixValue = (int)*(framedata + (k_config_nX + l));
-                      r = (int)*(framedata_row);
-                      g = (int)*(framedata_row+config.nNodes);
-                      b = (int)*(framedata_row+config.nNodes*2);
-                      *videobuf = 0xFF000000+r+g*pow16_2+b*pow16_4;
-                      videobuf++;
-                      framedata_row++;
-              }
-      }
-  */
-  for (int i = 0; i < config.nNodes; i++) {
-    // r = (int)*(fr[i]);
-    r = (int)fr[i];
-    g = (int)fg[i];
-    b = (int)fb[i];
-    //*videobuf = 0xFF000000+r+g*pow16_2+b*pow16_4;
-    //*videobuf = 0xFF000000+r+g*256+b*65536;
-    //*videobuf = 0xFF000000+r+(g<<8)+(b<<16);
-    *videobuf = 0xFF000000 | r | (g << 8) | (b << 16);
-    videobuf++;
-  }
-
-  // Encode this frame and add it to the video file
-  Revel_Error error =
-      Revel_EncodeFrame(files.videoStream, &files.videoFrame, &videoFrameSize);
-  if (error != REVEL_ERR_NONE) {
-    printf("Revel Error while writing frame: %d  -- error number: %d\n",
-           config.n, error);
-    // cout << "Error encoding frame: " << config.n << " --- error number: " <<
-    // error << "\n" << std::flush;
-    gui.stopButton->click();
-  }
-
-  if (config.n % 100 == 0)
-    printf("Frame %d of %d: %d bytes\n", config.n, config.nN, videoFrameSize);
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2228,96 +1472,24 @@ template <class T> simError lambda::set(const string what, const T value) {
     switch ((simStatus)value) {
     // Take necessary actions for the new status
     case PLAYER:
-      gui.statusLine->setText("<font color=red>Ready for replay</font>");
+      // gui.statusLine->setText("<font color=red>Ready for replay</font>");
       // During replays, repTimer is resonsible for correct timing. Make
       // repTimer the active timer by having timer point to it.
-      timer = repTimer;
       // Replays always have the visualization feature switched on
-      if (!gui.visBox->isChecked())
-        gui.visBox->setChecked(true);
-      gui.visBox->setEnabled(false);
-      gui.showboundsBox->setEnabled(false);
       // But all the other features are disabled
-      gui.rceBox->setEnabled(false);
-      gui.rcoBox->setEnabled(false);
-      gui.aviBox->setEnabled(false);
-      gui.startButton->setEnabled(true);
-      gui.startButton->setChecked(false);
-      gui.stopButton->setEnabled(true);
-      // No snapshots during replay: Not enough data (maybe in a later version?)
-      gui.snapButton->setEnabled(false);
       // Show empty frame in vis window
       drawLambda();
       break;
-    case SIMULATOR:
-      gui.statusLine->setText("<font color=red>Ready for simulation</font>");
-      // During simulation, simTimer is responsible for the timing. Make
-      // simTimer the active timer by having timer point to it.
-      timer = simTimer;
-      // Switch features off / show empty frame in vis window
-      if (gui.aviBox->isChecked())
-        gui.aviBox->setChecked(false);
-      if (gui.rcoBox->isChecked())
-        gui.rcoBox->setChecked(false);
-      if (gui.rceBox->isChecked())
-        gui.rceBox->setChecked(false);
-      // Enable all the features (rce only if there are receivers in the sim
-      // environment)
-      gui.visBox->setEnabled(true);
-      gui.showboundsBox->setEnabled(true);
-      gui.aviBox->setEnabled(true);
-      gui.rcoBox->setEnabled(true);
-      if (config.nRec > 0)
-        gui.rceBox->setEnabled(true);
-      else
-        gui.rceBox->setEnabled(false);
-      gui.startButton->setEnabled(true);
-      gui.startButton->setChecked(false);
-      gui.stopButton->setEnabled(true);
-      // Snapshots are available as soon as vis is turned on and sim is running.
-      gui.snapButton->setEnabled(false);
-      // Start the visTimer that quits vis mode once the vis window gets closed
-      // if vis mode is currently on.
-      if (gui.visBox->isChecked())
-        visTimer->start();
-      break;
-    case RUNNING:
-      if (data.envi != NULL)
-        // If there is some data in data.envi, the program is simulating,
-        // display "Simulating..." in gui's status label
-        gui.statusLine->setText("<font color=red>Simulating...</font>");
-      else
-        // If there is no environment data available, the running process
-        // is a replay. Display "Replaying..." in status label.
-        gui.statusLine->setText("<font color=red>Replaying...</font>");
-      // Allow for screenshots if vis is on.
-      if (gui.visBox->isChecked())
-        gui.snapButton->setEnabled(true);
-      // Stop the timer that checks for closed vis window. The simulation
-      // procedure will take care of that from here on.
-      visTimer->stop();
-      break;
+
     case PAUSED:
-      gui.statusLine->setText("<font color=red>Paused</font>");
+      // gui.statusLine->setText("<font color=red>Paused</font>");
       // Since the simulation/replay procedure is halted, let the vis timer take
       // care of the vis window again.
-      if (gui.visBox->isChecked())
-        visTimer->start();
-      if (gui.aviBox->isChecked())
-        gui.aviBox->click();
       break;
     case MISMATCH:
-      gui.statusLine->setText("<font color=red>Bad data</font>");
+      // gui.statusLine->setText("<font color=red>Bad data</font>");
       // If no data is loaded, disable everything. No action can be performed.
-      gui.visBox->setChecked(false);
-      gui.showboundsBox->setChecked(false);
-      gui.visBox->setEnabled(false);
-      gui.showboundsBox->setEnabled(false);
-      gui.rceBox->setEnabled(false);
-      gui.rcoBox->setEnabled(false);
-      gui.aviBox->setEnabled(false);
-      gui.startButton->setEnabled(false);
-      gui.stopButton->setEnabled(false);
+
       break;
     }
   }
@@ -2423,116 +1595,6 @@ simError lambda::defineSource(const int idx, const simSource *srcData) {
     }
   }
   return NONE;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::open()
-//
-// PURPOSE
-//   QT Slot connected to the open file button. This is actually just a
-//   redirection. loadFile must return a value for other reasons, but QT slots
-//   must always be void. So this is just a function call to loadFile, dumping
-//   its return value.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-void lambda::open() { loadFile(); }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::loadFile
-//
-// PURPOSE
-//   Loads a simulation or replay file into the program. If no filename is
-//   provided, opens a dialog for file selection. loadFile tries to load the
-//   file as a replay file first and then opens it as a simulation definition
-//   file, if that fails.
-//
-// INPUT
-//   string fileName : name of the file to be opened. Default value is "NONE",
-//   which will open
-//                     the file selection dialog.
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   simError: NONE if file was opened successfully, error identfier otherwise.
-//
-// AUTHOR		CHANGES						DATE
-// VERSION
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	S. Ahrens	Fixed bug preventing opening dialog         10/07 				in
-//Win32 	M. Ruhland 	no changes
-//05/09	2.0
-//
-simError lambda::loadFile(string fileName) {
-  if (fileName == "NONE") {
-    string dirFile;
-    QString s;
-    struct stat results;
-    if (cimg_OS == 1) {
-      dirFile = getenv("HOME");
-      dirFile += "/.lambda/";
-      if (stat((char *)dirFile.c_str(), &results) != 0)
-        MAKEDIR
-      dirFile += "local.dat";
-    } else
-      dirFile = "local.dat";
-    // If no file name was provided, get one from the file dialog. Provide
-    // filters for .sim files, .rco files and all files.
-    if (stat((char *)dirFile.c_str(), &results) != 0) {
-      s = QFileDialog::getOpenFileName(
-          this, "Choose a file", QString(),
-          "Simulation definitions (*.sim);;Recorded simulations (*.rco);;All "
-          "files (*.*)");
-    } else {
-      ifstream dirFileIn((char *)dirFile.c_str(), ios::in | ios::binary);
-      int chars = (int)(results.st_size / sizeof(char));
-      char *dir = new char[chars];
-      dirFileIn.read(dir, (int)results.st_size);
-      dirFileIn.close();
-      s = QFileDialog::getOpenFileName(
-          this, "Choose a file", dir,
-          "Simulation definitions (*.sim);;Recorded simulations (*.rco);;All "
-          "files (*.*)");
-    }
-    fileName = s.toStdString();
-    if (stat((char *)fileName.c_str(), &results) == 0) {
-      int index = s.lastIndexOf("/");
-      if (index == -1)
-        index = s.lastIndexOf("\\");
-      if (index != -1) {
-        ofstream dirFileOut((char *)dirFile.c_str(), ios::out | ios::binary);
-        if (cimg_OS == 1)
-          dirFileOut.write((char *)fileName.c_str(), index + 1);
-        else
-          dirFileOut.write((char *)fileName.c_str(), index);
-        dirFileOut.close();
-      }
-    }
-  }
-  // Try to load the file as a replay file. If the file is actually a simulation
-  // def file, this will result in an error.
-  if (loadRecord(fileName) != NONE)
-    // If loadRecord returned an error, try to open the file as a simulation
-    // file. If successfull, loadSimulation returns NONE. If the file was
-    // neither a .rco nor a .sim file, an errorcode will be returned.
-    return loadSimulation(fileName);
-  else
-    return NONE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3945,6 +3007,7 @@ void lambda::processSim() {
     }
     graphics.frame_ready = false;
     // Process actions like rce, rco, avi or vis if required
+    #if 0
     if (gui.rceBox->isChecked())
       processRce();
     if (gui.rcoBox->isChecked())
@@ -3953,9 +3016,7 @@ void lambda::processSim() {
     if (gui.visBox->isChecked())
       if (config.n % graphics.skip == 0)
         processVis();
-    if (gui.aviBox->isChecked())
-      if (config.n % graphics.skip == 0)
-        processAvi();
+    #endif
     // update the progress indicator
     time_t t1;
     static time_t t0;
@@ -3974,10 +3035,8 @@ void lambda::processSim() {
     // update counter. Stop simulation if desired nr. of iterations is reached.
     config.n++;
     if ((config.n >= config.nN) && (config.nN != 0)) {
-      gui.stopButton->click();
       // if AUTOEXIT is set, terminate lambda by self-clicking the quit-button
-      if (AUTOEXIT)
-        gui.quitButton->click();
+      // TODO(lucasw)
     }
   }
 }
@@ -4053,14 +3112,17 @@ void lambda::drawLambda() {
   // graphics.frame->draw_text(config.nX-242,config.nY-12,graphics.colors.white,graphics.colors.grey,0.5,"M.Ruhland,
   // M.Blau, and others; IHA Oldenburg");
   float *pixbuf;
-  if (gui.showboundsBox->isChecked()) {
+  // if (gui.showboundsBox->isChecked())
+  {
     pixbuf = graphics.frame->data();
     for (int n = 0; n < config.nNodes; n++)
       // if (abs(data.envi[n])!=0.f) graphics.frame->data[n]=255;
       if (abs(data.envi[n]) != 0.f)
         pixbuf[n] = 255;
   }
-  graphics.screen->display(*graphics.frame);
+
+  // TODO(lucasw) return graphics to caller
+  // graphics.screen->display(*graphics.frame);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
