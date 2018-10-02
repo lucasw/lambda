@@ -8,12 +8,12 @@ class LambdaRos
 public:
   LambdaRos()
   {
-    // lambda_.reset(new lambda());
+    // lambda_.reset(new Lambda());
   }
 
 private:
   ros::NodeHandle nh_;
-  std::unique_ptr<lambda> lambda_;
+  std::unique_ptr<Lambda> lambda_;
 };
 
 int main(int argc, char* argv[])

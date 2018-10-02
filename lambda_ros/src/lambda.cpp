@@ -196,28 +196,9 @@ colormap_t get_colormap(int colormap_index) {
 #define CLAMP(x, low, high)                                                    \
   (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::lambda()
-//
-// PURPOSE
+///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-//
-// INPUT
-//   int argc         : Number of elements in input vector argv
-//   char *argv[]     : Array of variable input parameters
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
-//
-lambda::lambda(const char *name, int argc, char *argv[]) :
+Lambda::Lambda(const char *name, int argc, char *argv[]) :
   GFX_MAXCONTRAST(100),
   GFX_MINCONTRAST(0),
   GFX_STDCONTRAST(50),
@@ -242,7 +223,7 @@ lambda::lambda(const char *name, int argc, char *argv[]) :
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::initVariables()
+// Lambda::initVariables()
 //
 // PURPOSE
 //   This function intializes all the important variables, arrays and matrices.
@@ -264,7 +245,7 @@ lambda::lambda(const char *name, int argc, char *argv[]) :
 //              filter handling, velocity sources
 //              and angular matrix
 //
-void lambda::initVariables() {
+void Lambda::initVariables() {
   // Initialize receiver/recorder pointers
   data.recs = NULL;
   data.record = NULL;
@@ -334,7 +315,7 @@ void lambda::initVariables() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::resetAll()
+// Lambda::resetAll()
 //
 // PURPOSE
 //   Resets important variables, arrays and matrices to zero, e.g. before
@@ -355,7 +336,7 @@ void lambda::initVariables() {
 //2.0
 //              the filter data and the angular matrix
 //
-void lambda::resetAll() {
+void Lambda::resetAll() {
   resetSimulation();
 
   // reset important simfield variables
@@ -534,7 +515,7 @@ void lambda::resetAll() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::resetSimulation()
+// Lambda::resetSimulation()
 //
 // PURPOSE
 //   Resets variables and arrays used directly for simulation purposes.
@@ -556,7 +537,7 @@ void lambda::resetAll() {
 //				removed some old optimization pointers
 //              that are not needed any more
 //
-void lambda::resetSimulation() {
+void Lambda::resetSimulation() {
   // Delete simulation environment data memory
   if (data.pres != NULL) {
     delete[] data.pres;
@@ -695,7 +676,7 @@ void lambda::resetSimulation() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::handleParameters()
+// Lambda::handleParameters()
 //
 // PURPOSE
 //   Processes input parameters and sets internal variables accordingly.
@@ -717,7 +698,7 @@ void lambda::resetSimulation() {
 //05/09   2.0
 //              "-exit" parameter
 //
-void lambda::handleParameters(int argc, char *argv[]) {
+void Lambda::handleParameters(int argc, char *argv[]) {
   std::string argument;
   int arg;
   // Order of parameters is random, but rce, rco and vis must be
@@ -818,7 +799,7 @@ void lambda::handleParameters(int argc, char *argv[]) {
 }
 
 #if 0
-void lambda::stop() {
+void Lambda::stop() {
   resetSimulation();
   // Reset display, if vis was on and simulation was reset manually
   // (don't change picture if simulation ended automatically)
@@ -836,7 +817,7 @@ void lambda::stop() {
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::vis()
+// Lambda::vis()
 //
 // PURPOSE
 //   QT Slot connected to the Vis checkbox, starts or quits visualization
@@ -856,7 +837,7 @@ void lambda::stop() {
 //				visbox is checked during paused simulation;
 //              needed for walls-visualization
 //
-void lambda::vis() {
+void Lambda::vis() {
   {
     // If visualization just got switched ON, prepare everything for
     // visualization First of all, make sure that the visualization has been
@@ -864,17 +845,17 @@ void lambda::vis() {
     // to be set to NULL.
     if ((graphics.screen == NULL) && (graphics.frame == NULL)) {
       // If so, initialize frame and screen. If not, the old variables will be
-      // used graphics.frame = new CImg<float>(config.nX,config.nY);
-      graphics.frame = new CImg<float>(config.nX, config.nY, 1, 3);
+      // used graphics.frame = new cimg_library::CImg<float>(config.nX,config.nY);
+      graphics.frame = new cimg_library::CImg<float>(config.nX, config.nY, 1, 3);
 
       // graphics.screen=new
-      // CImgDisplay(graphics.dispSizeX,graphics.dispSizeY,"Lambda
+      // cimg_library::CImgDisplay(graphics.dispSizeX,graphics.dispSizeY,"Lambda
       // visualization",0,2,0,0);
 
       // x, y, title, normalization, is_fullscreen, is_closed
       // normalization: 0=none, 1=always, 2=once
       printf("opening visualization\n");
-      graphics.screen = new CImgDisplay(graphics.dispSizeX, graphics.dispSizeY,
+      graphics.screen = new cimg_library::CImgDisplay(graphics.dispSizeX, graphics.dispSizeY,
                                         "Visualization", 0, 0, 0);
       // drawLambda();
     }
@@ -901,7 +882,7 @@ void lambda::vis() {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::showbounds()
+// Lambda::showbounds()
 //
 // PURPOSE
 //   QT Slot connected to the Walls/Showbounds checkbox. Updates the
@@ -920,7 +901,7 @@ void lambda::vis() {
 //DATE	VERSION 	M. Ruhland 	new function
 //05/09	2.0
 //
-void lambda::showbounds() {
+void Lambda::showbounds() {
   // make sure to call processVis() if checkbox walls is checked/unchecked
   // so that the change has an immediate effect on the vis screen
 
@@ -931,7 +912,7 @@ void lambda::showbounds() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processVis()
+// Lambda::processVis()
 //
 // PURPOSE
 //   Updates the visualization screen after each simulation iteration, if vis is
@@ -954,13 +935,13 @@ void lambda::showbounds() {
 //05/09	2.0
 //              if the "walls"-checkbox is checked
 //
-void lambda::processVis() {
+void Lambda::processVis() {
   if (graphics.screen != NULL) {
     processFrame(graphics.frame, index.presPres);
   }
 }
 
-void lambda::processFrame(CImg<float> *frame, float *pressure,
+void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
     const bool showbounds_box) {
   int r, g, b, r0, g0, b0;
   float v;
@@ -1051,7 +1032,7 @@ void lambda::processFrame(CImg<float> *frame, float *pressure,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processRce()
+// Lambda::processRce()
 //
 // PURPOSE
 //   Processes the receiver output after each calculated sim iteration if Rce is
@@ -1071,7 +1052,7 @@ void lambda::processFrame(CImg<float> *frame, float *pressure,
 //05/06	1.0
 //  M. Ruhland  no changes                                  05/09   2.0
 //
-void lambda::processRce() {
+void Lambda::processRce() {
   double *dummy = new double; // double pointer needed for float2double cast
   for (int rec = 0; rec < config.nRec; rec++) {
     // For each receiver in the simulation environment, cast
@@ -1083,7 +1064,7 @@ void lambda::processRce() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processRco()
+// Lambda::processRco()
 //
 // PURPOSE
 //   Processes the recorder output after each calculated sim iteration if Rco is
@@ -1103,13 +1084,13 @@ void lambda::processRce() {
 //05/06	1.0
 //  M. Ruhland  no changes                                  05/09   2.0
 //
-void lambda::processRco() {
+void Lambda::processRco() {
   // just write all the future pressure data into the rco file...
   files.rcoFile.write((char *)index.presPres, sizeof(float) * config.nNodes);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::set()
+// Lambda::set()
 //
 // PURPOSE
 //   Function template. This function should be used whenever one of the key
@@ -1138,7 +1119,7 @@ void lambda::processRco() {
 //              and removed config.FourFields, which is
 //              no longer needed
 //
-template <class T> simError lambda::set(const std::string what, const T value) {
+template <class T> simError Lambda::set(const std::string what, const T value) {
   if (what == "nX") {
     // If nX is to be set, check if new X-size is greater than 0.
     if ((int)value < 1)
@@ -1311,7 +1292,7 @@ template <class T> simError lambda::set(const std::string what, const T value) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::defineSource()
+// Lambda::defineSource()
 //
 // PURPOSE
 //   Adds a source to the array of sources (data.srcs) after performing a few
@@ -1332,7 +1313,7 @@ template <class T> simError lambda::set(const std::string what, const T value) {
 //05/06	1.0 	M. Ruhland 	added velocity sources handling
 //05/09	2.0
 //
-simError lambda::defineSource(const int idx, const simSource *srcData) {
+simError Lambda::defineSource(const int idx, const simSource *srcData) {
   // Check if coordinates are in range of environment size
   if ((srcData->y < 0) || (srcData->y >= config.nY) || (srcData->x < 0) ||
       (srcData->x >= config.nX))
@@ -1412,7 +1393,7 @@ simError lambda::defineSource(const int idx, const simSource *srcData) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::loadSimulation
+// Lambda::loadSimulation
 //
 // PURPOSE
 //   Tries to load a simulation file.
@@ -1434,7 +1415,7 @@ simError lambda::defineSource(const int idx, const simSource *srcData) {
 //  M. Ruhland  Completely rewritten for new 2.0 file       05/09   2.0
 //              structure and computation model.
 //
-simError lambda::loadSimulation(const std::string fileName) {
+simError Lambda::loadSimulation(const std::string fileName) {
   // some variables needed during the read-in process
   struct stat results;
   char *pblockid;
@@ -2127,7 +2108,7 @@ simError lambda::loadSimulation(const std::string fileName) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::loadRecord
+// Lambda::loadRecord
 //
 // PURPOSE
 //   Tries to load a recorded playback file.
@@ -2146,7 +2127,7 @@ simError lambda::loadSimulation(const std::string fileName) {
 //05/06	1.0 	M. Ruhland 	no changes
 //05/09	2.0
 //
-simError lambda::loadRecord(const std::string fileName) {
+simError Lambda::loadRecord(const std::string fileName) {
   struct stat results; // File info
   // Try to get file info, return error if file could not be opened
   if (stat((char *)fileName.c_str(), &results) != 0)
@@ -2205,7 +2186,7 @@ float **new_array2(int n) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::initSimulation
+// Lambda::initSimulation
 //
 // PURPOSE
 //   Prepares variables needed for simulation.
@@ -2226,7 +2207,7 @@ float **new_array2(int n) {
 //              allocating and resetting the filter's
 //              memories and the velocity source arrays
 //
-simError lambda::initSimulation() {
+simError Lambda::initSimulation() {
   // Check one more time
   if (config.nNodes < 1)
     return NO_NODES;
@@ -2335,7 +2316,7 @@ simError lambda::initSimulation() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processRep
+// Lambda::processRep
 //
 // PURPOSE
 //   Processes the next replay frame.
@@ -2356,7 +2337,7 @@ simError lambda::initSimulation() {
 //	M. Ruhland 	no changes
 //05/09	2.0
 //
-void lambda::processRep() {
+void Lambda::processRep() {
   // Skip this frame if demanded
   if (config.n % graphics.skip == 0) {
     processFrame(graphics.frame, data.record + config.n * config.nNodes);
@@ -2369,7 +2350,7 @@ void lambda::processRep() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::processSim
+// Lambda::processSim
 //
 // PURPOSE
 //   Processes the next simulation iteration.
@@ -2397,7 +2378,7 @@ void lambda::processRep() {
 //              AUTOEXIT-functionality.
 //
 
-void lambda::processSim() {
+void Lambda::processSim() {
   if (data.pres != NULL) {
     // periodic cycling of time indices
     int idxPast = ((config.n + 0) % 3); // past index
@@ -2855,7 +2836,7 @@ void lambda::processSim() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::drawLambda
+// Lambda::drawLambda
 //
 // PURPOSE
 //   Draws the lambda logo on the visualization screen.
@@ -2877,7 +2858,7 @@ void lambda::processSim() {
 //	M. Ruhland 	no changes
 //05/09	2.0
 //
-void lambda::drawLambda() {
+void Lambda::drawLambda() {
   int size, offsetX, offsetY;
   float radius;
   float value1 = 140.f;
@@ -2939,7 +2920,7 @@ void lambda::drawLambda() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::adaptreflexionfactor
+// Lambda::adaptreflexionfactor
 //
 // PURPOSE
 //   Creates a new digital filter for a given real-valued reflexion factor and
@@ -2966,7 +2947,7 @@ void lambda::drawLambda() {
 //DATE	VERSION 	M. Ruhland 	new function
 //05/09	2.0
 //
-void lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
+void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
                                   float *&dest_coeffsB, float r, float alpha,
                                   simAngularType direction) {
   // new filter has got only one a- and one b-coefficient
@@ -3009,7 +2990,7 @@ void lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// lambda::adaptfilter
+// Lambda::adaptfilter
 //
 // PURPOSE
 //   Creates a new digital filter from a given digital filter ID and
@@ -3041,7 +3022,7 @@ void lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
 //DATE	VERSION 	M. Ruhland 	new function
 //05/09	2.0
 //
-void lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
+void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
                          float *&dest_coeffsB, int *src_id, int *src_numcoeffs,
                          float **src_coeffsA, float **src_coeffsB,
                          int src_numfilters, int id, float alpha,

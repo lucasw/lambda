@@ -139,9 +139,9 @@ struct simGraphics {
   int dispSizeY;
   int quality;
   simColors colors;
-  CImg<float> *frame;
-  CImg<float> *vidframe;
-  CImgDisplay *screen;
+  cimg_library::CImg<float> *frame;
+  cimg_library::CImg<float> *vidframe;
+  cimg_library::CImgDisplay *screen;
   bool frame_ready;
 };
 
@@ -203,10 +203,9 @@ typedef enum {
   MISMATCH,
 } simStatus;
 
-// TODO(lucasw) capitalize
-class lambda {
+class Lambda {
 public:
-  lambda(const char *name = 0, int argc = 0,
+  Lambda(const char *name = 0, int argc = 0,
          char *argv[] = NULL);
 
 private:
@@ -315,7 +314,7 @@ private:
   //   is on.
   virtual void processVis();
 
-  virtual void processFrame(CImg<float> *frame, float *pressure,
+  virtual void processFrame(cimg_library::CImg<float> *frame, float *pressure,
       const bool showbounds_box=false);
 
   //   Processes the receiver output after each calculated sim iteration if Rce
