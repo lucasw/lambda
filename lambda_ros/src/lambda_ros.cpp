@@ -6,9 +6,9 @@
 class LambdaRos
 {
 public:
-  LambdaRos()
+  LambdaRos(int argc, char* argv[])
   {
-    // lambda_.reset(new Lambda());
+    lambda_.reset(new Lambda(argc, argv));
   }
 
 private:
@@ -19,5 +19,6 @@ private:
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "lambda_ros");
+  LambdaRos lambda_ros(argc, argv);
   ros::spin();
 }

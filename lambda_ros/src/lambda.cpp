@@ -198,7 +198,7 @@ colormap_t get_colormap(int colormap_index) {
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-Lambda::Lambda(const char *name, int argc, char *argv[]) :
+Lambda::Lambda(int argc, char *argv[]) :
   GFX_MAXCONTRAST(100),
   GFX_MINCONTRAST(0),
   GFX_STDCONTRAST(50),
@@ -721,7 +721,7 @@ void Lambda::handleParameters(int argc, char *argv[]) {
       if (arg < argc - 1) {
         startSim = true;
         std::string fileName = argv[arg + 1];
-        if (loadFile(fileName) != NONE)
+        if (loadSimulation(fileName) != NONE)
           startSim = false;
       }
     } else if ((argument == "-zoom") || (argument == "-Zoom") ||
@@ -875,27 +875,6 @@ void Lambda::vis() {
   #endif
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::showbounds()
-//
-// PURPOSE
-//   QT Slot connected to the Walls/Showbounds checkbox. Updates the
-//   visualization window when checkbox is clicked.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	M. Ruhland 	new function
-//05/09	2.0
-//
 void Lambda::showbounds() {
   // make sure to call processVis() if checkbox walls is checked/unchecked
   // so that the change has an immediate effect on the vis screen

@@ -53,7 +53,8 @@ add_library(lambda_synth
   src/lambda.cpp
 )
 
-target_link_libraries(lambda_synth ${catkin_LIBRARIES})
+# TODO(lucasw) replace cimg with opencv and eliminate this X11
+target_link_libraries(lambda_synth ${catkin_LIBRARIES} X11)
 # add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 # add_dependencies(lambda_synth ${PROJECT_NAME}_gencpp)
 

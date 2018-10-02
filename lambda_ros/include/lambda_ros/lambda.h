@@ -205,8 +205,7 @@ typedef enum {
 
 class Lambda {
 public:
-  Lambda(const char *name = 0, int argc = 0,
-         char *argv[] = NULL);
+  Lambda(int argc = 0, char *argv[] = NULL);
 
 private:
   //   starts or quits visualization
@@ -275,15 +274,6 @@ private:
   //   (>0) and will update nNodes (which should always be nX*nY at any time)
   //   and dispSizeX automatically.
   template <class T> simError set(const std::string what, const T value);
-
-  //   Loads a simulation or replay file into the program. If no filename is
-  //   provided, opens a dialog for file selection. loadFile tries to load the
-  //   file as a replay file first and then opens it as a simulation definition
-  //   file, if that fails.
-  // RETURN VALUE
-  //   simError: NONE if file was opened successfully, error identfier
-  //   otherwise.
-  virtual simError loadFile(std::string fileName = "NONE");
 
   // PURPOSE
   //   Tries to load a recorded playback file.
