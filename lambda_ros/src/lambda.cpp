@@ -196,64 +196,30 @@ colormap_t get_colormap(int colormap_index) {
 #define CLAMP(x, low, high)                                                    \
   (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
-SimData::SimData() :
- // Initialize receiver/recorder pointers
-  // TODO(lucasw) simData constructor can handle this
-  recs(NULL),
-  record(NULL),
-  recIdx(NULL),
-  // Initialize simulation environment data pointers
-  envi(NULL),
-  angle(NULL),
-  srcs(NULL),
-  boundary(NULL),
-  deadnode(NULL),
-  filt_left(NULL),
-  filt_top(NULL),
-  filt_right(NULL),
-  filt_bottom(NULL),
-  pres(NULL),
-  inci(NULL),
-  // Initialize filter memory pointers
-  oldx_left(NULL),
-  oldx_top(NULL),
-  oldx_right(NULL),
-  oldx_bottom(NULL),
-  oldy_left(NULL),
-  oldy_top(NULL),
-  oldy_right(NULL),
-  oldy_bottom(NULL),
-  // Initialize filter coefficient pointers
-  filtnumcoeffs_left(NULL),
-  filtnumcoeffs_top(NULL),
-  filtnumcoeffs_right(NULL),
-  filtnumcoeffs_bottom(NULL),
-  filtcoeffsA_left(NULL),
-  filtcoeffsB_left(NULL),
-  filtcoeffsA_top(NULL),
-  filtcoeffsB_top(NULL),
-  filtcoeffsA_right(NULL),
-  filtcoeffsB_right(NULL),
-  filtcoeffsA_bottom(NULL),
-  filtcoeffsB_bottom(NULL),
-  // Initialize velocity source pointers
-  velo_left(NULL),
-  velo_top(NULL),
-  velo_right(NULL),
-  velo_bottom(NULL),
-  mem(NULL),
-  samples(NULL) {
+SimData::SimData()
+    : // Initialize receiver/recorder pointers
+      // TODO(lucasw) simData constructor can handle this
+      recs(NULL), record(NULL), recIdx(NULL),
+      // Initialize simulation environment data pointers
+      envi(NULL), angle(NULL), srcs(NULL), boundary(NULL), deadnode(NULL),
+      filt_left(NULL), filt_top(NULL), filt_right(NULL), filt_bottom(NULL),
+      pres(NULL), inci(NULL),
+      // Initialize filter memory pointers
+      oldx_left(NULL), oldx_top(NULL), oldx_right(NULL), oldx_bottom(NULL),
+      oldy_left(NULL), oldy_top(NULL), oldy_right(NULL), oldy_bottom(NULL),
+      // Initialize filter coefficient pointers
+      filtnumcoeffs_left(NULL), filtnumcoeffs_top(NULL),
+      filtnumcoeffs_right(NULL), filtnumcoeffs_bottom(NULL),
+      filtcoeffsA_left(NULL), filtcoeffsB_left(NULL), filtcoeffsA_top(NULL),
+      filtcoeffsB_top(NULL), filtcoeffsA_right(NULL), filtcoeffsB_right(NULL),
+      filtcoeffsA_bottom(NULL), filtcoeffsB_bottom(NULL),
+      // Initialize velocity source pointers
+      velo_left(NULL), velo_top(NULL), velo_right(NULL), velo_bottom(NULL),
+      mem(NULL), samples(NULL) {}
 
-}
-
-SimGraphics::SimGraphics(const int zoom, const int skip) :
-  zoom(zoom),
-  skip(skip),
-  dispSizeX(0),
-  dispSizeY(0),
-  screen(NULL),
-  frame(NULL)
-{
+SimGraphics::SimGraphics(const int zoom, const int skip)
+    : zoom(zoom), skip(skip), dispSizeX(0), dispSizeY(0), screen(NULL),
+      frame(NULL) {
   colors.white[0] = 255.f;
   colors.white[1] = 255.f;
   colors.white[2] = 255.f;
@@ -269,25 +235,16 @@ SimGraphics::SimGraphics(const int zoom, const int skip) :
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-Lambda::Lambda() :
-  GFX_MAXCONTRAST(100),
-  GFX_MINCONTRAST(0),
-  GFX_STDCONTRAST(50),
-  GFX_MAXSAMPLES(9999999),
-  GFX_MINSAMPLES(0),
-  GFX_STDSAMPLES(0),
-  GFX_MAXSKIP(999),
-  GFX_MINSKIP(0),
-  GFX_STDSKIP(0),
-  GFX_MAXZOOM(999),
-  GFX_MINZOOM(1),
-  GFX_STDZOOM(1),
-  MEMSRC(20),
-  COLORMAP(1),
-  graphics(GFX_STDZOOM, GFX_STDSKIP + 1)
-{
+Lambda::Lambda()
+    : GFX_MAXCONTRAST(100), GFX_MINCONTRAST(0), GFX_STDCONTRAST(50),
+      GFX_MAXSAMPLES(9999999), GFX_MINSAMPLES(0), GFX_STDSAMPLES(0),
+      GFX_MAXSKIP(999), GFX_MINSKIP(0), GFX_STDSKIP(0), GFX_MAXZOOM(999),
+      GFX_MINZOOM(1), GFX_STDZOOM(1), MEMSRC(20), COLORMAP(1),
+      graphics(GFX_STDZOOM, GFX_STDSKIP + 1) {
+
   initVariables();
-  // TODO(lucasw) let something else determine whether or not to randomize like this
+  // TODO(lucasw) let something else determine whether or not to randomize like
+  // this
   srand(time(NULL));
 }
 
@@ -695,25 +652,26 @@ void Lambda::handleParameters(int argc, char *argv[]) {
       clickWalls = true; // check walls checkbox
     } else if ((argument == "-help") || (argument == "--help") ||
                (argument == "/help")) {
-      std::cout << "lambda [options]\n"
-              "\n"
-              "-file simfile   : open the .sim file\n"
-              "-vis            : activate visualization\n"
-              "-rce            : activate recording at receivers, if defined\n"
-              "-walls          : show walls, if defined\n"
-              "(default 100)\n"
-              "-contrast N (0-100)  : adjust the contrast of the visualization "
-              "(default 50)\n"
-              "-colormap N (0-2)    : set the color map (0=gray, 1=hot, "
-              "2=temp) (def.=0)\n"
-              "-rco            : activate the recording of the visualization "
-              "(as a .rco file)\n"
-              "-zoom           : set the zoom level of a visualization (an "
-              "integer number)\n"
-              "-skip           : set number of frames to skip (default 0)\n"
-              "-exit           : exit the program after finishing (good for "
-              "batch processes)\n"
-              "\n"
+      std::cout
+          << "lambda [options]\n"
+             "\n"
+             "-file simfile   : open the .sim file\n"
+             "-vis            : activate visualization\n"
+             "-rce            : activate recording at receivers, if defined\n"
+             "-walls          : show walls, if defined\n"
+             "(default 100)\n"
+             "-contrast N (0-100)  : adjust the contrast of the visualization "
+             "(default 50)\n"
+             "-colormap N (0-2)    : set the color map (0=gray, 1=hot, "
+             "2=temp) (def.=0)\n"
+             "-rco            : activate the recording of the visualization "
+             "(as a .rco file)\n"
+             "-zoom           : set the zoom level of a visualization (an "
+             "integer number)\n"
+             "-skip           : set number of frames to skip (default 0)\n"
+             "-exit           : exit the program after finishing (good for "
+             "batch processes)\n"
+             "\n"
 
           ;
       exit(0);
@@ -748,8 +706,10 @@ void Lambda::vis() {
     // to be set to NULL.
     if ((graphics.screen == NULL) && (graphics.frame == NULL)) {
       // If so, initialize frame and screen. If not, the old variables will be
-      // used graphics.frame = new cimg_library::CImg<float>(config.nX,config.nY);
-      graphics.frame = new cimg_library::CImg<float>(config.nX, config.nY, 1, 3);
+      // used graphics.frame = new
+      // cimg_library::CImg<float>(config.nX,config.nY);
+      graphics.frame =
+          new cimg_library::CImg<float>(config.nX, config.nY, 1, 3);
 
       // graphics.screen=new
       // cimg_library::CImgDisplay(graphics.dispSizeX,graphics.dispSizeY,"Lambda
@@ -758,8 +718,8 @@ void Lambda::vis() {
       // x, y, title, normalization, is_fullscreen, is_closed
       // normalization: 0=none, 1=always, 2=once
       printf("opening visualization\n");
-      graphics.screen = new cimg_library::CImgDisplay(graphics.dispSizeX, graphics.dispSizeY,
-                                        "Visualization", 0, 0, 0);
+      graphics.screen = new cimg_library::CImgDisplay(
+          graphics.dispSizeX, graphics.dispSizeY, "Visualization", 0, 0, 0);
       // drawLambda();
     }
     // Now that frames are being calculated, enable screenshot button
@@ -768,7 +728,7 @@ void Lambda::vis() {
     if ((status == RUNNING) || (status == PAUSED))
       processVis();
   }
-  #if 0
+#if 0
   else {
     // If visualization got switched OFF, tidy up the leftovers
     // Screenshots are not available anymore, since no frames will be calculated
@@ -780,7 +740,7 @@ void Lambda::vis() {
       graphics.screen = NULL;
     }
   }
-  #endif
+#endif
 }
 
 void Lambda::showbounds() {
@@ -802,7 +762,7 @@ void Lambda::processVis() {
 }
 
 void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
-    const bool showbounds_box) {
+                          const bool showbounds_box) {
   int r, g, b, r0, g0, b0;
   float v;
   char textbuf[16];
@@ -883,7 +843,8 @@ void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
       }
   */
 
-  float bg[3] = {static_cast<float>(r0), static_cast<float>(g0), static_cast<float>(b0)};
+  float bg[3] = {static_cast<float>(r0), static_cast<float>(g0),
+                 static_cast<float>(b0)};
   sprintf(textbuf, "C%1.1f F%05i", contrast, config.n + 1);
   frame->draw_text(0, -2, textbuf, graphics.colors.black, bg, 0.5);
   sprintf(textbuf, "ms%.1f", config.n * config.tSample * 1E3);
@@ -1111,9 +1072,9 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
 //   simError: NONE if source was added successfully, error identfier otherwise.
 //
 //	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	added velocity sources handling
-//05/09	2.0
+// DATE	VERSION 	S. Ahrens 	First build
+// 05/06	1.0 	M. Ruhland 	added velocity sources handling
+// 05/09	2.0
 //
 simError Lambda::defineSource(const int idx, const simSource *srcData) {
   // Check if coordinates are in range of environment size
@@ -1194,265 +1155,10 @@ simError Lambda::defineSource(const int idx, const simSource *srcData) {
   return NONE;
 }
 
-// RETURN VALUE
-//   simError: NONE if file was opened successfully, error identfier otherwise.
-simError Lambda::loadSimulation(const std::string fileName) {
-  // some variables needed during the read-in process
-  struct stat results;
-  char *pblockid;
-  double *pdummy;
-  int actrec = 0;
-  simError error = NONE;
-  simSource curSource;
-  bool donotreadnextblockid = false;
-  float value;
-
-  // check the filename
-  if (stat((char *)fileName.c_str(), &results) != 0)
-    return FILE_BAD;
-  set("status", MISMATCH);
-  // reset all variables
-  resetAll();
-  // open the simfile
-  std::ifstream simFile((char *)fileName.c_str(), std::ios::in | std::ios::binary);
-
-  //  ------ HEADER ------
-  //  read the simfile header. it consists of the std::string "LAMBDASIM200".
-  // otherwise, the file is corrupt or wrong version
-  pblockid = new char[12];
-  simFile.read(pblockid, sizeof(char) * 12);
-  if (strncmp(pblockid, "LAMBDASIM200", 12) != 0) {
-    simFile.close();
-    delete[] pblockid;
-    return FILE_HEADER_BAD_OR_WRONG_VERSION;
-  }
-  delete[] pblockid;
-
-  pblockid = new char[3];
-  //  ----- DEFINITIONS -----
-  // read in the important simulation definitions.
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "DEF", 3) == 0) // DEF-Chunk exists?
-  {
-    std::cout << "parsing DEF chunk\n";
-    pdummy = new double[6];
-    simFile.read((char *)pdummy, sizeof(double) * 6); // read the data
-    if (error == NONE)
-      error = set("nY", (int)pdummy[0]); // simulation Y-size
-    if (error == NONE)
-      error = set("nX", (int)pdummy[1]); // simulation X-size
-    if (error == NONE)
-      error = set("nN", (int)pdummy[2]); // number of iterations
-    if (error == NONE)
-      error = set(
-          "cTube",
-          sqrt(2.f) *
-              (float)pdummy[3]); // Speed in tubes is sqrt(2)*c_{free field}!
-    if (error == NONE)
-      error = set("lTube", (float)pdummy[4]); // tube length
-    if (error == NONE)
-      error = set("rho", (float)pdummy[5]); // air density in kg/m^3
-    delete[] pdummy;
-    if (error != NONE) // if there was an error, close the file and exit
-    {
-      simFile.close();
-      delete[] pblockid;
-      return FILE_DEF_BLOCK_BAD;
-    }
-  } else // if no DEF-Chunk exists, close the file and exit
-  {
-    std::cout << "no DEF-Chunk exists, close the file and exit\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_DEF_BLOCK_BAD;
-  }
-
-  //  ----- ENVIRONMENT -----
-  // read in the simulation environment matrix.
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "ENV", 3) == 0) // ENV-Chunk exists?
-  {
-    std::cout << "parsing ENV chunk\n";
-    pdummy =
-        new double[config.nNodes]; // reserve memory for env-data in simfile
-    data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
-    data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
-    simFile.read((char *)pdummy,
-                 sizeof(double) * config.nNodes); // read envi-matrix
-    for (int pos = 0; pos < config.nNodes;
-         pos++) // and cast it from double to float
-    {
-      value = (float)pdummy[pos];
-      data.deadnode[pos] = false;
-      if (value == -999) {         // is it a dead node?
-        value = 0;                 // turn it into empty
-        data.deadnode[pos] = true; // mark it as dead
-      }
-      data.envi[pos] = (float)value; // (all nodes)
-    }
-    delete[] pdummy;
-  } else // ENV-Chunk does not exist -> close file and exit
-  {
-    simFile.close();
-    delete[] pblockid;
-    return FILE_ENV_BLOCK_BAD;
-  }
-
-  //  ----- ANGLES -----
-  // read in the angle-matrix
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "ANG", 3) == 0) // ANG-Chunk exists?
-  {
-    std::cout << "parsing ANG chunk\n";
-    pdummy =
-        new double[config.nNodes]; // reserve memory for ang-data in simfile
-    data.angle = new float[config.nNodes]; // reserve memory for angle-matrix
-    simFile.read((char *)pdummy,
-                 sizeof(double) * config.nNodes); // read angle-matrix
-    for (int pos = 0; pos < config.nNodes;
-         pos++)                             // and cast it from double to float
-      data.angle[pos] = (float)pdummy[pos]; // (all nodes)
-    delete[] pdummy;
-    donotreadnextblockid = false; // make shure that the next chunk will be read
-  } else if ((strncmp(pblockid, "FLT", 3) == 0) ||
-             (strncmp(pblockid, "SRC", 3) == 0) ||
-             (strncmp(pblockid, "SMP", 3) ==
-              0)) { // if angle-matrix does not exist and the next Chunk is FLT
-                    // or SMP or SRC
-    std::cout << "angle-matrix does not exist and the next Chunk is FLT or SMP or "
-            "SRC\n";
-    data.angle = new float[config.nNodes];        // create empty angle matrix
-    for (int pos = 0; pos < config.nNodes; pos++) // and fill it with 400.f
-      data.angle[pos] =
-          400.f; // (this means no preemphasis is done on the nodes)
-    donotreadnextblockid =
-        true; // do not read the next Chunk ID, because we have it already
-  } else      // if angle-matrix does not exist and no valid chunk is following
-  {
-    std::cout << "angle matrix does not exist and no valid chunk is following\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_ANG_BLOCK_BAD;
-  }
-
-  //  ----- FILTERS -----
-  //  read in the filter data
-  int tmp_numfilters;             // temporary number of filters
-  int *tmp_filtid = NULL;         // temporary filter ID array
-  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
-  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
-  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
-  tmp_numfilters = 1;             // at least one filter must exist!
-  if (!donotreadnextblockid) // do not read the next Chunk-ID if ANG-Chunk was
-                             // left out
-    simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "FLT", 3) == 0) // FLT-Chunk exists?
-  {
-    std::cout << "parsing FLT chunk\n";
-    pdummy = new double;
-    simFile.read((char *)pdummy,
-                 sizeof(double)); // yes, read in number of filters in chunk
-    tmp_numfilters = ((int)*pdummy) + 1; // one more for the standard 0 filter
-    delete pdummy;
-
-    tmp_filtid = new int[tmp_numfilters]; // reserve memory for filter IDs
-    tmp_filtnumcoeffs = new int[tmp_numfilters]; // reserve memory for numcoeffs
-    tmp_filtcoeffsA =
-        new float *[tmp_numfilters]; // reserve memory for filter a-coeffs
-    tmp_filtcoeffsB =
-        new float *[tmp_numfilters]; // reserve memory for filter b-coeffs
-
-    for (int n = 1; n < tmp_numfilters;
-         n++) // work through all the filters, except for
-    {         // the 0 filter
-      int numcoeffsA;
-      int numcoeffsB;
-
-      pdummy = new double;
-      simFile.read((char *)pdummy, sizeof(double)); // read next filter ID
-      tmp_filtid[n] = (int)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read number of a-coeffs
-      numcoeffsA = (int)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read number of b-coeffs
-      numcoeffsB = (int)*pdummy;
-      delete pdummy;
-
-      tmp_filtnumcoeffs[n] = std::max(numcoeffsA, numcoeffsB); // numcoeffs=maximum
-
-      pdummy = new double[numcoeffsA];
-      simFile.read((char *)pdummy,
-                   sizeof(double) * numcoeffsA); // read the a-coeffs
-      tmp_filtcoeffsA[n] =
-          new float[tmp_filtnumcoeffs[n]]; // reserve mem for a-coeffs
-      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
-        tmp_filtcoeffsA[n][k] = 0.f; // initialize the a-coeffs array
-      for (int k = 0; k < numcoeffsA; k++)
-        tmp_filtcoeffsA[n][k] =
-            (float)pdummy[k]; // and cast the a-coeffs to float
-      delete[] pdummy;
-
-      pdummy = new double[numcoeffsB];
-      simFile.read((char *)pdummy,
-                   sizeof(double) * numcoeffsB); // read the b-coeffs
-      tmp_filtcoeffsB[n] =
-          new float[tmp_filtnumcoeffs[n]]; // reserve mem for b-coeffs
-      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
-        tmp_filtcoeffsB[n][k] = 0.f; // initialize the b-coeffs array
-      for (int k = 0; k < numcoeffsB; k++)
-        tmp_filtcoeffsB[n][k] =
-            (float)pdummy[k]; // and cast the b-coeffs to float
-      delete[] pdummy;
-    }
-    tmp_filtid[0] = 0;                 // set up the 0 filter
-    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
-    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
-    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
-    donotreadnextblockid = false;      // make sure that the next chunk is read
-  } else if ((strncmp(pblockid, "SRC", 3) == 0) ||
-             (strncmp(pblockid, "SMP", 3) ==
-              0)) // the FLT-chunk is missing, is this a valid chunk?
-  {
-    std::cout << "the FLT-chunk is missing, this a valid chunk, initialize filters "
-            "to 0\n";
-    tmp_numfilters = 1; // if yes, initialize only the 0 filter
-    tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtnumcoeffs =
-        new int[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtcoeffsA =
-        new float *[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtcoeffsB =
-        new float *[tmp_numfilters];   // reserve memory for the 0 filter
-    tmp_filtid[0] = 0;                 // set up the 0 filter
-    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
-    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
-    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
-    donotreadnextblockid = true;       // and don't read the next chunk-header,
-                                       // because we already have it
-  } else // if FLT-chunk does not exist and no valid chunk is following
-  {
-    std::cout << "FLT-chunk does not exist and no valid chunk is following\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_FLT_BLOCK_BAD;
-  }
-
-  //  ----- count the receivers -----
-  set("nRec", 0);
-  for (int pos = 0; pos < config.nNodes; pos++)
-    if (data.envi[pos] < -1.0)
-      set("nRec", config.nRec + 1);
-  // and reserve memory for the receivers
-  if (config.nRec > 0) {
-    if (data.recIdx != NULL)
-      delete[] data.recIdx;
-    data.recIdx = new int[config.nRec];
-  }
-
-  //  ----- PREPROCESSING OF THE ENVIRONMENT -----
+//  ----- PREPROCESSING OF THE ENVIRONMENT -----
+void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
+                             float **&tmp_filtcoeffsA, float **&tmp_filtcoeffsB,
+                             int &tmp_numfilters) {
   data.boundary = new bool[config.nNodes]; // mem for boundary indicator
   // data.deadnode=new bool[config.nNodes];              // mem for deadnode
   // indicator
@@ -1505,6 +1211,8 @@ simError Lambda::loadSimulation(const std::string fileName) {
     data.filtcoeffsB_right[pos] = NULL;
     data.filtcoeffsB_bottom[pos] = NULL;
   }
+
+  int actrec = 0;
 
   // work through all nodes in the environment
   for (int y = 0; y < config.nY; y++) {
@@ -1697,6 +1405,272 @@ simError Lambda::loadSimulation(const std::string fileName) {
       }
     } // x-loop
   }   // y-loop
+}
+
+// RETURN VALUE
+//   simError: NONE if file was opened successfully, error identfier otherwise.
+simError Lambda::loadSimulation(const std::string fileName) {
+  // some variables needed during the read-in process
+  struct stat results;
+  char *pblockid;
+  double *pdummy;
+  simError error = NONE;
+  simSource curSource;
+  bool donotreadnextblockid = false;
+  float value;
+
+  // check the filename
+  if (stat((char *)fileName.c_str(), &results) != 0)
+    return FILE_BAD;
+  set("status", MISMATCH);
+  // reset all variables
+  resetAll();
+  // open the simfile
+  std::ifstream simFile((char *)fileName.c_str(),
+                        std::ios::in | std::ios::binary);
+
+  //  ------ HEADER ------
+  //  read the simfile header. it consists of the std::string "LAMBDASIM200".
+  // otherwise, the file is corrupt or wrong version
+  pblockid = new char[12];
+  simFile.read(pblockid, sizeof(char) * 12);
+  if (strncmp(pblockid, "LAMBDASIM200", 12) != 0) {
+    simFile.close();
+    delete[] pblockid;
+    return FILE_HEADER_BAD_OR_WRONG_VERSION;
+  }
+  delete[] pblockid;
+
+  pblockid = new char[3];
+  //  ----- DEFINITIONS -----
+  // read in the important simulation definitions.
+  simFile.read(pblockid, sizeof(char) * 3);
+  if (strncmp(pblockid, "DEF", 3) == 0) // DEF-Chunk exists?
+  {
+    std::cout << "parsing DEF chunk\n";
+    pdummy = new double[6];
+    simFile.read((char *)pdummy, sizeof(double) * 6); // read the data
+    if (error == NONE)
+      error = set("nY", (int)pdummy[0]); // simulation Y-size
+    if (error == NONE)
+      error = set("nX", (int)pdummy[1]); // simulation X-size
+    if (error == NONE)
+      error = set("nN", (int)pdummy[2]); // number of iterations
+    if (error == NONE)
+      error = set(
+          "cTube",
+          sqrt(2.f) *
+              (float)pdummy[3]); // Speed in tubes is sqrt(2)*c_{free field}!
+    if (error == NONE)
+      error = set("lTube", (float)pdummy[4]); // tube length
+    if (error == NONE)
+      error = set("rho", (float)pdummy[5]); // air density in kg/m^3
+    delete[] pdummy;
+    if (error != NONE) // if there was an error, close the file and exit
+    {
+      simFile.close();
+      delete[] pblockid;
+      return FILE_DEF_BLOCK_BAD;
+    }
+  } else // if no DEF-Chunk exists, close the file and exit
+  {
+    std::cout << "no DEF-Chunk exists, close the file and exit\n";
+    simFile.close();
+    delete[] pblockid;
+    return FILE_DEF_BLOCK_BAD;
+  }
+
+  //  ----- ENVIRONMENT -----
+  // read in the simulation environment matrix.
+  simFile.read(pblockid, sizeof(char) * 3);
+  if (strncmp(pblockid, "ENV", 3) == 0) // ENV-Chunk exists?
+  {
+    std::cout << "parsing ENV chunk\n";
+    pdummy =
+        new double[config.nNodes]; // reserve memory for env-data in simfile
+    data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
+    data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
+    simFile.read((char *)pdummy,
+                 sizeof(double) * config.nNodes); // read envi-matrix
+    for (int pos = 0; pos < config.nNodes;
+         pos++) // and cast it from double to float
+    {
+      value = (float)pdummy[pos];
+      data.deadnode[pos] = false;
+      if (value == -999) {         // is it a dead node?
+        value = 0;                 // turn it into empty
+        data.deadnode[pos] = true; // mark it as dead
+      }
+      data.envi[pos] = (float)value; // (all nodes)
+    }
+    delete[] pdummy;
+  } else // ENV-Chunk does not exist -> close file and exit
+  {
+    simFile.close();
+    delete[] pblockid;
+    return FILE_ENV_BLOCK_BAD;
+  }
+
+  //  ----- ANGLES -----
+  // read in the angle-matrix
+  simFile.read(pblockid, sizeof(char) * 3);
+  if (strncmp(pblockid, "ANG", 3) == 0) // ANG-Chunk exists?
+  {
+    std::cout << "parsing ANG chunk\n";
+    pdummy =
+        new double[config.nNodes]; // reserve memory for ang-data in simfile
+    data.angle = new float[config.nNodes]; // reserve memory for angle-matrix
+    simFile.read((char *)pdummy,
+                 sizeof(double) * config.nNodes); // read angle-matrix
+    for (int pos = 0; pos < config.nNodes;
+         pos++)                             // and cast it from double to float
+      data.angle[pos] = (float)pdummy[pos]; // (all nodes)
+    delete[] pdummy;
+    donotreadnextblockid = false; // make shure that the next chunk will be read
+  } else if ((strncmp(pblockid, "FLT", 3) == 0) ||
+             (strncmp(pblockid, "SRC", 3) == 0) ||
+             (strncmp(pblockid, "SMP", 3) ==
+              0)) { // if angle-matrix does not exist and the next Chunk is FLT
+                    // or SMP or SRC
+    std::cout
+        << "angle-matrix does not exist and the next Chunk is FLT or SMP or "
+           "SRC\n";
+    data.angle = new float[config.nNodes];        // create empty angle matrix
+    for (int pos = 0; pos < config.nNodes; pos++) // and fill it with 400.f
+      data.angle[pos] =
+          400.f; // (this means no preemphasis is done on the nodes)
+    donotreadnextblockid =
+        true; // do not read the next Chunk ID, because we have it already
+  } else      // if angle-matrix does not exist and no valid chunk is following
+  {
+    std::cout
+        << "angle matrix does not exist and no valid chunk is following\n";
+    simFile.close();
+    delete[] pblockid;
+    return FILE_ANG_BLOCK_BAD;
+  }
+
+  //  ----- FILTERS -----
+  //  read in the filter data
+  int tmp_numfilters;             // temporary number of filters
+  int *tmp_filtid = NULL;         // temporary filter ID array
+  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
+  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
+  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
+  tmp_numfilters = 1;             // at least one filter must exist!
+  if (!donotreadnextblockid) // do not read the next Chunk-ID if ANG-Chunk was
+                             // left out
+    simFile.read(pblockid, sizeof(char) * 3);
+  if (strncmp(pblockid, "FLT", 3) == 0) // FLT-Chunk exists?
+  {
+    std::cout << "parsing FLT chunk\n";
+    pdummy = new double;
+    simFile.read((char *)pdummy,
+                 sizeof(double)); // yes, read in number of filters in chunk
+    tmp_numfilters = ((int)*pdummy) + 1; // one more for the standard 0 filter
+    delete pdummy;
+
+    tmp_filtid = new int[tmp_numfilters]; // reserve memory for filter IDs
+    tmp_filtnumcoeffs = new int[tmp_numfilters]; // reserve memory for numcoeffs
+    tmp_filtcoeffsA =
+        new float *[tmp_numfilters]; // reserve memory for filter a-coeffs
+    tmp_filtcoeffsB =
+        new float *[tmp_numfilters]; // reserve memory for filter b-coeffs
+
+    for (int n = 1; n < tmp_numfilters;
+         n++) // work through all the filters, except for
+    {         // the 0 filter
+      int numcoeffsA;
+      int numcoeffsB;
+
+      pdummy = new double;
+      simFile.read((char *)pdummy, sizeof(double)); // read next filter ID
+      tmp_filtid[n] = (int)*pdummy;
+      simFile.read((char *)pdummy, sizeof(double)); // read number of a-coeffs
+      numcoeffsA = (int)*pdummy;
+      simFile.read((char *)pdummy, sizeof(double)); // read number of b-coeffs
+      numcoeffsB = (int)*pdummy;
+      delete pdummy;
+
+      tmp_filtnumcoeffs[n] =
+          std::max(numcoeffsA, numcoeffsB); // numcoeffs=maximum
+
+      pdummy = new double[numcoeffsA];
+      simFile.read((char *)pdummy,
+                   sizeof(double) * numcoeffsA); // read the a-coeffs
+      tmp_filtcoeffsA[n] =
+          new float[tmp_filtnumcoeffs[n]]; // reserve mem for a-coeffs
+      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
+        tmp_filtcoeffsA[n][k] = 0.f; // initialize the a-coeffs array
+      for (int k = 0; k < numcoeffsA; k++)
+        tmp_filtcoeffsA[n][k] =
+            (float)pdummy[k]; // and cast the a-coeffs to float
+      delete[] pdummy;
+
+      pdummy = new double[numcoeffsB];
+      simFile.read((char *)pdummy,
+                   sizeof(double) * numcoeffsB); // read the b-coeffs
+      tmp_filtcoeffsB[n] =
+          new float[tmp_filtnumcoeffs[n]]; // reserve mem for b-coeffs
+      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
+        tmp_filtcoeffsB[n][k] = 0.f; // initialize the b-coeffs array
+      for (int k = 0; k < numcoeffsB; k++)
+        tmp_filtcoeffsB[n][k] =
+            (float)pdummy[k]; // and cast the b-coeffs to float
+      delete[] pdummy;
+    }
+    tmp_filtid[0] = 0;                 // set up the 0 filter
+    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
+    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
+    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
+    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
+    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
+    donotreadnextblockid = false;      // make sure that the next chunk is read
+  } else if ((strncmp(pblockid, "SRC", 3) == 0) ||
+             (strncmp(pblockid, "SMP", 3) ==
+              0)) // the FLT-chunk is missing, is this a valid chunk?
+  {
+    std::cout
+        << "the FLT-chunk is missing, this a valid chunk, initialize filters "
+           "to 0\n";
+    tmp_numfilters = 1; // if yes, initialize only the 0 filter
+    tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
+    tmp_filtnumcoeffs =
+        new int[tmp_numfilters]; // reserve memory for the 0 filter
+    tmp_filtcoeffsA =
+        new float *[tmp_numfilters]; // reserve memory for the 0 filter
+    tmp_filtcoeffsB =
+        new float *[tmp_numfilters];   // reserve memory for the 0 filter
+    tmp_filtid[0] = 0;                 // set up the 0 filter
+    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
+    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
+    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
+    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
+    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
+    donotreadnextblockid = true;       // and don't read the next chunk-header,
+                                       // because we already have it
+  } else // if FLT-chunk does not exist and no valid chunk is following
+  {
+    std::cout << "FLT-chunk does not exist and no valid chunk is following\n";
+    simFile.close();
+    delete[] pblockid;
+    return FILE_FLT_BLOCK_BAD;
+  }
+
+  //  ----- count the receivers -----
+  set("nRec", 0);
+  for (int pos = 0; pos < config.nNodes; pos++)
+    if (data.envi[pos] < -1.0)
+      set("nRec", config.nRec + 1);
+  // and reserve memory for the receivers
+  if (config.nRec > 0) {
+    if (data.recIdx != NULL)
+      delete[] data.recIdx;
+    data.recIdx = new int[config.nRec];
+  }
+
+  initEnvironment(tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
+                  tmp_filtcoeffsB, tmp_numfilters);
 
   // read samples
   if (!donotreadnextblockid) // read the chunk header if it is required (see
@@ -1794,18 +1768,20 @@ simError Lambda::loadSimulation(const std::string fileName) {
       if (curSource.type == 30) {
         sample = data.samples[(int)curSource.freq];
         std::cout << "sample source: IDX=" << sample->id << " SR=" << sample->sr
-             << " NSAMPLES=" << sample->nsamples
-             << " DURATION(ms)=" << (sample->nsamples * 1000) / sample->sr
-             << "\n";
+                  << " NSAMPLES=" << sample->nsamples
+                  << " DURATION(ms)=" << (sample->nsamples * 1000) / sample->sr
+                  << "\n";
       }
       defineSource(n, &curSource); // and add the source to the simulation
-      std::cout << "finished defining source of type " << curSource.type << "\n";
+      std::cout << "finished defining source of type " << curSource.type
+                << "\n";
     }
     delete pdummy;
   } else // no SRC-chunk found --> delete all our work we've done so far
   {
     std::cout << "no SRC-chunk found, found instead " << pblockid << "\n";
-    std::cout << "no SRC-chunk found --> delete all our work we've done so far\n";
+    std::cout
+        << "no SRC-chunk found --> delete all our work we've done so far\n";
     simFile.close();
     delete[] pblockid;
     delete[] isvelosource;
@@ -1904,9 +1880,9 @@ simError Lambda::loadSimulation(const std::string fileName) {
 //   simError: NONE if file was opened successfully, error identfier otherwise.
 //
 //	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	no changes
-//05/09	2.0
+// DATE	VERSION 	S. Ahrens 	First build
+// 05/06	1.0 	M. Ruhland 	no changes
+// 05/09	2.0
 //
 simError Lambda::loadRecord(const std::string fileName) {
   struct stat results; // File info
@@ -1920,7 +1896,8 @@ simError Lambda::loadRecord(const std::string fileName) {
   set("status", MISMATCH);
   resetAll();
   // open recfile and create pointer
-  std::ifstream recFile((char *)fileName.c_str(), std::ios::in | std::ios::binary);
+  std::ifstream recFile((char *)fileName.c_str(),
+                        std::ios::in | std::ios::binary);
   // read nY and nX into the dim array
   double *dim = new double[2];
   recFile.read((char *)dim, sizeof(double) * 2);
@@ -1973,6 +1950,41 @@ simError Lambda::initSimulation() {
   // Check one more time
   if (config.nNodes < 1)
     return NO_NODES;
+
+  data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
+  data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
+  for (int pos = 0; pos < config.nNodes; pos++) {
+    data.envi[pos] = 0.0;
+    data.deadnode[pos] = false;
+  }
+
+  data.angle = new float[config.nNodes];        // create empty angle matrix
+  for (int pos = 0; pos < config.nNodes; pos++) // and fill it with 400.f
+    data.angle[pos] = 400.f; // (this means no preemphasis is done on the nodes)
+
+  int *tmp_filtid = NULL;         // temporary filter ID array
+  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
+  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
+  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
+  int tmp_numfilters;             // temporary number of filters
+
+  tmp_numfilters = 1;                   // if yes, initialize only the 0 filter
+  tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
+  tmp_filtnumcoeffs =
+      new int[tmp_numfilters]; // reserve memory for the 0 filter
+  tmp_filtcoeffsA =
+      new float *[tmp_numfilters]; // reserve memory for the 0 filter
+  tmp_filtcoeffsB =
+      new float *[tmp_numfilters];   // reserve memory for the 0 filter
+  tmp_filtid[0] = 0;                 // set up the 0 filter
+  tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
+  tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
+  tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
+  tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
+  tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
+
+  initEnvironment(tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
+                  tmp_filtcoeffsB, tmp_numfilters);
 
   config.n = 0;
   // reserve memory for node pressure and incident pressure pulses
@@ -2076,6 +2088,8 @@ simError Lambda::initSimulation() {
 
   return NONE;
 }
+
+void Lambda::draw() { graphics.screen->display(*graphics.frame); }
 
 //   Processes the next replay frame.
 void Lambda::processRep() {
@@ -2513,8 +2527,8 @@ void Lambda::processSim() {
       }
     }
     graphics.frame_ready = false;
-    // Process actions like rce, rco or vis if required
-    #if 0
+// Process actions like rce, rco or vis if required
+#if 0
     if (rceBox->isChecked())
       processRce();
     if (rcoBox->isChecked())
@@ -2523,7 +2537,7 @@ void Lambda::processSim() {
     if (visBox->isChecked())
       if (config.n % graphics.skip == 0)
         processVis();
-    #endif
+#endif
     // update the progress indicator
     time_t t1;
     static time_t t0;
@@ -2603,7 +2617,7 @@ void Lambda::drawLambda() {
   }
 
   // TODO(lucasw) return graphics to caller
-  // graphics.screen->display(*graphics.frame);
+  graphics.screen->display(*graphics.frame);
 }
 
 //   Creates a new digital filter for a given real-valued reflexion factor and
@@ -2674,9 +2688,9 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
 //   float** src_coeffsB	: pointer on 2-Dim filter b-coeff Matrix
 //   int src_numfilters     : number of filters in the srcfilter-Arrays
 //   int id    				: desired filter ID
-//   float alpha			: angle of incidence for the desired filter, needed for
-//   preemphasis simAngularType direction : sets whether the filter is used in
-//   horizontal or vertical tubes, needed for preemphasis
+//   float alpha			: angle of incidence for the desired filter,
+//   needed for preemphasis simAngularType direction : sets whether the filter
+//   is used in horizontal or vertical tubes, needed for preemphasis
 //
 // OUTPUT
 //   int& dest_numcoeffs    : number of filter coefficients for the calculated

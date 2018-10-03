@@ -70,6 +70,8 @@ struct simSample {
   float *data;
 };
 
+// TODO(lucasw) make an array of SimDatas of length nNodes instead
+// of many many individual arrays - or will that hurt performance?
 // This struct contains specific data about the simulation environment.
 struct SimData {
   SimData();
@@ -210,10 +212,31 @@ class Lambda {
 public:
   Lambda();
 
-private:
+  //   Prepares variables needed for simulation.
+  // RETURN VALUE
+  //   simError: NONE if no error occured, error identfier otherwise.
+  simError initSimulation();
+  //   Processes the next simulation iteration.
+  void processSim();
   //   starts or quits visualization
   void vis();
+  //   Updates the visualization screen after each simulation iteration, if vis
+  //   is on.
+  void processVis();
+  void draw();
 
+  //   Function template. This function should be used whenever one of the key
+  //   variables of the lambda class is changed. It performs the necessary
+  //   checks before changing one of those variables and makes necessary
+  //   additional changes after changing. For example, the number of elements in
+  //   X-direction should not just be changed. Instead, you should use
+  //   set("nX",41);. This will check wether the second argument is a valid
+  //   value for nX
+  //   (>0) and will update nNodes (which should always be nX*nY at any time)
+  //   and dispSizeX automatically.
+  template <class T> simError set(const std::string what, const T value);
+
+private:
   //   starts or quits receiver. The
   //   receiver stores sound pressure data at user specified receiver pixels to
   //   a file.
@@ -228,9 +251,6 @@ private:
   //   visualization window when checkbox is clicked.
   void showbounds();
 
-  //   Processes the next simulation iteration.
-  void processSim();
-
   //   Processes the next replay frame.
   void processRep();
 
@@ -240,16 +260,13 @@ private:
   void setColormap();
   void setSamples();
 
-  //   QT Slot connected to the visTimer. This makes sure that visBox gets
-  //   unchecked if the user closes the visualization window by checking 10
-  //   times a second.
-  void checkScreen();
-
-private:
-  // PURPOSE
   //   This function intializes all the important variables, arrays and
   //   matrices. Sets pointers to NULL. Called only one single time at startup.
   void initVariables();
+
+  void initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
+                       float **&tmp_filtcoeffsA, float **&tmp_filtcoeffsB,
+                       int &tmp_numfilters);
 
   //   Processes input parameters and sets internal variables accordingly.
   // INPUT
@@ -267,17 +284,6 @@ private:
   //   otherwise.
   virtual simError defineSource(const int idx, const simSource *srcData);
 
-  //   Function template. This function should be used whenever one of the key
-  //   variables of the lambda class is changed. It performs the necessary
-  //   checks before changing one of those variables and makes necessary
-  //   additional changes after changing. For example, the number of elements in
-  //   X-direction should not just be changed. Instead, you should use
-  //   set("nX",41);. This will check wether the second argument is a valid
-  //   value for nX
-  //   (>0) and will update nNodes (which should always be nX*nY at any time)
-  //   and dispSizeX automatically.
-  template <class T> simError set(const std::string what, const T value);
-
   // PURPOSE
   //   Tries to load a recorded playback file.
   // RETURN VALUE
@@ -291,21 +297,12 @@ private:
   //   otherwise.
   virtual simError loadSimulation(const std::string fileName);
 
-  //   Prepares variables needed for simulation.
-  // RETURN VALUE
-  //   simError: NONE if no error occured, error identfier otherwise.
-  virtual simError initSimulation();
-
   //   Resets important variables, arrays and matrices to zero, e.g. before
   //   starting new simulation runs.
   virtual void resetAll();
 
   //   Resets variables and arrays used directly for simulation purposes.
   virtual void resetSimulation();
-
-  //   Updates the visualization screen after each simulation iteration, if vis
-  //   is on.
-  virtual void processVis();
 
   virtual void processFrame(cimg_library::CImg<float> *frame, float *pressure,
       const bool showbounds_box=false);

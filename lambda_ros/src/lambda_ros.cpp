@@ -9,6 +9,21 @@ public:
   LambdaRos(int argc, char* argv[])
   {
     lambda_.reset(new Lambda());
+
+    lambda_->set("nX", 191);
+    lambda_->set("nY", 191);
+
+    lambda_->initSimulation();
+    // setup the graphics
+    lambda_->vis();
+
+    while (ros::ok())
+    {
+      lambda_->processSim();
+      lambda_->processVis();
+      lambda_->draw();
+      ros::Duration(0.1).sleep();
+    }
   }
 
 private:
