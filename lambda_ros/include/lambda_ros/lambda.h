@@ -225,6 +225,8 @@ public:
   void processVis();
   void draw();
 
+  void setPressure(size_t x, size_t y, float value);
+
   //   Function template. This function should be used whenever one of the key
   //   variables of the lambda class is changed. It performs the necessary
   //   checks before changing one of those variables and makes necessary

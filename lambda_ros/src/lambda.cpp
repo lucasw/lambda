@@ -239,7 +239,7 @@ Lambda::Lambda()
     : GFX_MAXCONTRAST(100), GFX_MINCONTRAST(0), GFX_STDCONTRAST(50),
       GFX_MAXSAMPLES(9999999), GFX_MINSAMPLES(0), GFX_STDSAMPLES(0),
       GFX_MAXSKIP(999), GFX_MINSKIP(0), GFX_STDSKIP(0), GFX_MAXZOOM(999),
-      GFX_MINZOOM(1), GFX_STDZOOM(1), MEMSRC(20), COLORMAP(1),
+      GFX_MINZOOM(1), GFX_STDZOOM(4), MEMSRC(20), COLORMAP(1),
       graphics(GFX_STDZOOM, GFX_STDSKIP + 1) {
 
   initVariables();
@@ -2090,6 +2090,15 @@ simError Lambda::initSimulation() {
 }
 
 void Lambda::draw() { graphics.screen->display(*graphics.frame); }
+
+void Lambda::setPressure(size_t x, size_t y, float value)
+{
+  if (x >= config.nX)
+    return;
+  if (y >= config.nY)
+    return;
+  data.pres[y * config.nX + x] = value;
+}
 
 //   Processes the next replay frame.
 void Lambda::processRep() {

@@ -10,19 +10,23 @@ public:
   {
     lambda_.reset(new Lambda());
 
-    lambda_->set("nX", 191);
-    lambda_->set("nY", 191);
+    lambda_->set("nX", 391);
+    lambda_->set("nY", 391);
 
     lambda_->initSimulation();
     // setup the graphics
     lambda_->vis();
+
+    float pressure = 1.0;
+    ros::param::get("~pressure", pressure);
+    lambda_->setPressure(120, 30, pressure);
 
     while (ros::ok())
     {
       lambda_->processSim();
       lambda_->processVis();
       lambda_->draw();
-      ros::Duration(0.1).sleep();
+      ros::Duration(0.03).sleep();
     }
   }
 
