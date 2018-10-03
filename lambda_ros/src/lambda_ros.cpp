@@ -8,7 +8,7 @@ class LambdaRos
 public:
   LambdaRos(int argc, char* argv[])
   {
-    lambda_.reset(new Lambda(argc, argv));
+    lambda_.reset(new Lambda());
   }
 
 private:

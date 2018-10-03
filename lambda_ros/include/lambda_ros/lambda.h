@@ -71,7 +71,9 @@ struct simSample {
 };
 
 // This struct contains specific data about the simulation environment.
-struct simData {
+struct SimData {
+  SimData();
+
   float *envi;       // simulation environment as loaded from the .sim-file
   float *angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
@@ -131,7 +133,8 @@ struct simIndex {
 };
 
 // Variables and config data needed for the graphics.
-struct simGraphics {
+struct SimGraphics {
+  SimGraphics(const int zoom, const int skip);
   int contrast;
   int zoom;
   int skip;
@@ -205,7 +208,7 @@ typedef enum {
 
 class Lambda {
 public:
-  Lambda(int argc = 0, char *argv[] = NULL);
+  Lambda();
 
 private:
   //   starts or quits visualization
@@ -364,27 +367,27 @@ private:
                            float alpha, simAngularType direction);
 
   simConfig config;
-  simData data;
+  SimData data;
   simIndex index;
-  simGraphics graphics;
+  SimGraphics graphics;
   simStatus status;
   simFiles files;
 
-  int GFX_MAXCONTRAST = 100;    // Max value for contrast control
-  int GFX_MINCONTRAST = 0;      // Min value for conrast control
-  int GFX_STDCONTRAST = 50;     // Standard value for contrast control
-  int GFX_MAXSAMPLES = 9999999; // Max value for number of iterations
-  int GFX_MINSAMPLES = 0;       // Min value for number of iterations
-  int GFX_STDSAMPLES = 0;       // Standard value for number of iterations
-  int GFX_MAXSKIP = 999;        // Max value for number of iterations to skip
-  int GFX_MINSKIP = 0;          // Min value for number of iterations to skip
-  int GFX_STDSKIP = 0;          // Standard value for number of iterations to skip
-  int GFX_MAXZOOM = 999;        // Max value for zoom control
-  int GFX_MINZOOM = 1;          // Min value for zoom control
-  int GFX_STDZOOM = 1;          // Standard value for zoom control
-  int MEMSRC = 20;
-  int COLORMAP = 1;
-
+  // TODO(lucasw) move to SimGraphics
+  int GFX_MAXCONTRAST;    // Max value for contrast control
+  int GFX_MINCONTRAST;      // Min value for conrast control
+  int GFX_STDCONTRAST;     // Standard value for contrast control
+  int GFX_MAXSAMPLES; // Max value for number of iterations
+  int GFX_MINSAMPLES;       // Min value for number of iterations
+  int GFX_STDSAMPLES;       // Standard value for number of iterations
+  int GFX_MAXSKIP;        // Max value for number of iterations to skip
+  int GFX_MINSKIP;          // Min value for number of iterations to skip
+  int GFX_STDSKIP;          // Standard value for number of iterations to skip
+  int GFX_MAXZOOM;        // Max value for zoom control
+  int GFX_MINZOOM;          // Min value for zoom control
+  int GFX_STDZOOM;          // Standard value for zoom control
+  int MEMSRC;
+  int COLORMAP;
 };
 
 #endif

@@ -196,9 +196,80 @@ colormap_t get_colormap(int colormap_index) {
 #define CLAMP(x, low, high)                                                    \
   (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
+SimData::SimData() :
+ // Initialize receiver/recorder pointers
+  // TODO(lucasw) simData constructor can handle this
+  recs(NULL),
+  record(NULL),
+  recIdx(NULL),
+  // Initialize simulation environment data pointers
+  envi(NULL),
+  angle(NULL),
+  srcs(NULL),
+  boundary(NULL),
+  deadnode(NULL),
+  filt_left(NULL),
+  filt_top(NULL),
+  filt_right(NULL),
+  filt_bottom(NULL),
+  pres(NULL),
+  inci(NULL),
+  // Initialize filter memory pointers
+  oldx_left(NULL),
+  oldx_top(NULL),
+  oldx_right(NULL),
+  oldx_bottom(NULL),
+  oldy_left(NULL),
+  oldy_top(NULL),
+  oldy_right(NULL),
+  oldy_bottom(NULL),
+  // Initialize filter coefficient pointers
+  filtnumcoeffs_left(NULL),
+  filtnumcoeffs_top(NULL),
+  filtnumcoeffs_right(NULL),
+  filtnumcoeffs_bottom(NULL),
+  filtcoeffsA_left(NULL),
+  filtcoeffsB_left(NULL),
+  filtcoeffsA_top(NULL),
+  filtcoeffsB_top(NULL),
+  filtcoeffsA_right(NULL),
+  filtcoeffsB_right(NULL),
+  filtcoeffsA_bottom(NULL),
+  filtcoeffsB_bottom(NULL),
+  // Initialize velocity source pointers
+  velo_left(NULL),
+  velo_top(NULL),
+  velo_right(NULL),
+  velo_bottom(NULL),
+  mem(NULL),
+  samples(NULL) {
+
+}
+
+SimGraphics::SimGraphics(const int zoom, const int skip) :
+  zoom(zoom),
+  skip(skip),
+  dispSizeX(0),
+  dispSizeY(0),
+  screen(NULL),
+  frame(NULL)
+{
+  colors.white[0] = 255.f;
+  colors.white[1] = 255.f;
+  colors.white[2] = 255.f;
+
+  colors.grey[0] = 127.f;
+  colors.grey[1] = 127.f;
+  colors.grey[2] = 127.f;
+
+  colors.black[0] = 0.f;
+  colors.black[1] = 0.f;
+  colors.black[2] = 0.f;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-Lambda::Lambda(int argc, char *argv[]) :
+Lambda::Lambda() :
   GFX_MAXCONTRAST(100),
   GFX_MINCONTRAST(0),
   GFX_STDCONTRAST(50),
@@ -212,129 +283,27 @@ Lambda::Lambda(int argc, char *argv[]) :
   GFX_MINZOOM(1),
   GFX_STDZOOM(1),
   MEMSRC(20),
-  COLORMAP(1)
+  COLORMAP(1),
+  graphics(GFX_STDZOOM, GFX_STDSKIP + 1)
 {
   initVariables();
-  // Process input parameters that might be provided in argv
-  handleParameters(argc, argv);
+  // TODO(lucasw) let something else determine whether or not to randomize like this
   srand(time(NULL));
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::initVariables()
-//
-// PURPOSE
 //   This function intializes all the important variables, arrays and matrices.
 //   Sets pointers to NULL. Called only one single time at startup.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens	First build
-//05/06	1.0 	M. Ruhland	partly rewritten; added pointers for		05/09
-//2.0
-//              filter handling, velocity sources
-//              and angular matrix
-//
 void Lambda::initVariables() {
-  // Initialize receiver/recorder pointers
-  data.recs = NULL;
-  data.record = NULL;
-  data.recIdx = NULL;
   // Initialize graphics properties & colours
   set("contrast", GFX_STDCONTRAST);
-  graphics.zoom = GFX_STDZOOM;
-  graphics.skip = GFX_STDSKIP + 1;
-  graphics.dispSizeX = 0;
-  graphics.dispSizeY = 0;
-  graphics.colors.white[0] = 255.f;
-  graphics.colors.grey[0] = 127.f;
-  graphics.colors.black[0] = 0.f;
-  graphics.colors.white[1] = 255.f;
-  graphics.colors.grey[1] = 127.f;
-  graphics.colors.black[1] = 0.f;
-  graphics.colors.white[2] = 255.f;
-  graphics.colors.grey[2] = 127.f;
-  graphics.colors.black[2] = 0.f;
-  graphics.screen = NULL;
-  graphics.frame = NULL;
-  // Initialize simulation environment data pointers
-  data.envi = NULL;
-  data.angle = NULL;
-  data.srcs = NULL;
-  data.boundary = NULL;
-  data.deadnode = NULL;
-  data.filt_left = NULL;
-  data.filt_top = NULL;
-  data.filt_right = NULL;
-  data.filt_bottom = NULL;
-  data.pres = NULL;
-  data.inci = NULL;
-  // Initialize filter memory pointers
-  data.oldx_left = NULL;
-  data.oldx_top = NULL;
-  data.oldx_right = NULL;
-  data.oldx_bottom = NULL;
-  data.oldy_left = NULL;
-  data.oldy_top = NULL;
-  data.oldy_right = NULL;
-  data.oldy_bottom = NULL;
-  // Initialize filter coefficient pointers
-  data.filtnumcoeffs_left = NULL;
-  data.filtnumcoeffs_top = NULL;
-  data.filtnumcoeffs_right = NULL;
-  data.filtnumcoeffs_bottom = NULL;
-  data.filtcoeffsA_left = NULL;
-  data.filtcoeffsB_left = NULL;
-  data.filtcoeffsA_top = NULL;
-  data.filtcoeffsB_top = NULL;
-  data.filtcoeffsA_right = NULL;
-  data.filtcoeffsB_right = NULL;
-  data.filtcoeffsA_bottom = NULL;
-  data.filtcoeffsB_bottom = NULL;
-  // Initialize velocity source pointers
-  data.velo_left = NULL;
-  data.velo_top = NULL;
-  data.velo_right = NULL;
-  data.velo_bottom = NULL;
-  data.mem = NULL;
-  data.samples = NULL;
 
   resetAll();
 
   status = MISMATCH;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::resetAll()
-//
-// PURPOSE
 //   Resets important variables, arrays and matrices to zero, e.g. before
 //   starting new simulation runs.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens	First build
-//05/06	1.0 	M. Ruhland	mainly rewritten; added code for resetting	05/09
-//2.0
-//              the filter data and the angular matrix
-//
 void Lambda::resetAll() {
   resetSimulation();
 
@@ -413,6 +382,8 @@ void Lambda::resetAll() {
     data.recIdx = NULL;
   }
 
+  // TODO(lucasw) make a function to eliminate redundant code-
+  // make it a simData method.
   // delete left filter coefficient arrays
   if (data.filtcoeffsA_left != NULL) {
     for (int n = 0; n < config.nNodes; n++) {
@@ -513,29 +484,7 @@ void Lambda::resetAll() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::resetSimulation()
-//
-// PURPOSE
 //   Resets variables and arrays used directly for simulation purposes.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens	First build
-//05/06	1.0 	M. Ruhland	mainly rewritten; added resetting of the 	05/09
-//2.0
-//              filter's memories and the velocity sources;
-//				removed some old optimization pointers
-//              that are not needed any more
-//
 void Lambda::resetSimulation() {
   // Delete simulation environment data memory
   if (data.pres != NULL) {
@@ -674,29 +623,7 @@ void Lambda::resetSimulation() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::handleParameters()
-//
-// PURPOSE
 //   Processes input parameters and sets internal variables accordingly.
-//
-// INPUT
-//   int argc     : Number of elements in input vector argv
-//   char *argv[] : Array of variable input parameters
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens	First build
-//05/06	1.0
-//	M. Ruhland	added "-walls" parameter and
-//05/09   2.0
-//              "-exit" parameter
-//
 void Lambda::handleParameters(int argc, char *argv[]) {
   std::string argument;
   int arg;
@@ -752,6 +679,7 @@ void Lambda::handleParameters(int argc, char *argv[]) {
     } else if ((argument == "-rce") || (argument == "-Rce") ||
                (argument == "-RCE") || (argument == "/rce") ||
                (argument == "/Rce") || (argument == "/RCE")) {
+      // TODO(lucasw) nothing happens because of this
       clickRce = true; // check rce checkbox
     } else if ((argument == "-rco") || (argument == "-Rco") ||
                (argument == "-RCO") || (argument == "/rco") ||
@@ -811,27 +739,7 @@ void Lambda::stop() {
 }
 #endif
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::vis()
-//
-// PURPOSE
-//   QT Slot connected to the Vis checkbox, starts or quits visualization
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland	Modified to show simfield immediatedly if   05/09   2.0
-//				visbox is checked during paused simulation;
-//              needed for walls-visualization
-//
+//   starts or quits visualization
 void Lambda::vis() {
   {
     // If visualization just got switched ON, prepare everything for
@@ -885,30 +793,8 @@ void Lambda::showbounds() {
     processVis();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::processVis()
-//
-// PURPOSE
 //   Updates the visualization screen after each simulation iteration, if vis is
 //   on.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0
-//  M. Ruhland  changed copyright line                      04/08
-//	M. Ruhland 	Added drawing of the walls and receivers
-//05/09	2.0
-//              if the "walls"-checkbox is checked
-//
 void Lambda::processVis() {
   if (graphics.screen != NULL) {
     processFrame(graphics.frame, index.presPres);
@@ -1005,27 +891,8 @@ void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
   graphics.frame_ready = true;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::processRce()
-//
-// PURPOSE
 //   Processes the receiver output after each calculated sim iteration if Rce is
 //   switched on.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0
-//  M. Ruhland  no changes                                  05/09   2.0
-//
 void Lambda::processRce() {
   double *dummy = new double; // double pointer needed for float2double cast
   for (int rec = 0; rec < config.nRec; rec++) {
@@ -1037,35 +904,14 @@ void Lambda::processRce() {
   delete dummy;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::processRco()
-//
-// PURPOSE
 //   Processes the recorder output after each calculated sim iteration if Rco is
 //   switched on.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0
-//  M. Ruhland  no changes                                  05/09   2.0
-//
 void Lambda::processRco() {
   // just write all the future pressure data into the rco file...
   files.rcoFile.write((char *)index.presPres, sizeof(float) * config.nNodes);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::set()
-//
+// TODO(lucasw) split this up into inidividual setters
 // PURPOSE
 //   Function template. This function should be used whenever one of the key
 //   variables of the lambda class is changed. It performs the necessary checks
@@ -1075,24 +921,6 @@ void Lambda::processRco() {
 //   will check wether the second argument is a valid value for nX
 //   (>0) and will update nNodes (which should always be nX*nY at any time) and
 //   dispSizeX automatically.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0
-//  M. Ruhland  fixed some warnings                         04/08
-//  M. Ruhland  added "rho"-parameter for velocity sources	05/09   2.0
-//              and removed config.FourFields, which is
-//              no longer needed
-//
 template <class T> simError Lambda::set(const std::string what, const T value) {
   if (what == "nX") {
     // If nX is to be set, check if new X-size is greater than 0.
@@ -1366,29 +1194,8 @@ simError Lambda::defineSource(const int idx, const simSource *srcData) {
   return NONE;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::loadSimulation
-//
-// PURPOSE
-//   Tries to load a simulation file.
-//
-// INPUT
-//   const std::string fileName : name of the file to be opened.
-//
-// OUTPUT
-//   None
-//
 // RETURN VALUE
 //   simError: NONE if file was opened successfully, error identfier otherwise.
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland	implemented sqrt(2) reflection factor
-//04/08	1.1 				preemphasis, and extended reflection 				factor value range from -1
-//to 1. 				Simulation field borders initialized 				for zero reflection.
-//  M. Ruhland  Completely rewritten for new 2.0 file       05/09   2.0
-//              structure and computation model.
-//
 simError Lambda::loadSimulation(const std::string fileName) {
   // some variables needed during the read-in process
   struct stat results;
@@ -2159,28 +1966,9 @@ float **new_array2(int n) {
   return out;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::initSimulation
-//
-// PURPOSE
 //   Prepares variables needed for simulation.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
 // RETURN VALUE
 //   simError: NONE if no error occured, error identfier otherwise.
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	mainly rewritten; added code for
-//05/09	2.0
-//              allocating and resetting the filter's
-//              memories and the velocity source arrays
-//
 simError Lambda::initSimulation() {
   // Check one more time
   if (config.nNodes < 1)
@@ -2289,28 +2077,7 @@ simError Lambda::initSimulation() {
   return NONE;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::processRep
-//
-// PURPOSE
 //   Processes the next replay frame.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	irst build
-//05/06	1.0
-//  M. Ruhland  changed copyright line                      04/08
-//	M. Ruhland 	no changes
-//05/09	2.0
-//
 void Lambda::processRep() {
   // Skip this frame if demanded
   if (config.n % graphics.skip == 0) {
@@ -2323,34 +2090,7 @@ void Lambda::processRep() {
   //   stopButton->click();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::processSim
-//
-// PURPOSE
 //   Processes the next simulation iteration.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//05/06	1.0 	M. Ruhland 	mainly rewritten. Completely new
-//05/09	2.0
-//              simulation code for calculating digital
-//              filters and velocity sources at a time.
-//              Former pointer optimization not needed
-//              any longer, GDB does this for us now.
-//              Added new source types. Added progress
-//              indicator. Former walls removed. All
-//              walls are now treated as filters. Added
-//
-
 void Lambda::processSim() {
   if (data.pres != NULL) {
     // periodic cycling of time indices
@@ -2804,29 +2544,7 @@ void Lambda::processSim() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::drawLambda
-//
-// PURPOSE
 //   Draws the lambda logo on the visualization screen.
-//
-// INPUT
-//   None
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	S. Ahrens 	First build
-//08/06	1.0
-//  M. Ruhland  fixed some warnings                         04/08   1.1
-//  M. Ruhland  changed copyright line                      04/08
-//	M. Ruhland 	no changes
-//05/09	2.0
-//
 void Lambda::drawLambda() {
   int size, offsetX, offsetY;
   float radius;
@@ -2888,10 +2606,6 @@ void Lambda::drawLambda() {
   // graphics.screen->display(*graphics.frame);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::adaptreflexionfactor
-//
-// PURPOSE
 //   Creates a new digital filter for a given real-valued reflexion factor and
 //   preemphases the filter coefficients due to a given sonic incidence angle
 //   and horizontal/vertical alignment of the filter.
@@ -2900,22 +2614,13 @@ void Lambda::drawLambda() {
 //   float r    	: desired real-valued reflexion factor
 //   float alpha	: angle of incidence for the desired filter, needed for
 //   preemphasis simAngularType direction : sets whether the filter is used in
-//   horizontal
-//                              or vertical tubes, needed for preemphasis
+//   horizontal or vertical tubes, needed for preemphasis
 //
 // OUTPUT
 //   int& dest_numcoeffs    : number of filter coefficients for the calculated
 //   filter float*& dest_coeffsA   : array containig the new computed
 //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
 //   computed b-Filter-coefficients
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	M. Ruhland 	new function
-//05/09	2.0
-//
 void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
                                   float *&dest_coeffsB, float r, float alpha,
                                   simAngularType direction) {
@@ -2958,10 +2663,6 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
   dest_coeffsB[0] = bnew / anew;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::adaptfilter
-//
-// PURPOSE
 //   Creates a new digital filter from a given digital filter ID and
 //   preemphases the filter coefficients due to a given sonic incidence angle
 //	 and horizontal/vertical alignment of the filter.
@@ -2975,22 +2676,13 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
 //   int id    				: desired filter ID
 //   float alpha			: angle of incidence for the desired filter, needed for
 //   preemphasis simAngularType direction : sets whether the filter is used in
-//   horizontal
-//                              or vertical tubes, needed for preemphasis
+//   horizontal or vertical tubes, needed for preemphasis
 //
 // OUTPUT
 //   int& dest_numcoeffs    : number of filter coefficients for the calculated
 //   filter float*& dest_coeffsA   : array containig the new computed
 //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
 //   computed b-Filter-coefficients
-//
-// RETURN VALUE
-//   None
-//
-//	AUTHOR		CHANGES
-//DATE	VERSION 	M. Ruhland 	new function
-//05/09	2.0
-//
 void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
                          float *&dest_coeffsB, int *src_id, int *src_numcoeffs,
                          float **src_coeffsA, float **src_coeffsB,
