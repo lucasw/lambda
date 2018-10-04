@@ -757,12 +757,12 @@ void Lambda::showbounds() {
 //   on.
 void Lambda::processVis() {
   if (graphics.screen != NULL) {
-    processFrame(graphics.frame, index.presPres);
+    processFrame(graphics.frame, index.presPres, true);
   }
 }
 
 void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
-                          const bool showbounds_box) {
+                          const bool showbounds) {
   int r, g, b, r0, g0, b0;
   float v;
   char textbuf[16];
@@ -772,7 +772,6 @@ void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
   unsigned int nNodes = config.nNodes;
   unsigned int nNodes2 = nNodes * 2;
   float *framedata = frame->data();
-  bool showbounds = showbounds_box;
   // float *pressure = index.presPres;
   float *fr = framedata;
   float *fg = framedata + nNodes;
@@ -1946,7 +1945,7 @@ float **new_array2(int n) {
 //   Prepares variables needed for simulation.
 // RETURN VALUE
 //   simError: NONE if no error occured, error identfier otherwise.
-simError Lambda::initSimulation() {
+simError Lambda::initSimulationPre() {
   // Check one more time
   if (config.nNodes < 1)
     return NO_NODES;
@@ -1962,6 +1961,10 @@ simError Lambda::initSimulation() {
   for (int pos = 0; pos < config.nNodes; pos++) // and fill it with 400.f
     data.angle[pos] = 400.f; // (this means no preemphasis is done on the nodes)
 
+  return NONE;
+}
+
+void Lambda::initEnvironmentSetup() {
   int *tmp_filtid = NULL;         // temporary filter ID array
   int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
   float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
@@ -1985,7 +1988,9 @@ simError Lambda::initSimulation() {
 
   initEnvironment(tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
                   tmp_filtcoeffsB, tmp_numfilters);
+}
 
+simError Lambda::initSimulation() {
   config.n = 0;
   // reserve memory for node pressure and incident pressure pulses
   data.pres = new float[3 * config.nNodes];
@@ -2091,13 +2096,23 @@ simError Lambda::initSimulation() {
 
 void Lambda::draw() { graphics.screen->display(*graphics.frame); }
 
-void Lambda::setPressure(size_t x, size_t y, float value)
+void Lambda::setPressure(const size_t x, const size_t y, const float value)
 {
   if (x >= config.nX)
     return;
   if (y >= config.nY)
     return;
   data.pres[y * config.nX + x] = value;
+}
+
+// this has to be done before initSimulation
+void Lambda::setWall(const size_t x, const size_t y, const float value)
+{
+  if (x >= config.nX)
+    return;
+  if (y >= config.nY)
+    return;
+  data.envi[y * config.nX + x] = value;
 }
 
 //   Processes the next replay frame.

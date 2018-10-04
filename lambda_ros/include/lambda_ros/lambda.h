@@ -215,6 +215,8 @@ public:
   //   Prepares variables needed for simulation.
   // RETURN VALUE
   //   simError: NONE if no error occured, error identfier otherwise.
+  simError initSimulationPre();
+  void initEnvironmentSetup();
   simError initSimulation();
   //   Processes the next simulation iteration.
   void processSim();
@@ -225,7 +227,8 @@ public:
   void processVis();
   void draw();
 
-  void setPressure(size_t x, size_t y, float value);
+  void setPressure(const size_t x, const size_t y, const float value);
+  void setWall(const size_t x, const size_t y, const float value);
 
   //   Function template. This function should be used whenever one of the key
   //   variables of the lambda class is changed. It performs the necessary
@@ -307,7 +310,7 @@ private:
   virtual void resetSimulation();
 
   virtual void processFrame(cimg_library::CImg<float> *frame, float *pressure,
-      const bool showbounds_box=false);
+      const bool showbounds=false);
 
   //   Processes the receiver output after each calculated sim iteration if Rce
   //   is switched on.
