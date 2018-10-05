@@ -35,167 +35,6 @@ simSample **new_simSample_array(int n) {
   return out;
 }
 
-inline void interpolcol(float dx, int r0, int g0, int b0, int r1, int g1,
-                        int b1, int &r, int &g, int &b) {
-  r = r0 + dx * (r1 - r0);
-  g = g0 + dx * (g1 - g0);
-  b = b0 + dx * (b1 - b0);
-}
-
-inline void colormap_paint(float v, int cmap, int &r, int &g, int &b) {
-  switch (cmap) {
-  case 0:
-    // greyscale
-    r = v * 255;
-    g = v * 255, b = v * 255;
-    break;
-  case 1:
-    // heat
-    switch (int(v * 4)) {
-    case 0:
-      interpolcol(v / 0.25, 0, 0, 0, 69, 25, 94, r, g, b);
-      break;
-    case 1:
-      interpolcol((v - 0.25) / 0.25, 60, 25, 94, 216, 82, 50, r, g, b);
-      break;
-    case 2:
-      interpolcol((v - 0.5) / 0.25, 216, 82, 50, 253, 162, 28, r, g, b);
-      break;
-    case 3:
-      interpolcol((v - 0.75) / 0.25, 253, 162, 28, 255, 255, 255, r, g, b);
-      break;
-    default:
-      r = 255;
-      g = 255;
-      b = 255;
-      break;
-    }
-    break;
-  case 2:
-    // temp
-    switch (int(v * 4)) {
-    case 0:
-      interpolcol(v / 0.25, 0, 0, 102, 87, 113, 234, r, g, b);
-      break;
-    case 1:
-      interpolcol((v - 0.25) / 0.25, 87, 113, 234, 228, 234, 252, r, g, b);
-      break;
-    case 2:
-      interpolcol((v - 0.5) / 0.25, 228, 234, 252, 253, 251, 130, r, g, b);
-      break;
-    case 3:
-      interpolcol((v - 0.75) / 0.25, 253, 251, 130, 208, 34, 41, r, g, b);
-      break;
-    default:
-      r = 208;
-      g = 34;
-      b = 41;
-      break;
-    }
-  }
-}
-
-void colormap_heat(float v, int &r, int &g, int &b) {
-  // v should be 0-1
-  switch (int(v * 4)) {
-  case 0:
-    // interpolcol(v/0.25, 0, 0, 0, 69, 25, 94, r, g, b);
-    v *= 4;
-    r = v * 69;
-    g = v * 25;
-    b = v * 94;
-    return;
-  case 1:
-    // interpolcol((v-0.25)/0.25, 60, 25, 94, 216, 82, 50, r, g, b);
-    v = (v - 0.25) * 4;
-    r = 60 + v * (216 - 60);
-    g = 25 + v * (82 - 25);
-    b = 94 + v * (50 - 94);
-    return;
-  case 2:
-    // interpolcol((v-0.5)*4, 216, 82, 50, 253, 162, 28, r, g, b);
-    v = (v - 0.5) * 4;
-    r = 216 + v * (253 - 216);
-    g = 82 + v * (162 - 82);
-    b = 50 + v * (28 - 50);
-    return;
-  case 3:
-    // interpolcol((v-0.75)*4, 253, 162, 28, 255, 255, 255, r, g, b);
-    v = (v - 0.75) * 4;
-    r = 253 + v * (255 - 253);
-    g = 162 + v * (255 - 162);
-    b = 28 + v * (255 - 28);
-    break;
-  case 4:
-    r = 255;
-    g = 255;
-    b = 255;
-    return;
-  }
-}
-
-void colormap_temp(float v, int &r, int &g, int &b) {
-  switch (int(v * 4)) {
-  case 0:
-    // interpolcol(v/0.25, 0, 0, 102, 87, 113, 234, r, g, b);
-    v *= 4;
-    r = v * 87;
-    g = v * 113;
-    b = 102 + v * (234 - 102);
-    return;
-  case 1:
-    // interpolcol((v-0.25)/0.25, 87, 113, 234, 228, 234, 252, r, g, b);
-    v = (v - 0.25) * 4;
-    r = 87 + v * (228 - 87);
-    g = 113 + v * (234 - 113);
-    b = 234 + v * (252 - 234);
-    return;
-  case 2:
-    // interpolcol((v-0.5)/0.25, 228, 234, 252, 253, 251, 130, r, g, b);
-    v = (v - 0.5) * 4;
-    r = 228 + v * (253 - 228);
-    g = 234 + v * (251 - 234);
-    b = 252 + v * (130 - 252);
-    return;
-  case 3:
-    // interpolcol((v-0.75)/0.25, 253, 251, 130, 208, 34, 41, r, g, b);
-    v = (v - 0.75) * 4;
-    r = 253 + v * (208 - 253);
-    g = 251 + v * (34 - 251);
-    b = 130 + v * (41 - 130);
-    return;
-  case 4:
-    r = 208;
-    g = 34;
-    b = 41;
-    return;
-  }
-}
-
-void colormap_grey(float v, int &r, int &g, int &b) {
-  r = v * 255;
-  g = v * 255, b = v * 255;
-}
-
-typedef void (*colormap_t)(float, int &, int &, int &);
-
-colormap_t get_colormap(int colormap_index) {
-  switch (colormap_index) {
-  case 0:
-    return colormap_grey;
-  case 1:
-    return colormap_heat;
-  case 2:
-    return colormap_temp;
-  default:
-    return colormap_grey;
-  }
-}
-
-#define DEBUG_ENCODING
-#define CLAMP(x, low, high)                                                    \
-  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
-
 SimData::SimData()
     : // Initialize receiver/recorder pointers
       // TODO(lucasw) simData constructor can handle this
@@ -217,31 +56,13 @@ SimData::SimData()
       velo_left(NULL), velo_top(NULL), velo_right(NULL), velo_bottom(NULL),
       mem(NULL), samples(NULL) {}
 
-SimGraphics::SimGraphics(const int zoom, const int skip)
-    : zoom(zoom), skip(skip), dispSizeX(0), dispSizeY(0), screen(NULL),
-      frame(NULL) {
-  colors.white[0] = 255.f;
-  colors.white[1] = 255.f;
-  colors.white[2] = 255.f;
-
-  colors.grey[0] = 127.f;
-  colors.grey[1] = 127.f;
-  colors.grey[2] = 127.f;
-
-  colors.black[0] = 0.f;
-  colors.black[1] = 0.f;
-  colors.black[2] = 0.f;
+SimGraphics::SimGraphics() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
 Lambda::Lambda()
-    : GFX_MAXCONTRAST(100), GFX_MINCONTRAST(0), GFX_STDCONTRAST(50),
-      GFX_MAXSAMPLES(9999999), GFX_MINSAMPLES(0), GFX_STDSAMPLES(0),
-      GFX_MAXSKIP(999), GFX_MINSKIP(0), GFX_STDSKIP(0), GFX_MAXZOOM(999),
-      GFX_MINZOOM(1), GFX_STDZOOM(4), MEMSRC(20), COLORMAP(1),
-      graphics(GFX_STDZOOM, GFX_STDSKIP + 1) {
-
+    : MEMSRC(20) {
   initVariables();
   // TODO(lucasw) let something else determine whether or not to randomize like
   // this
@@ -252,11 +73,7 @@ Lambda::Lambda()
 //   Sets pointers to NULL. Called only one single time at startup.
 void Lambda::initVariables() {
   // Initialize graphics properties & colours
-  set("contrast", GFX_STDCONTRAST);
-
   resetAll();
-
-  status = MISMATCH;
 }
 
 //   Resets important variables, arrays and matrices to zero, e.g. before
@@ -275,10 +92,12 @@ void Lambda::resetAll() {
   config.cTube = 0;
   config.lTube = 0;
   config.rho = 0;
+  // the time of simulation step- doesn't change simulation update, just
+  // measurement of the passing of time with each update.
+  // int ms = config.n * config.tSample * 1E3;
   config.tSample = 0;
   config.fSample = 0;
   config.t0 = 0;
-  config.colormap = COLORMAP;
 
   // delete simulation environment data pointers
   if (data.envi != NULL) {
@@ -590,8 +409,6 @@ void Lambda::handleParameters(int argc, char *argv[]) {
   // To achieve this order of processing, the parameters are checked and read in
   // a first step, notifying necessary further steps through theses bool
   // variables. Theses steps will then be processed in the right order later.
-  bool startSim = false, clickAvi = false, clickRce = false, clickRco = false,
-       clickVis = false, clickWalls = false;
 
   // Parse array of input arguments
   for (arg = 0; arg < argc; arg++) {
@@ -603,53 +420,10 @@ void Lambda::handleParameters(int argc, char *argv[]) {
       // if this argument is "-file" and there is another argument following
       // this one, try to load the file named like that following parameter.
       if (arg < argc - 1) {
-        startSim = true;
         std::string fileName = argv[arg + 1];
-        if (loadSimulation(fileName) != NONE)
-          startSim = false;
+        if (loadSimulation(fileName) != NONE) {
+        }
       }
-    } else if ((argument == "-zoom") || (argument == "-Zoom") ||
-               (argument == "-ZOOM") || (argument == "/zoom") ||
-               (argument == "/Zoom") || (argument == "/ZOOM")) {
-      if (arg < argc - 1)
-        set("zoom", atoi(argv[arg + 1])); // set the zoom value
-    } else if ((argument == "-contrast") || (argument == "-Contrast") ||
-               (argument == "-CONTRAST") || (argument == "/contrast") ||
-               (argument == "/Contrast") || (argument == "/CONTRAST")) {
-      if (arg < argc - 1)
-        set("contrast", atoi(argv[arg + 1])); // set the contrast value
-    } else if ((argument == "-skip") || (argument == "-Skip") ||
-               (argument == "-SKIP") || (argument == "/skip") ||
-               (argument == "/Skip") || (argument == "/SKIP")) {
-      if (arg < argc - 1)
-        set("skip", atoi(argv[arg + 1])); // set the skip value
-    } else if ((argument == "-iterations") || (argument == "-Iterations") ||
-               (argument == "-ITERATIONS") || (argument == "/iterations") ||
-               (argument == "/Iterations") || (argument == "/ITERATIONS")) {
-      if (arg < argc - 1)
-        set("nN", atoi(argv[arg + 1])); // set total number of iterations
-    } else if ((argument == "-colormap") || (argument == "-colormap") ||
-               (argument == "-colormap") || (argument == "/colormap") ||
-               (argument == "/colormap") || (argument == "/colormap")) {
-      if (arg < argc - 1)
-        set("colormap", atoi(argv[arg + 1]));
-    } else if ((argument == "-rce") || (argument == "-Rce") ||
-               (argument == "-RCE") || (argument == "/rce") ||
-               (argument == "/Rce") || (argument == "/RCE")) {
-      // TODO(lucasw) nothing happens because of this
-      clickRce = true; // check rce checkbox
-    } else if ((argument == "-rco") || (argument == "-Rco") ||
-               (argument == "-RCO") || (argument == "/rco") ||
-               (argument == "/Rco") || (argument == "/RCO")) {
-      clickRco = true; // check rco checkbox
-    } else if ((argument == "-vis") || (argument == "-Vis") ||
-               (argument == "-VIS") || (argument == "/vis") ||
-               (argument == "/Vis") || (argument == "/VIS")) {
-      clickVis = true; // check vis checkbox
-    } else if ((argument == "-walls") || (argument == "-Walls") ||
-               (argument == "-WALLS") || (argument == "/walls") ||
-               (argument == "/Walls") || (argument == "/WALLS")) {
-      clickWalls = true; // check walls checkbox
     } else if ((argument == "-help") || (argument == "--help") ||
                (argument == "/help")) {
       std::cout
@@ -659,16 +433,6 @@ void Lambda::handleParameters(int argc, char *argv[]) {
              "-vis            : activate visualization\n"
              "-rce            : activate recording at receivers, if defined\n"
              "-walls          : show walls, if defined\n"
-             "(default 100)\n"
-             "-contrast N (0-100)  : adjust the contrast of the visualization "
-             "(default 50)\n"
-             "-colormap N (0-2)    : set the color map (0=gray, 1=hot, "
-             "2=temp) (def.=0)\n"
-             "-rco            : activate the recording of the visualization "
-             "(as a .rco file)\n"
-             "-zoom           : set the zoom level of a visualization (an "
-             "integer number)\n"
-             "-skip           : set number of frames to skip (default 0)\n"
              "-exit           : exit the program after finishing (good for "
              "batch processes)\n"
              "\n"
@@ -684,171 +448,47 @@ void Lambda::stop() {
   resetSimulation();
   // Reset display, if vis was on and simulation was reset manually
   // (don't change picture if simulation ended automatically)
-  //  drawLambda();
   config.n = 0;
-  // And set new status. If the stopped process was a simulation, data.envi must
-  // have been initialized before and set to an adress != NULL.
-  if (data.envi != NULL)
-    // Was simulating, set status ready to simulate.
-    set("status", SIMULATOR);
-  else
-    // Was replaying, set status ready for replay.
-    set("status", PLAYER);
 }
 #endif
 
-//   starts or quits visualization
-void Lambda::vis() {
-  {
-    // If visualization just got switched ON, prepare everything for
-    // visualization First of all, make sure that the visualization has been
-    // closed and reset or initialized properly before. Screen and frame ought
-    // to be set to NULL.
-    if ((graphics.screen == NULL) && (graphics.frame == NULL)) {
-      // If so, initialize frame and screen. If not, the old variables will be
-      // used graphics.frame = new
-      // cimg_library::CImg<float>(config.nX,config.nY);
-      graphics.frame =
-          new cimg_library::CImg<float>(config.nX, config.nY, 1, 3);
-
-      // graphics.screen=new
-      // cimg_library::CImgDisplay(graphics.dispSizeX,graphics.dispSizeY,"Lambda
-      // visualization",0,2,0,0);
-
-      // x, y, title, normalization, is_fullscreen, is_closed
-      // normalization: 0=none, 1=always, 2=once
-      printf("opening visualization\n");
-      graphics.screen = new cimg_library::CImgDisplay(
-          graphics.dispSizeX, graphics.dispSizeY, "Visualization", 0, 0, 0);
-      // drawLambda();
-    }
-    // Now that frames are being calculated, enable screenshot button
-    // if status simulation is running or paused (in other cases, no frame has
-    // been calculated yet).
-    if ((status == RUNNING) || (status == PAUSED))
-      processVis();
-  }
-#if 0
-  else {
-    // If visualization got switched OFF, tidy up the leftovers
-    // Screenshots are not available anymore, since no frames will be calculated
-    if ((graphics.screen != NULL) && (graphics.frame != NULL)) {
-      // delete frame and screen, reset to NULL
-      delete graphics.frame;
-      delete graphics.screen;
-      graphics.frame = NULL;
-      graphics.screen = NULL;
-    }
-  }
-#endif
-}
-
-void Lambda::showbounds() {
-  // make sure to call processVis() if checkbox walls is checked/unchecked
-  // so that the change has an immediate effect on the vis screen
-
-  if (status != RUNNING)
-    drawLambda();
-  if ((status == RUNNING) || (status == PAUSED))
-    processVis();
-}
-
-//   Updates the visualization screen after each simulation iteration, if vis is
-//   on.
 void Lambda::processVis() {
-  if (graphics.screen != NULL) {
-    processFrame(graphics.frame, index.presPres, true);
-  }
+  processFrame(graphics_.frame_, index.presPres, true);
 }
 
-void Lambda::processFrame(cimg_library::CImg<float> *frame, float *pressure,
+void Lambda::processFrame(cv::Mat& frame, float *pressure,
                           const bool showbounds) {
-  int r, g, b, r0, g0, b0;
-  float v;
-  char textbuf[16];
-  float contrast = (float)graphics.contrast / 255.f;
-  colormap_t cm = get_colormap(config.colormap);
-  // int cmap = config.colormap;
+  if (frame.empty() || (frame.cols != config.nX) ||
+      (frame.rows != config.nY)) {
+    frame = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0.0));
+  }
   unsigned int nNodes = config.nNodes;
   unsigned int nNodes2 = nNodes * 2;
-  float *framedata = frame->data();
   // float *pressure = index.presPres;
-  float *fr = framedata;
-  float *fg = framedata + nNodes;
-  float *fb = framedata + nNodes2;
 
   bool *deadnodes = data.deadnode;
   float *envi = data.envi;
-  cm(0.5, r0, g0, b0);
 
-  for (register unsigned int n = 0; n < nNodes; n++) {
-    if (deadnodes[n]) {
-      /*
-      fr[n] = showbounds ? 40  : r0;
-      fg[n] = showbounds ? 200 : g0;
-      fb[n] = showbounds ? 40  : b0;
-      */
-
-      if (showbounds) {
-        fr[n] = 40;
-        fg[n] = 200;
-        fb[n] = 40;
+  for (size_t y = 0; y < config.nY; ++y) {
+    for (size_t x = 0; x < config.nX; ++x) {
+      const size_t n = config.nX * y + x;
+      float value = 0.0;
+      value = pressure[n];
+      #if 0
+      if (deadnodes[n]) {
+        value = 0.0;
       } else {
-        fr[n] = r0;
-        fg[n] = g0;
-        fb[n] = b0;
+        if (envi[n] != 0.f) {
+          // is it a wall?
+        } else {
+        }
       }
-    } else {
-      if (showbounds && envi[n] != 0.f) {
-        // is it a wall?
-        fr[n] = 50;
-        fg[n] = 50;
-        fb[n] = 255;
-      } else {
-        v = pressure[n] * contrast + 0.5;
-        if (v > 1)
-          v = 1;
-        else if (v < 0)
-          v = 0;
-        cm(v, r, g, b);
-        // colormap_paint(v, cmap, r, g, b);
-        fr[n] = r;
-        fg[n] = g;
-        fb[n] = b;
-      }
-    }
-  };
-  /*
-      // draw walls and receivers, if walls-checkbox is checked
-  float *fr = framedata;
-  float *fg = framedata + nNodes;
-  float *fb = framedata + nNodes2;
-      if (gui.showboundsBox->isChecked())
-      {
-              for (register unsigned int n=0;n<nNodes;n++) {
-          if (deadnodes[n]) {
-              fr[n] = 40;
-              fg[n] = 200;
-              fb[n] = 40;
-          }
-          else if( envi[n]!=0.f ) {
-              // is it a wall?
-                              fr[n] = 50;
-                              fg[n] = 50;
-                              fb[n] = 255;
-                      }
-          
-              }
-      }
-  */
+      #endif
+      frame.at<float>(y, x) = value;
+    }  // x
+  }  // y
 
-  float bg[3] = {static_cast<float>(r0), static_cast<float>(g0),
-                 static_cast<float>(b0)};
-  sprintf(textbuf, "C%1.1f F%05i", contrast, config.n + 1);
-  frame->draw_text(0, -2, textbuf, graphics.colors.black, bg, 0.5);
-  sprintf(textbuf, "ms%.1f", config.n * config.tSample * 1E3);
-  frame->draw_text(0, 11, textbuf, graphics.colors.black, bg, 0.5);
-  graphics.frame_ready = true;
+  graphics_.frame_ready = true;
 }
 
 //   Processes the receiver output after each calculated sim iteration if Rce is
@@ -862,13 +502,6 @@ void Lambda::processRce() {
     files.rceFile.write((char *)dummy, sizeof(double));
   }
   delete dummy;
-}
-
-//   Processes the recorder output after each calculated sim iteration if Rco is
-//   switched on.
-void Lambda::processRco() {
-  // just write all the future pressure data into the rco file...
-  files.rcoFile.write((char *)index.presPres, sizeof(float) * config.nNodes);
 }
 
 // TODO(lucasw) split this up into inidividual setters
@@ -889,7 +522,6 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
     config.nX = (int)value;
     // Adjust nNodes and dispSizeX to fit the new setting
     set("nNodes", config.nX * config.nY);
-    set("dispSizeX", (int)value * graphics.zoom);
     return NONE;
   }
   if (what == "nY") {
@@ -899,7 +531,6 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
     config.nY = (int)value;
     // Adjust nNodes and dispSizeY to fit the new setting
     set("nNodes", config.nX * config.nY);
-    set("dispSizeY", (int)value * graphics.zoom);
     return NONE;
   }
   if (what == "nN") {
@@ -932,59 +563,6 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
     config.rho = value;
     return NONE;
   }
-  if (what == "contrast") {
-    // If contrast is to be set, check if new contrast is between 0 and 999.
-    if (((int)value < (int)GFX_MINCONTRAST) ||
-        ((int)value > (int)GFX_MAXCONTRAST))
-      return CONTRAST_OUT_OF_RANGE;
-    if ((int)value == 0)
-      graphics.contrast = 0;
-    else if ((int)value == 100)
-      graphics.contrast = -1;
-    else
-      graphics.contrast =
-          (int)(pow(2, .1 * (float)value) +
-                5 * ((float)value -
-                     1)); //(unsigned int)exp(.075*(unsigned int)value);
-    // Update Gui (contrast might have been set by input parameter)
-    // If visualization is on and paused, update the screen with the new
-    // contrast setting. If the simulation is not paused, the new contrast will
-    // be used for the next frame anyways.
-    // if ((status == PAUSED) && (gui.visBox->isChecked()))
-    //  processVis();
-    return NONE;
-  }
-  if (what == "zoom") {
-    // If zoom is to be set, check if new zoom is between 1 and 999.
-    if (((int)value < 1) || ((int)value > 999))
-      return ZOOM_OUT_OF_RANGE;
-    graphics.zoom = (int)value;
-    // Update Gui (zoom change might have been invoked from somewhere else)
-    // Adjust vis screen size
-    set("dispSizeX", (int)value * config.nX);
-    set("dispSizeY", (int)value * config.nY);
-    if (graphics.screen != NULL) {
-      graphics.screen->resize((int)graphics.dispSizeX, (int)graphics.dispSizeY);
-      if (status != RUNNING)
-        drawLambda();
-    }
-    return NONE;
-  }
-  if (what == "skip") {
-    // If skip is to be set, check if new contrast is between 0 and 999.
-    if (((int)value < 0) || ((int)value > 999))
-      return CONTRAST_OUT_OF_RANGE;
-    // The algorithm that checks for skipped frames needs skip to be the
-    // selected value, e.g. 1 if 0 frames are to be skipped
-    graphics.skip = (int)value + 1;
-    // Update Gui
-    return NONE;
-  }
-  if (what == "colormap") {
-    COLORMAP = (int)value;
-    config.colormap = (int)value;
-    return NONE;
-  }
   if (what == "nRec") {
     config.nRec = (int)value;
     return NONE;
@@ -1010,45 +588,6 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
     // Adjust sample duration
     set("tSample", 1 / config.fSample);
     return NONE;
-  }
-  if (what == "dispSizeX") {
-    graphics.dispSizeX = (int)value;
-    // Resize screen if open
-    if (graphics.screen != NULL)
-      graphics.screen->resize((int)graphics.dispSizeX, (int)graphics.dispSizeY);
-    return NONE;
-  }
-  if (what == "dispSizeY") {
-    graphics.dispSizeY = (int)value;
-    // Resize screen if open
-    if (graphics.screen != NULL)
-      graphics.screen->resize((int)graphics.dispSizeX, (int)graphics.dispSizeY);
-    return NONE;
-  }
-  if (what == "status") {
-    // Procedures for changing the program's status are more complex.
-    // First of all, update the status variable
-    status = (simStatus)value;
-    switch ((simStatus)value) {
-    // Take necessary actions for the new status
-    case PLAYER:
-      // statusLine->setText("<font color=red>Ready for replay</font>");
-      // During replays, repTimer is resonsible for correct timing. Make
-      // Replays always have the visualization feature switched on
-      // But all the other features are disabled
-      // Show empty frame in vis window
-      drawLambda();
-      break;
-
-    case PAUSED:
-      // statusLine->setText("<font color=red>Paused</font>");
-      break;
-    case MISMATCH:
-      // statusLine->setText("<font color=red>Bad data</font>");
-      // If no data is loaded, disable everything. No action can be performed.
-
-      break;
-    }
   }
   return NONE;
 }
@@ -1421,7 +960,6 @@ simError Lambda::loadSimulation(const std::string fileName) {
   // check the filename
   if (stat((char *)fileName.c_str(), &results) != 0)
     return FILE_BAD;
-  set("status", MISMATCH);
   // reset all variables
   resetAll();
   // open the simfile
@@ -1859,7 +1397,6 @@ simError Lambda::loadSimulation(const std::string fileName) {
 
   simFile.close();               // close the simfile
   files.lastFileName = fileName; // and remember its name
-  set("status", SIMULATOR);      // and now we're ready to go
   return NONE;
 }
 
@@ -1891,8 +1428,6 @@ simError Lambda::loadRecord(const std::string fileName) {
   // Each record file should at least contain 2 doubles: nY and nX.
   if ((int)results.st_size <= 2 * (int)sizeof(double))
     return FILE_SIZE_BAD;
-  // Set status to mismatch before changing anything
-  set("status", MISMATCH);
   resetAll();
   // open recfile and create pointer
   std::ifstream recFile((char *)fileName.c_str(),
@@ -1927,7 +1462,6 @@ simError Lambda::loadRecord(const std::string fileName) {
   recFile.read((char *)data.record, sizeof(float) * config.nN * config.nNodes);
   recFile.close();
   files.lastFileName = fileName;
-  set("status", PLAYER);
   return NONE;
 }
 
@@ -2094,8 +1628,6 @@ simError Lambda::initSimulation() {
   return NONE;
 }
 
-void Lambda::draw() { graphics.screen->display(*graphics.frame); }
-
 void Lambda::setPressure(const size_t x, const size_t y, const float value)
 {
   if (x >= config.nX)
@@ -2113,19 +1645,6 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
   if (y >= config.nY)
     return;
   data.envi[y * config.nX + x] = value;
-}
-
-//   Processes the next replay frame.
-void Lambda::processRep() {
-  // Skip this frame if demanded
-  if (config.n % graphics.skip == 0) {
-    processFrame(graphics.frame, data.record + config.n * config.nNodes);
-    // Display frame on screen
-    graphics.screen->display(*graphics.frame);
-  }
-  config.n++;
-  // if (graphics.screen->is_closed() || config.n >= config.nN)
-  //   stopButton->click();
 }
 
 //   Processes the next simulation iteration.
@@ -2178,6 +1697,8 @@ void Lambda::processSim() {
     float scatFutuBottom,
         scatPresBottom; // future+present bottom scattered pressure
 
+    // TODO(lucasw) is there anything special about these sources vs.
+    // feeding in the source externally?
     // Work through all the sources. First init all the sources
     for (int src = 0; src < config.nSrc; src++) {
       int srcpos = src * 6;
@@ -2412,6 +1933,7 @@ void Lambda::processSim() {
       }
     }
 
+    ////////////////////////////////////////////////////////////////////////
     int n;    // counter variable
     float yn; // filter output
     int config_nX = config.nX;
@@ -2550,98 +2072,9 @@ void Lambda::processSim() {
         }
       }
     }
-    graphics.frame_ready = false;
-// Process actions like rce, rco or vis if required
-#if 0
-    if (rceBox->isChecked())
-      processRce();
-    if (rcoBox->isChecked())
-      if (config.n % graphics.skip == 0)
-        processRco();
-    if (visBox->isChecked())
-      if (config.n % graphics.skip == 0)
-        processVis();
-#endif
-    // update the progress indicator
-    time_t t1;
-    static time_t t0;
-    static size_t lastn;
-    char buf[50];
-    time(&t1);
-    double dif = difftime(t1, t0);
-    if (dif > 0.25) {
-      t0 = t1;
-      int ms = config.n * config.tSample * 1E3;
-      sprintf(buf, "ms:%d step:%d fps:%lu", ms, config.n, (config.n - lastn));
-      lastn = config.n;
-      // gui.statusLine->setText(buf);
-    }
-
-    // update counter. Stop simulation if desired nr. of iterations is reached.
+    graphics_.frame_ready = false;
     config.n++;
   }
-}
-
-//   Draws the lambda logo on the visualization screen.
-void Lambda::drawLambda() {
-  int size, offsetX, offsetY;
-  float radius;
-  float value1 = 140.f;
-  float value2 = 127.f;
-  graphics.frame->fill(127.f);
-
-  if (config.nX < config.nY) {
-    size = config.nX;
-    offsetX = 0;
-    offsetY = (int)(config.nY / 2) - (int)(size / 2);
-  } else {
-    size = config.nY;
-    offsetY = 0;
-    offsetX = (int)(config.nX / 2) - (int)(size / 2);
-  }
-  radius = (int)(size / 30);
-
-  graphics.frame->draw_circle((int)(size / 2) + offsetX,
-                              (int)(size / 2) + offsetY,
-                              (int)(size / 2) - radius, &value1, 0, 1.f);
-  graphics.frame->draw_circle((int)(size / 2) + offsetX,
-                              (int)(size / 2) + offsetY,
-                              (int)(size / 2) - 2 * radius, &value2, 0, 1.f);
-
-  int m = 4 * (int)radius;
-  for (int n = 8 * (int)radius; m < size - 4 * radius; n++) {
-    if (n > 10 * radius) {
-      graphics.frame->draw_circle(n + 2 * (int)radius + offsetX,
-                                  m - (int)(3 * radius) + offsetY, radius,
-                                  &value1, 0, 1.f);
-      graphics.frame->draw_circle(n + 2 * (int)radius + offsetX,
-                                  m + 1 - (int)(3 * radius) + offsetY, radius,
-                                  &value1, 0, 1.f);
-    }
-    if (m < (int)(size / 2)) {
-      graphics.frame->draw_circle(n + 2 * (int)radius + offsetX,
-                                  size - m - (int)(3 * radius) + offsetY,
-                                  radius, &value1, 0, 1.f);
-      graphics.frame->draw_circle(n + 2 * (int)radius + offsetX,
-                                  size - m - 1 - (int)(3 * radius) + offsetY,
-                                  radius, &value1, 0, 1.f);
-    }
-    m += 2;
-  }
-  // graphics.frame->draw_text(config.nX-242,config.nY-12,graphics.colors.white,graphics.colors.grey,0.5,"M.Ruhland,
-  // M.Blau, and others; IHA Oldenburg");
-  float *pixbuf;
-  // if (gui.showboundsBox->isChecked())
-  {
-    pixbuf = graphics.frame->data();
-    for (int n = 0; n < config.nNodes; n++)
-      // if (abs(data.envi[n])!=0.f) graphics.frame->data[n]=255;
-      if (abs(data.envi[n]) != 0.f)
-        pixbuf[n] = 255;
-  }
-
-  // TODO(lucasw) return graphics to caller
-  graphics.screen->display(*graphics.frame);
 }
 
 //   Creates a new digital filter for a given real-valued reflexion factor and

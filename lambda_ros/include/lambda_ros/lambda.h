@@ -22,26 +22,13 @@
 #ifndef LAMBDA_H
 #define LAMBDA_H
 
-#include "CImg.h"
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <opencv2/core.hpp>
 #include <string>
 #include <sys/stat.h>
 #include <time.h>
-
-#if cimg_OS == 1
-#define MAKEDIR mkdir((char *)dirFile.c_str(), 0777);
-#else
-#define MAKEDIR
-#endif
-
-// This struct provides 3 colors for writing text / painting.
-struct simColors {
-  float white[3];
-  float grey[3];
-  float black[3];
-};
 
 // This struct contains all the simulation config data.
 struct simConfig {
@@ -59,7 +46,6 @@ struct simConfig {
   float fSample; // sampling frequency in Hz
   int nSamples;  // number of embedded samples for sources
   double t0;     // last time, used to check render speed
-  int colormap;
 };
 
 // Sample Data
@@ -76,6 +62,8 @@ struct simSample {
 struct SimData {
   SimData();
 
+  // use cv::Mat 32F for these?  Do a speed comparison before and after
+  // the conversion.
   float *envi;       // simulation environment as loaded from the .sim-file
   float *angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
@@ -136,17 +124,9 @@ struct simIndex {
 
 // Variables and config data needed for the graphics.
 struct SimGraphics {
-  SimGraphics(const int zoom, const int skip);
-  int contrast;
-  int zoom;
+  SimGraphics();
   int skip;
-  int dispSizeX;
-  int dispSizeY;
-  int quality;
-  simColors colors;
-  cimg_library::CImg<float> *frame;
-  cimg_library::CImg<float> *vidframe;
-  cimg_library::CImgDisplay *screen;
+  cv::Mat frame_;
   bool frame_ready;
 };
 
@@ -188,25 +168,10 @@ typedef enum {
   NO_SAMPLES,
   NO_NODES,
   NO_SOURCES,
-  CONTRAST_OUT_OF_RANGE,
-  ZOOM_OUT_OF_RANGE,
-  SKIP_OUT_OF_RANGE,
-  QUALITY_OUT_OF_RANGE,
-  ENCODING_ERROR,
-  ENCODER_ERROR
 } simError;
 
 // Angular preemphasis identifiers.
 typedef enum { kHorizontal = 0, kVertical, kNone } simAngularType;
-
-// Status identifiers.
-typedef enum {
-  RUNNING = 0,
-  PLAYER,
-  SIMULATOR,
-  PAUSED,
-  MISMATCH,
-} simStatus;
 
 class Lambda {
 public:
@@ -220,12 +185,9 @@ public:
   simError initSimulation();
   //   Processes the next simulation iteration.
   void processSim();
-  //   starts or quits visualization
-  void vis();
   //   Updates the visualization screen after each simulation iteration, if vis
   //   is on.
   void processVis();
-  void draw();
 
   void setPressure(const size_t x, const size_t y, const float value);
   void setWall(const size_t x, const size_t y, const float value);
@@ -241,23 +203,17 @@ public:
   //   and dispSizeX automatically.
   template <class T> simError set(const std::string what, const T value);
 
+  SimGraphics graphics_;
+
 private:
   //   starts or quits receiver. The
   //   receiver stores sound pressure data at user specified receiver pixels to
   //   a file.
   void rce();
 
-  //   starts or quits recorder. The
-  //   recorder saves all simulation data into a file so that it can be replayed
-  //   later.
-  void rco();
-
   //   QT Slot connected to the Walls/Showbounds checkbox. Updates the
   //   visualization window when checkbox is clicked.
   void showbounds();
-
-  //   Processes the next replay frame.
-  void processRep();
 
   void setContrast();
   void setZoom();
@@ -309,19 +265,12 @@ private:
   //   Resets variables and arrays used directly for simulation purposes.
   virtual void resetSimulation();
 
-  virtual void processFrame(cimg_library::CImg<float> *frame, float *pressure,
+  virtual void processFrame(cv::Mat& frame, float *pressure,
       const bool showbounds=false);
 
   //   Processes the receiver output after each calculated sim iteration if Rce
   //   is switched on.
   virtual void processRce();
-
-  //   Processes the recorder output after each calculated sim iteration if Rco
-  //   is switched on.
-  virtual void processRco();
-
-  //   Draws the lambda logo on the visualization screen.
-  virtual void drawLambda();
 
   //   Creates a new digital filter for a given real-valued reflexion factor and
   //   preemphases the filter coefficients due to a given sonic incidence angle
@@ -371,25 +320,8 @@ private:
   simConfig config;
   SimData data;
   simIndex index;
-  SimGraphics graphics;
-  simStatus status;
   simFiles files;
-
-  // TODO(lucasw) move to SimGraphics
-  int GFX_MAXCONTRAST;    // Max value for contrast control
-  int GFX_MINCONTRAST;      // Min value for conrast control
-  int GFX_STDCONTRAST;     // Standard value for contrast control
-  int GFX_MAXSAMPLES; // Max value for number of iterations
-  int GFX_MINSAMPLES;       // Min value for number of iterations
-  int GFX_STDSAMPLES;       // Standard value for number of iterations
-  int GFX_MAXSKIP;        // Max value for number of iterations to skip
-  int GFX_MINSKIP;          // Min value for number of iterations to skip
-  int GFX_STDSKIP;          // Standard value for number of iterations to skip
-  int GFX_MAXZOOM;        // Max value for zoom control
-  int GFX_MINZOOM;          // Min value for zoom control
-  int GFX_STDZOOM;          // Standard value for zoom control
   int MEMSRC;
-  int COLORMAP;
 };
 
 #endif

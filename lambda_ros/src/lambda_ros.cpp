@@ -1,6 +1,8 @@
+#include <cv_bridge/cv_bridge.h>
 #include <lambda_ros/lambda.h>
 #include <memory>
 #include <ros/ros.h>
+#include <sensor_msgs/Image.h>
 
 
 class LambdaRos
@@ -8,10 +10,17 @@ class LambdaRos
 public:
   LambdaRos(int argc, char* argv[])
   {
+    pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
     lambda_.reset(new Lambda());
 
-    lambda_->set("nX", 1280);
-    lambda_->set("nY", 720);
+    // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
+    // the width of each cell is 343.0 / 44100.0 = 0.0078 meters, or 1/3"
+    lambda_->set("nX", 500);
+    lambda_->set("nY", 500);
+    // rho doesn't change the sim at all, it is for the internal sources
+    // float rho = 0.01;
+    // ros::param::get("~rho", rho);
+    // lambda_->set("rho", rho);
 
     lambda_->initSimulationPre();
     ROS_INFO_STREAM("setup walls");
@@ -25,20 +34,17 @@ public:
         lambda_->setWall(20 + i + j, 30 + j, 1.0);
         lambda_->setWall(20 + j, 30 + i + j, 1.0);
         // this reflects a negative wave?
-        lambda_->setWall(650 + j, 100 + i + j, -1.0);
-        lambda_->setWall(650 + i + j, 100 + j, -1.0);
+        lambda_->setWall(350 + j, 100 + i + j, -1.0);
+        lambda_->setWall(350 + i + j, 100 + j, -1.0);
         // this seems to absorb?
-        lambda_->setWall(50 + i / 2 + j, 590 - i / 2 + j, 5.0);
-        lambda_->setWall(50 + i / 2 + j, 590 + i / 2 + j, 5.0);
+        lambda_->setWall(50 + i / 2 + j, 390 - i / 2 + j, 5.0);
+        lambda_->setWall(50 + i / 2 + j, 390 + i / 2 + j, 5.0);
       }
     }
     ROS_INFO_STREAM("init environment");
     lambda_->initEnvironmentSetup();
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
-
-    ROS_INFO_STREAM("setup the graphics");
-    lambda_->vis();
 
     ROS_INFO_STREAM("setup the initial pressure");
     float pressure = 1.0;
@@ -49,26 +55,28 @@ public:
       }
     }
 
-    ROS_INFO_STREAM("first frame");
-    lambda_->processSim();
-    // segfault if no processSim before processVis
-    lambda_->processVis();
-    lambda_->draw();
-    ROS_INFO_STREAM("wait a few seconds");
-
-    ros::Duration(9.0).sleep();
     ROS_INFO_STREAM("start sim");
     while (ros::ok())
     {
       lambda_->processSim();
       lambda_->processVis();
-      lambda_->draw();
+      publishImage();
       ros::Duration(0.01).sleep();
     }
   }
 
+  void publishImage()
+  {
+    cv_image_.header.stamp = ros::Time::now();
+    cv_image_.image = lambda_->graphics_.frame_;
+    cv_image_.encoding = "32FC1";
+    pressure_pub_.publish(cv_image_.toImageMsg());
+  }
+
 private:
   ros::NodeHandle nh_;
+  ros::Publisher pressure_pub_;
+  cv_bridge::CvImage cv_image_;
   std::unique_ptr<Lambda> lambda_;
 };
 

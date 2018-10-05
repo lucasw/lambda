@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(lambda_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   # dynamic_reconfigure
   # nodelet
   geometry_msgs
@@ -44,7 +45,6 @@ catkin_package(
 
 include_directories(
   include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../src
   ${catkin_INCLUDE_DIRS}
 #   ${lambda_INCLUDE_DIRES}
 )
