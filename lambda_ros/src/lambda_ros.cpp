@@ -55,7 +55,20 @@ public:
     spinner_.start();
 
     ROS_INFO_STREAM("start sim");
-    // Can get 203 fps and 100% one cpu core with no sleeping
+
+    {
+      ros::Time t0 = ros::Time::now();
+      const float num = 400.0;
+      for (size_t i = 0; i < num; ++i)
+      {
+        // 277 with process vis, 471 without
+        lambda_->processSim();
+        // lambda_->processVis();
+      }
+      ros::Time t1 = ros::Time::now();
+      ROS_INFO_STREAM("speed = " << num / (t1 - t0).toSec());
+    }
+
     while (ros::ok())
     {
       if (point_)
@@ -74,8 +87,9 @@ public:
       // scheme to do it in a separate thread
       lambda_->processVis();
       publishImage();
+      // Can get 203 fps and 100% one cpu core with no sleeping
       // 84 fps with this 5 ms sleep
-      ros::Duration(0.005).sleep();
+      // ros::Duration(0.005).sleep();
     }
   }
 
@@ -107,6 +121,6 @@ private:
 
 int main(int argc, char* argv[])
 {
-  ros::init(argc, argv, "lambda_ros");
+  ros::init(argc, argv, "lambda");
   LambdaRos lambda_ros(argc, argv);
 }
