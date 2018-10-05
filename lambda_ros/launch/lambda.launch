@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="frame_rate" default="30"/>
+
+  <group ns="lambda">
+    <node pkg="lambda_ros" type="lambda_ros" name="lambda"
+        output="screen" >
+      <remap from="pressure_image_mouse_left" to="scaled_pressure_image_mouse_left" />
+    </node>
+
+    <group ns="image_raw">
+    <!-- http://answers.ros.org/question/255970/how-to-deactivate-image_transport-plugins/ -->
+    <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressed'
+      - 'image_transport/compressedDepth'
+      - 'image_transport/theora'
+    </rosparam>
+    </group>
+
+  <node pkg="nodelet" type="nodelet" name="manager" args="manager"
+      output="screen"/>
+
+  <node pkg="nodelet" type="nodelet"
+      name="convert0"
+      args="load image_manip/Convert manager"
+      output="screen">
+    <param name="frame_rate" value="$(arg frame_rate)"/>
+    <remap from="image_in" to="pressure_image"/>
+    <remap from="image_out" to="scaled_pressure_image"/>
+  </node>
+
+  </group>
+
+  <node name="rqt_lambda" pkg="rqt_gui" type="rqt_gui"
+      args="--perspective-file $(find lambda_ros)/config/lambda.perspective"
+      output="screen" >
+  </node>
+
+</launch>

@@ -1,4 +1,5 @@
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/Point.h>
 #include <lambda_ros/lambda.h>
 #include <memory>
 #include <ros/ros.h>
@@ -8,9 +9,12 @@
 class LambdaRos
 {
 public:
-  LambdaRos(int argc, char* argv[])
+  LambdaRos(int argc, char* argv[]) :
+    spinner_(2)
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
+    point_sub_ = nh_.subscribe<geometry_msgs::Point>("pressure_image_mouse_left", 10,
+        &LambdaRos::pointCallback, this);
     lambda_.reset(new Lambda());
 
     // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
@@ -46,23 +50,36 @@ public:
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
-    ROS_INFO_STREAM("setup the initial pressure");
-    float pressure = 1.0;
-    ros::param::get("~pressure", pressure);
-    for (size_t i = 0; i < 30; ++i) {
-      for (size_t j = 0; j < 3; ++j) {
-        lambda_->setPressure(120 + j, 80 + i, pressure);
-      }
-    }
+    ros::param::get("~point_pressure", point_pressure_);
+
+    spinner_.start();
 
     ROS_INFO_STREAM("start sim");
+    // Can get 203 fps and 100% one cpu core with no sleeping
     while (ros::ok())
     {
+      if (point_)
+      {
+        ROS_INFO_STREAM("using pressure point " << point_->x << " " << point_->y
+            << " " << point_pressure_);
+        lambda_->setPressure(point_->x, point_->y, point_pressure_);
+        point_.reset();
+      }
+
       lambda_->processSim();
+      // TODO(lucasw) if this is taking a long time can make a buffering
+      // scheme to do it in a separate thread
       lambda_->processVis();
       publishImage();
-      ros::Duration(0.01).sleep();
+      // 84 fps with this 5 ms sleep
+      ros::Duration(0.005).sleep();
     }
+  }
+
+  void pointCallback(const geometry_msgs::PointConstPtr& msg)
+  {
+    ROS_INFO_STREAM("new pressure point " << msg->x << " " << msg->y);
+    point_ = msg;
   }
 
   void publishImage()
@@ -76,13 +93,17 @@ public:
 private:
   ros::NodeHandle nh_;
   ros::Publisher pressure_pub_;
+  ros::Subscriber point_sub_;
   cv_bridge::CvImage cv_image_;
   std::unique_ptr<Lambda> lambda_;
+
+  ros::AsyncSpinner spinner_;
+  float point_pressure_ = 1.0;
+  geometry_msgs::PointConstPtr point_;
 };
 
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "lambda_ros");
   LambdaRos lambda_ros(argc, argv);
-  ros::spin();
 }
