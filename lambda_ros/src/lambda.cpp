@@ -1637,6 +1637,15 @@ void Lambda::setPressure(const size_t x, const size_t y, const float value)
   data.pres[y * config.nX + x] = value;
 }
 
+void Lambda::addPressure(const size_t x, const size_t y, const float value)
+{
+  if (x >= config.nX)
+    return;
+  if (y >= config.nY)
+    return;
+  data.pres[y * config.nX + x] += value;
+}
+
 // this has to be done before initSimulation
 void Lambda::setWall(const size_t x, const size_t y, const float value)
 {

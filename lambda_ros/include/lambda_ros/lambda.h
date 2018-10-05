@@ -190,6 +190,7 @@ public:
   void processVis();
 
   void setPressure(const size_t x, const size_t y, const float value);
+  void addPressure(const size_t x, const size_t y, const float value);
   void setWall(const size_t x, const size_t y, const float value);
 
   //   Function template. This function should be used whenever one of the key
