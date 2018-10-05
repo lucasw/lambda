@@ -62,6 +62,9 @@ public:
       {
         ROS_INFO_STREAM("using pressure point " << point_->x << " " << point_->y
             << " " << point_pressure_);
+        for (int i = -1; i < 2; ++i)
+          for (int j = -1; j < 2; ++j)
+            lambda_->addPressure(point_->x + i, point_->y + j, point_pressure_);
         lambda_->addPressure(point_->x, point_->y, point_pressure_);
         point_.reset();
       }
