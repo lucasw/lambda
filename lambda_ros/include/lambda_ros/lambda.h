@@ -64,7 +64,7 @@ struct SimData {
 
   // use cv::Mat 32F for these?  Do a speed comparison before and after
   // the conversion.
-  float *envi;       // simulation environment as loaded from the .sim-file
+  cv::Mat envi;       // simulation environment - the walls
   float *angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
   cv::Mat pressure_[3];  // array containing the actual node pressure distribution

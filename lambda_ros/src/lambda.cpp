@@ -40,7 +40,7 @@ SimData::SimData()
       // TODO(lucasw) simData constructor can handle this
       recs(NULL), record(NULL), recIdx(NULL),
       // Initialize simulation environment data pointers
-      envi(NULL), angle(NULL), srcs(NULL), boundary(NULL), deadnode(NULL),
+      angle(NULL), srcs(NULL), boundary(NULL), deadnode(NULL),
       filt_left(NULL), filt_top(NULL), filt_right(NULL), filt_bottom(NULL),
       inci(NULL),
       // Initialize filter memory pointers
@@ -97,10 +97,6 @@ void Lambda::resetAll() {
   config.t0 = 0;
 
   // delete simulation environment data pointers
-  if (data.envi != NULL) {
-    delete[] data.envi;
-    data.envi = NULL;
-  }
   if (data.angle != NULL) {
     delete[] data.angle;
     data.angle = NULL;
@@ -747,9 +743,9 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
               data.filtcoeffsB_bottom[pos], 0.f, 90.f, kVertical);
         }
       }
-      if ((data.envi[pos] >= -1.0) && (data.envi[pos] != 0.0) &&
-          (data.envi[pos] <=
-           1.0)) { // is the actual node a real-valued-reflecting node?
+      // is the actual node a real-valued-reflecting node?
+      const float envi = data.envi.ptr<float>(0)[pos];
+      if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
         data.boundary[pos] = true;
         data.filt_left[pos] = true;
         data.filt_top[pos] = true;
@@ -758,22 +754,22 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
         // apply a left filter with correspondig reflection factor to it
         adaptreflexionfactor(data.filtnumcoeffs_left[pos],
                              data.filtcoeffsA_left[pos],
-                             data.filtcoeffsB_left[pos], data.envi[pos],
+                             data.filtcoeffsB_left[pos], envi,
                              data.angle[pos], kHorizontal);
         // apply a top filter with correspondig reflection factor to it
         adaptreflexionfactor(data.filtnumcoeffs_top[pos],
                              data.filtcoeffsA_top[pos],
-                             data.filtcoeffsB_top[pos], data.envi[pos],
+                             data.filtcoeffsB_top[pos], envi,
                              data.angle[pos], kVertical);
         // apply a right filter with correspondig reflection factor to it
         adaptreflexionfactor(data.filtnumcoeffs_right[pos],
                              data.filtcoeffsA_right[pos],
-                             data.filtcoeffsB_right[pos], data.envi[pos],
+                             data.filtcoeffsB_right[pos], envi,
                              data.angle[pos], kHorizontal);
         // apply a bottom filter with correspondig reflection factor to it
         adaptreflexionfactor(data.filtnumcoeffs_bottom[pos],
                              data.filtcoeffsA_bottom[pos],
-                             data.filtcoeffsB_bottom[pos], data.envi[pos],
+                             data.filtcoeffsB_bottom[pos], envi,
                              data.angle[pos], kVertical);
         if (x <
             config.nX - 1) // apply a left filter to its right neighbour, if it
@@ -782,7 +778,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
           data.filt_left[pos + 1] = true;
           adaptreflexionfactor(data.filtnumcoeffs_left[pos + 1],
                                data.filtcoeffsA_left[pos + 1],
-                               data.filtcoeffsB_left[pos + 1], data.envi[pos],
+                               data.filtcoeffsB_left[pos + 1], envi,
                                data.angle[pos], kHorizontal);
         }
         if (y <
@@ -793,7 +789,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
           adaptreflexionfactor(data.filtnumcoeffs_top[pos + config.nX],
                                data.filtcoeffsA_top[pos + config.nX],
                                data.filtcoeffsB_top[pos + config.nX],
-                               data.envi[pos], data.angle[pos], kVertical);
+                               envi, data.angle[pos], kVertical);
         }
         if (x > 0) // apply a right filter to its left neighbour, if it
         {          // isn't outside the simfield
@@ -801,7 +797,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
           data.filt_right[pos - 1] = true;
           adaptreflexionfactor(data.filtnumcoeffs_right[pos - 1],
                                data.filtcoeffsA_right[pos - 1],
-                               data.filtcoeffsB_right[pos - 1], data.envi[pos],
+                               data.filtcoeffsB_right[pos - 1], envi,
                                data.angle[pos], kHorizontal);
         }
         if (y > 0) // apply a bottom filter to its top neighbour, if it
@@ -811,11 +807,10 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
           adaptreflexionfactor(data.filtnumcoeffs_bottom[pos - config.nX],
                                data.filtcoeffsA_bottom[pos - config.nX],
                                data.filtcoeffsB_bottom[pos - config.nX],
-                               data.envi[pos], data.angle[pos], kVertical);
+                               envi, data.angle[pos], kVertical);
         }
-      } else if ((data.envi[pos] > 1.0) &&
-                 (data.envi[pos] <=
-                  1000.0)) { // is the actual node a filter-node?
+      // is the actual node a filter-node?
+      } else if ((envi > 1.0) && (envi <= 1000.0)) {
         data.boundary[pos] = true;
         data.filt_left[pos] = true;
         data.filt_top[pos] = true;
@@ -825,22 +820,22 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
         adaptfilter(data.filtnumcoeffs_left[pos], data.filtcoeffsA_left[pos],
                     data.filtcoeffsB_left[pos], tmp_filtid, tmp_filtnumcoeffs,
                     tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)data.envi[pos], data.angle[pos], kHorizontal);
+                    (int)envi, data.angle[pos], kHorizontal);
         // apply the top filter with the correspondig ID to it
         adaptfilter(data.filtnumcoeffs_top[pos], data.filtcoeffsA_top[pos],
                     data.filtcoeffsB_top[pos], tmp_filtid, tmp_filtnumcoeffs,
                     tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)data.envi[pos], data.angle[pos], kVertical);
+                    (int)envi, data.angle[pos], kVertical);
         // apply the right filter with the correspondig ID to it
         adaptfilter(data.filtnumcoeffs_right[pos], data.filtcoeffsA_right[pos],
                     data.filtcoeffsB_right[pos], tmp_filtid, tmp_filtnumcoeffs,
                     tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)data.envi[pos], data.angle[pos], kHorizontal);
+                    (int)envi, data.angle[pos], kHorizontal);
         // apply the bottom filter with the correspondig ID to it
         adaptfilter(data.filtnumcoeffs_bottom[pos],
                     data.filtcoeffsA_bottom[pos], data.filtcoeffsB_bottom[pos],
                     tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
-                    tmp_filtcoeffsB, tmp_numfilters, (int)data.envi[pos],
+                    tmp_filtcoeffsB, tmp_numfilters, (int)envi,
                     data.angle[pos], kVertical);
         if (x <
             config.nX - 1) // apply a left filter to its right neighbour, if it
@@ -851,7 +846,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
               data.filtnumcoeffs_left[pos + 1], data.filtcoeffsA_left[pos + 1],
               data.filtcoeffsB_left[pos + 1], tmp_filtid, tmp_filtnumcoeffs,
               tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-              (int)data.envi[pos], data.angle[pos], kHorizontal);
+              (int)envi, data.angle[pos], kHorizontal);
         }
         if (y <
             config.nY - 1) // apply a top filter to its bottom neighbour, if it
@@ -862,7 +857,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
                       data.filtcoeffsA_top[pos + config.nX],
                       data.filtcoeffsB_top[pos + config.nX], tmp_filtid,
                       tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)data.envi[pos], data.angle[pos],
+                      tmp_numfilters, (int)envi, data.angle[pos],
                       kVertical);
         }
         if (x > 0) // apply a right filter to its left neighbour, if it
@@ -873,7 +868,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
                       data.filtcoeffsA_right[pos - 1],
                       data.filtcoeffsB_right[pos - 1], tmp_filtid,
                       tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)data.envi[pos], data.angle[pos],
+                      tmp_numfilters, (int)envi, data.angle[pos],
                       kHorizontal);
         }
         if (y > 0) // apply a bottom filter to its top neighbour, if it
@@ -884,10 +879,10 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
                       data.filtcoeffsA_bottom[pos - config.nX],
                       data.filtcoeffsB_bottom[pos - config.nX], tmp_filtid,
                       tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)data.envi[pos], data.angle[pos],
+                      tmp_numfilters, (int)envi, data.angle[pos],
                       kVertical);
         }
-      } else if (data.envi[pos] < -1.0) // is the actual node a receiver-node?
+      } else if (envi < -1.0) // is the actual node a receiver-node?
       {
         if (actrec < config.nRec) {
           data.recIdx[actrec] =
@@ -979,7 +974,7 @@ simError Lambda::loadSimulation(const std::string fileName) {
     std::cout << "parsing ENV chunk\n";
     pdummy =
         new double[config.nNodes]; // reserve memory for env-data in simfile
-    data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
+    data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
     data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
     simFile.read((char *)pdummy,
                  sizeof(double) * config.nNodes); // read envi-matrix
@@ -992,7 +987,7 @@ simError Lambda::loadSimulation(const std::string fileName) {
         value = 0;                 // turn it into empty
         data.deadnode[pos] = true; // mark it as dead
       }
-      data.envi[pos] = (float)value; // (all nodes)
+      data.envi.ptr<float>(0)[pos] = (float)value; // (all nodes)
     }
     delete[] pdummy;
   } else // ENV-Chunk does not exist -> close file and exit
@@ -1151,7 +1146,7 @@ simError Lambda::loadSimulation(const std::string fileName) {
   //  ----- count the receivers -----
   set("nRec", 0);
   for (int pos = 0; pos < config.nNodes; pos++)
-    if (data.envi[pos] < -1.0)
+    if (data.envi.ptr(0)[pos] < -1.0)
       set("nRec", config.nRec + 1);
   // and reserve memory for the receivers
   if (config.nRec > 0) {
@@ -1438,10 +1433,9 @@ simError Lambda::initSimulationPre() {
   if (config.nNodes < 1)
     return NO_NODES;
 
-  data.envi = new float[config.nNodes];    // reserve memory for envi-matrix
+  data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
   data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
   for (int pos = 0; pos < config.nNodes; pos++) {
-    data.envi[pos] = 0.0;
     data.deadnode[pos] = false;
   }
 
@@ -1607,7 +1601,7 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
     return;
   if (y >= config.nY)
     return;
-  data.envi[y * config.nX + x] = value;
+  data.envi.at<float>(y, x) = value;
 }
 
 //   Processes the next simulation iteration.
