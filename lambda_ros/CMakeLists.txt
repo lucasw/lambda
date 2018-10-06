@@ -61,6 +61,9 @@ target_link_libraries(lambda_synth ${catkin_LIBRARIES} X11)
 add_executable(${PROJECT_NAME} src/lambda_ros.cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} lambda_synth)
 
+add_executable(array_test src/array_test.cpp)
+target_link_libraries(array_test ${catkin_LIBRARIES} lambda_synth)
+
 # TODO(lucasw) is this needed?
 if(catkin_EXPORTED_LIBRARIES)
   add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_LIBRARIES})
