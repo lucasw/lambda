@@ -189,9 +189,9 @@ public:
   {
     const int idx = ((config.n + 1) % 3); // present index
     if (x >= data.pressure_[idx].cols)
-      return -1000.0;
+      return 0.0;
     if (y >= data.pressure_[idx].rows)
-      return -2000.0;
+      return 0.0;
     return data.pressure_[idx].at<float>(y, x);
   }
   void setWall(const size_t x, const size_t y, const float value);
