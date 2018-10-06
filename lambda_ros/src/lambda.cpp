@@ -42,7 +42,7 @@ SimData::SimData()
       // Initialize simulation environment data pointers
       envi(NULL), angle(NULL), srcs(NULL), boundary(NULL), deadnode(NULL),
       filt_left(NULL), filt_top(NULL), filt_right(NULL), filt_bottom(NULL),
-      pres(NULL), inci(NULL),
+      inci(NULL),
       // Initialize filter memory pointers
       oldx_left(NULL), oldx_top(NULL), oldx_right(NULL), oldx_bottom(NULL),
       oldy_left(NULL), oldy_top(NULL), oldy_right(NULL), oldy_bottom(NULL),
@@ -55,9 +55,6 @@ SimData::SimData()
       // Initialize velocity source pointers
       velo_left(NULL), velo_top(NULL), velo_right(NULL), velo_bottom(NULL),
       mem(NULL), samples(NULL) {}
-
-SimGraphics::SimGraphics() {
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
@@ -263,10 +260,6 @@ void Lambda::resetAll() {
 //   Resets variables and arrays used directly for simulation purposes.
 void Lambda::resetSimulation() {
   // Delete simulation environment data memory
-  if (data.pres != NULL) {
-    delete[] data.pres;
-    data.pres = NULL;
-  }
   if (data.inci != NULL) {
     delete[] data.inci;
     data.inci = NULL;
@@ -451,45 +444,6 @@ void Lambda::stop() {
   config.n = 0;
 }
 #endif
-
-void Lambda::processVis() {
-  processFrame(graphics_.frame_, index.presPres, true);
-}
-
-void Lambda::processFrame(cv::Mat& frame, float *pressure,
-                          const bool showbounds) {
-  if (frame.empty() || (frame.cols != config.nX) ||
-      (frame.rows != config.nY)) {
-    frame = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0.0));
-  }
-  unsigned int nNodes = config.nNodes;
-  unsigned int nNodes2 = nNodes * 2;
-  // float *pressure = index.presPres;
-
-  bool *deadnodes = data.deadnode;
-  float *envi = data.envi;
-
-  for (size_t y = 0; y < config.nY; ++y) {
-    for (size_t x = 0; x < config.nX; ++x) {
-      const size_t n = config.nX * y + x;
-      float value = 0.0;
-      value = pressure[n];
-      #if 0
-      if (deadnodes[n]) {
-        value = 0.0;
-      } else {
-        if (envi[n] != 0.f) {
-          // is it a wall?
-        } else {
-        }
-      }
-      #endif
-      frame.at<float>(y, x) = value;
-    }  // x
-  }  // y
-
-  graphics_.frame_ready = true;
-}
 
 //   Processes the receiver output after each calculated sim iteration if Rce is
 //   switched on.
@@ -1526,22 +1480,16 @@ void Lambda::initEnvironmentSetup() {
 
 simError Lambda::initSimulation() {
   config.n = 0;
-  // reserve memory for node pressure and incident pressure pulses
-  // for (size_t i = 0; i < 3; ++i)
-  //   data.pressure_[i] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-  #if 1
-  data.pres = new float[3 * config.nNodes];
-  for (int pos = 0; pos < 3 * config.nNodes; pos++) {
-    data.pres[pos] = 0;
-  }
-  #endif
+  // incident pressure pulses
+  for (size_t i = 0; i < 3; ++i)
   data.inci = new float[12 * config.nNodes];
   for (int pos = 0; pos < 12 * config.nNodes; pos++) {
     data.inci[pos] = 0;
   }
   // set up indices needed for the simulation
   for (int x = 0; x < 3; x++) {
-    index.idxP[x] = data.pres + x * config.nNodes;
+    data.pressure_[x] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
+    index.idxP[x] = data.pressure_[x].ptr<float>(0);
     index.idxILeft[x] = data.inci + (x * 4 + 0) * config.nNodes;
     index.idxITop[x] = data.inci + (x * 4 + 1) * config.nNodes;
     index.idxIRight[x] = data.inci + (x * 4 + 2) * config.nNodes;
@@ -1638,9 +1586,8 @@ void Lambda::setPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= config.nY)
     return;
-  int idx = ((config.n + 2) % 3); // present index
-  data.pres[config.nNodes * idx + y * config.nX + x + config.nNodes] = value;
-  // data.pressure_[1].at<float>(y, x) = value;
+  int idx = ((config.n + 1) % 3); // current index
+  data.pressure_[idx].at<float>(y, x) = value;
 }
 
 void Lambda::addPressure(const size_t x, const size_t y, const float value)
@@ -1649,9 +1596,8 @@ void Lambda::addPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= config.nY)
     return;
-  int idx = ((config.n + 2) % 3); // present index
-  data.pres[config.nNodes * idx + y * config.nX + x + config.nNodes] += value;
-  // data.pressure_[1].at<float>(y, x) += value;
+  int idx = ((config.n + 1) % 3); // current index
+  data.pressure_[idx].at<float>(y, x) += value;
 }
 
 // this has to be done before initSimulation
@@ -1666,7 +1612,7 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
 
 //   Processes the next simulation iteration.
 void Lambda::processSim() {
-  if (data.pres != NULL) {
+  {
     // periodic cycling of time indices
     int idxPast = ((config.n + 0) % 3); // past index
     int idxPres = ((config.n + 1) % 3); // present index
@@ -1677,6 +1623,8 @@ void Lambda::processSim() {
     index.presPast = index.idxP[idxPast]; // past pressure index
     index.presPres = index.idxP[idxPres]; // present pressure index
     index.presFutu = index.idxP[idxFutu]; // future pressure index
+    // std::cout << index.presPast[0] << " " << index.presPres[1]
+    //    << " " << index.presFutu[2] << std::endl;
     float *index_presFutu = index.presFutu;
     float *presPres = index.presPres;
 
@@ -2089,7 +2037,6 @@ void Lambda::processSim() {
         }
       }
     }
-    graphics_.frame_ready = false;
     config.n++;
   }
 }

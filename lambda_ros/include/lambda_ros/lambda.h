@@ -67,8 +67,7 @@ struct SimData {
   float *envi;       // simulation environment as loaded from the .sim-file
   float *angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
-  float *pres;       // array containing the actual node pressure distribution
-  // cv::Mat pressure_[3];
+  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
   float *inci;       // array containing the incident node pressures
   float *recs;       // array containing the receivers
   bool *boundary;    // array indicating boundary nodes
@@ -121,14 +120,6 @@ struct simIndex {
   float *inciPresTop, *inciPresRight, *inciPresBottom, *inciPresLeft;
   float *inciFutuTop, *inciFutuRight, *inciFutuBottom, *inciFutuLeft;
   float *idxP[3], *idxITop[3], *idxILeft[3], *idxIRight[3], *idxIBottom[3];
-};
-
-// Variables and config data needed for the graphics.
-struct SimGraphics {
-  SimGraphics();
-  int skip;
-  cv::Mat frame_;
-  bool frame_ready;
 };
 
 // Files used in the program.
@@ -186,12 +177,23 @@ public:
   simError initSimulation();
   //   Processes the next simulation iteration.
   void processSim();
-  //   Updates the visualization screen after each simulation iteration, if vis
-  //   is on.
-  void processVis();
 
   void setPressure(const size_t x, const size_t y, const float value);
   void addPressure(const size_t x, const size_t y, const float value);
+  void getPressure(cv::Mat& image)
+  {
+    const int idx = ((config.n + 1) % 3); // present index
+    image = data.pressure_[idx];
+  }
+  float getPressure(const size_t x, const size_t y)
+  {
+    const int idx = ((config.n + 1) % 3); // present index
+    if (x >= data.pressure_[idx].cols)
+      return -1000.0;
+    if (y >= data.pressure_[idx].rows)
+      return -2000.0;
+    return data.pressure_[idx].at<float>(y, x);
+  }
   void setWall(const size_t x, const size_t y, const float value);
 
   //   Function template. This function should be used whenever one of the key
@@ -204,8 +206,6 @@ public:
   //   (>0) and will update nNodes (which should always be nX*nY at any time)
   //   and dispSizeX automatically.
   template <class T> simError set(const std::string what, const T value);
-
-  SimGraphics graphics_;
 
 private:
   //   starts or quits receiver. The
@@ -266,9 +266,6 @@ private:
 
   //   Resets variables and arrays used directly for simulation purposes.
   virtual void resetSimulation();
-
-  virtual void processFrame(cv::Mat& frame, float *pressure,
-      const bool showbounds=false);
 
   //   Processes the receiver output after each calculated sim iteration if Rce
   //   is switched on.

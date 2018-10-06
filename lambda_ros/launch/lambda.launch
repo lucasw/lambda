@@ -1,11 +1,15 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_rate" default="30"/>
+  <arg name="width" default="8"/>
+  <arg name="height" default="8"/>
 
   <group ns="lambda">
     <node pkg="lambda_ros" type="lambda_ros" name="lambda"
         output="screen" >
       <remap from="pressure_image_mouse_left" to="scaled_pressure_image_mouse_left" />
+      <param name="width" value="$(arg width)" />
+      <param name="height" value="$(arg height)" />
     </node>
 
     <group ns="image_raw">

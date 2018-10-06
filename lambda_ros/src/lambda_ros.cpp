@@ -19,8 +19,12 @@ public:
 
     // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
     // the width of each cell is 343.0 / 44100.0 = 0.0078 meters, or 1/3"
-    lambda_->set("nX", 500);
-    lambda_->set("nY", 500);
+    int wd = 5;
+    ros::param::get("~width", wd);
+    lambda_->set("nX", wd);
+    int ht = 5;
+    ros::param::get("~height", ht);
+    lambda_->set("nY", ht);
     // rho doesn't change the sim at all, it is for the internal sources
     // float rho = 0.01;
     // ros::param::get("~rho", rho);
@@ -73,8 +77,9 @@ public:
     {
       if (point_)
       {
-        ROS_INFO_STREAM("using pressure point " << point_->x << " " << point_->y
-            << " " << point_pressure_);
+        const float pressure = lambda_->getPressure(point_->x, point_->y);
+        ROS_INFO_STREAM("pressure point " << point_->x << " " << point_->y
+            << " " << point_pressure_ << ", cur pressure " << pressure);
         // TODO(lucasw) make a circle  with 1.0/distance from the center
         // as a modifier on point_pressure_
         for (int i = -1; i < 2; ++i)
@@ -82,16 +87,27 @@ public:
             lambda_->addPressure(point_->x + i, point_->y + j, point_pressure_);
         lambda_->addPressure(point_->x, point_->y, point_pressure_);
         point_.reset();
-      }
 
+        // temp
+        if (false) {
+          // cv::Mat image;
+          // lambda_->getPressure(image);
+          for (size_t y = 0; y < ht; ++y)
+          {
+            for (size_t x = 0; x < ht; ++x)
+            {
+              const float pressure = lambda_->getPressure(x, y);
+              std::cout << x << ", " << y << " : " << pressure << std::endl;
+            }
+          }
+        }
+      }
       lambda_->processSim();
-      // TODO(lucasw) if this is taking a long time can make a buffering
-      // scheme to do it in a separate thread
-      lambda_->processVis();
       publishImage();
       // Can get 203 fps and 100% one cpu core with no sleeping
       // 84 fps with this 5 ms sleep
       ros::Duration(0.005).sleep();
+      // ros::Duration(0.03).sleep();
     }
   }
 
@@ -104,7 +120,7 @@ public:
   void publishImage()
   {
     cv_image_.header.stamp = ros::Time::now();
-    cv_image_.image = lambda_->graphics_.frame_;
+    lambda_->getPressure(cv_image_.image);
     cv_image_.encoding = "32FC1";
     pressure_pub_.publish(cv_image_.toImageMsg());
   }
