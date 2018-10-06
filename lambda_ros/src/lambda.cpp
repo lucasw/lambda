@@ -930,7 +930,7 @@ simError Lambda::loadSimulation(const std::string fileName) {
     if (error == NONE)
       error = set(
           "cTube",
-          sqrt(2.f) *
+          M_SQRT2 *
               (float)pdummy[3]); // Speed in tubes is sqrt(2)*c_{free field}!
     if (error == NONE)
       error = set("lTube", (float)pdummy[4]); // tube length
@@ -1578,6 +1578,31 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
   data.envi.at<float>(y, x) = value;
 }
 
+// alpha is angle
+void Lambda::setVel(const int& srcxy, const float& magnitude, const float& alpha) {
+  if ((alpha >= 0.f) && (alpha < 90.f)) {
+    // alpha between 0 and 90 degrees? -> left and top incidence
+    const float rad = alpha * rad_per_deg;
+    data.velo_["left"].ptr<float>(0)[srcxy] = cos(rad) * magnitude;
+    data.velo_["top"].ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+  } else if ((alpha >= 90.f) && (alpha < 180.f)) {
+    // alpha between 90 and 180 degrees? -> top and right incidence
+    const float rad = (alpha - 90.f) * rad_per_deg;
+    data.velo_["top"].ptr<float>(0)[srcxy] = cos(rad) * magnitude;
+    data.velo_["right"].ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+  } else if ((alpha >= 180.f) && (alpha < 270.f)) {
+    // alpha between 180 and 270 degrees? -> right and bottom incidence
+    const float rad = (alpha - 180.f) * rad_per_deg;
+    data.velo_["right"].ptr<float>(0)[srcxy] = cos(rad) * magnitude;
+    data.velo_["bottom"].ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+  } else if ((alpha >= 270.f) && (alpha < 360.f)) {
+    // alpha between 270 and 360 degrees? -> bottom and left incidence
+    const float rad = (alpha - 270.f) * rad_per_deg;
+    data.velo_["bottom"].ptr<float>(0)[srcxy] = cos(rad) * magnitude;
+    data.velo_["left"].ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+  }
+}
+
 //   Processes the next simulation iteration.
 void Lambda::processSim() {
   {
@@ -1700,108 +1725,23 @@ void Lambda::processSim() {
                     sin(twopi_freq * t + onepi_phi_180);
         // TODO(lucasw) all this is duplicate code for the next few cases
         // only the magnitude changes
-        if ((alpha >= 0.f) && (alpha < 90.f)) {
-          // alpha between 0 and 90 degrees? -> left and top incidence
-          tmp0 = alpha * rad_per_deg;
-          data.velo_["left"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["top"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 90.f) && (alpha < 180.f)) {
-          // alpha between 90 and 180 degrees? -> top and right incidence
-          tmp0 = (alpha - 90.f) * rad_per_deg;
-          data.velo_["top"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["right"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 180.f) && (alpha < 270.f)) {
-          // alpha between 180 and 270 degrees? -> right and bottom incidence
-          tmp0 = (alpha - 180.f) * rad_per_deg;
-          data.velo_["right"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 270.f) && (alpha < 360.f)) {
-          // alpha between 270 and 360 degrees? -> bottom and left incidence
-          tmp0 = (alpha - 270.f) * rad_per_deg;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["left"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        }
         break;
       case 7: // rectangular velocity source
         if ((int)(2.f * (freq * t + phi / 360.f)) % 2 == 0)
           magnitude = config.rho * config.cTube * amp;
         else
           magnitude = -config.rho * config.cTube * amp;
-        if ((alpha >= 0.f) && (alpha < 90.f)) {
-          // alpha between 0 and 90 degrees? -> left and top incidence
-          tmp0 = alpha * rad_per_deg;
-          data.velo_["left"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["top"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 90.f) && (alpha < 180.f)) {
-          // alpha between 90 and 180 degrees? -> top and right incidence
-          tmp0 = (alpha - 90.f) * rad_per_deg;
-          data.velo_["top"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["right"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 180.f) && (alpha < 270.f)) {
-          // alpha between 180 and 270 degrees? -> right and bottom incidence
-          tmp0 = (alpha - 180.f) * rad_per_deg;
-          data.velo_["right"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        } else if ((alpha >= 270.f) && (alpha < 360.f)) {
-          // alpha between 270 and 360 degrees? -> bottom and left incidence
-          tmp0 = (alpha - 270.f) * rad_per_deg;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
-          data.velo_["left"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
-        }
+        setVel(srcxy, magnitude, alpha);
         break;
       case 8: // delta-pulse velocity source
         if (config.n == 0)
           magnitude = config.rho * config.cTube * amp;
-        if ((alpha >= 0.f) && (alpha < 90.f)) {
-          // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * rad_per_deg) * magnitude;
-          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * rad_per_deg) * magnitude;
-        } else if ((alpha >= 90.f) && (alpha < 180.f)) {
-          // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_["top"].ptr<float>(0)[srcxy] =
-              cos((alpha - 90.f) * rad_per_deg) * magnitude;
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              sin((alpha - 90.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 180.f) && (alpha < 270.f)) {
-          // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              cos((alpha - 180.f) * rad_per_deg) * magnitude;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              sin((alpha - 180.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 270.f) && (alpha < 360.f)) {
-          // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              cos((alpha - 270.f) * rad_per_deg) * magnitude;
-          data.velo_["left"].ptr<float>(0)[srcxy] =
-              sin((alpha - 270.f) * rad_per_deg) * magnitude;
-        }
+        setVel(srcxy, magnitude, alpha);
         break;
       case 9: // exponential decay velocity source (not working correctly
               // yet!!!)
         magnitude = config.rho * config.cTube * amp * exp(-(float)config.n);
-        if ((alpha >= 0.f) && (alpha < 90.f)) {
-          // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * rad_per_deg) * magnitude;
-          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * rad_per_deg) * magnitude;
-        } else if ((alpha >= 90.f) && (alpha < 180.f)) {
-          // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_["top"].ptr<float>(0)[srcxy] =
-              cos((alpha - 90.f) * rad_per_deg) * magnitude;
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              sin((alpha - 90.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 180.f) && (alpha < 270.f)) {
-          // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              cos((alpha - 180.f) * rad_per_deg) * magnitude;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              sin((alpha - 180.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 270.f) && (alpha < 360.f)) {
-          // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              cos((alpha - 270.f) * rad_per_deg) * magnitude;
-          data.velo_["left"].ptr<float>(0)[srcxy] =
-              sin((alpha - 270.f) * rad_per_deg) * magnitude;
-        }
+        setVel(srcxy, magnitude, alpha);
         break;
       case 10: // hann-windowed sinusoidal velocity source
         if (t < 0.f)
@@ -1815,29 +1755,7 @@ void Lambda::processSim() {
         }
         magnitude = config.rho * config.cTube * hann * amp *
                     (float)sin(twopi * freq * t + M_PI * phi / 180.f);
-        if ((alpha >= 0.f) && (alpha < 90.f)) {
-          // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * rad_per_deg) * magnitude;
-          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * rad_per_deg) * magnitude;
-        } else if ((alpha >= 90.f) && (alpha < 180.f)) {
-          // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_["top"].ptr<float>(0)[srcxy] =
-              cos((alpha - 90.f) * rad_per_deg) * magnitude;
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              sin((alpha - 90.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 180.f) && (alpha < 270.f)) {
-          // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_["right"].ptr<float>(0)[srcxy] =
-              cos((alpha - 180.f) * rad_per_deg) * magnitude;
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              sin((alpha - 180.f) * rad_per_deg) * magnitude;
-        } else if ((alpha >= 270.f) && (alpha < 360.f)) {
-          // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_["bottom"].ptr<float>(0)[srcxy] =
-              cos((alpha - 270.f) * rad_per_deg) * magnitude;
-          data.velo_["left"].ptr<float>(0)[srcxy] =
-              sin((alpha - 270.f) * rad_per_deg) * magnitude;
-        }
+        setVel(srcxy, magnitude, alpha);
         break;
       case 20: // white-noise
         presPres[srcxy] += amp * ((rand() % 32767) / 32767.f * 2.f - 1.f);
@@ -2049,15 +1967,15 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
   if (direction == kHorizontal) {
     // do horizontal preemphasis
     anew =
-        (a + b) + sqrt(2.f) * abs(cos(alpha * rad_per_deg)) * (a - b);
+        (a + b) + M_SQRT2 * abs(cos(alpha * rad_per_deg)) * (a - b);
     bnew =
-        (a + b) - sqrt(2.f) * abs(cos(alpha * rad_per_deg)) * (a - b);
+        (a + b) - M_SQRT2 * abs(cos(alpha * rad_per_deg)) * (a - b);
   } else if (direction == kVertical) {
     // do vertical preemphasis
     anew =
-        (a + b) + sqrt(2.f) * abs(sin(alpha * rad_per_deg)) * (a - b);
+        (a + b) + M_SQRT2 * abs(sin(alpha * rad_per_deg)) * (a - b);
     bnew =
-        (a + b) - sqrt(2.f) * abs(sin(alpha * rad_per_deg)) * (a - b);
+        (a + b) - M_SQRT2 * abs(sin(alpha * rad_per_deg)) * (a - b);
   } else {
     // no preemphasis
     anew = a;
@@ -2120,16 +2038,14 @@ void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
     b = src_coeffsB[actnum][kk];
     if (direction == kHorizontal) {
       // do horizontal preemphasis
-      anew = (a + b) +
-             sqrt(2.f) * abs(cos(alpha * rad_per_deg)) * (a - b);
-      bnew = (a + b) -
-             sqrt(2.f) * abs(cos(alpha * rad_per_deg)) * (a - b);
+      const float ca = M_SQRT2 * abs(cos(alpha * rad_per_deg)) * (a - b);
+      anew = (a + b) + ca;
+      bnew = (a + b) - ca;
     } else if (direction == kVertical) {
       // do vertical preemphasis
-      anew = (a + b) +
-             sqrt(2.f) * abs(sin(alpha * rad_per_deg)) * (a - b);
-      bnew = (a + b) -
-             sqrt(2.f) * abs(sin(alpha * rad_per_deg)) * (a - b);
+      const float sa = M_SQRT2 * abs(sin(alpha * rad_per_deg)) * (a - b);
+      anew = (a + b) + sa;
+      bnew = (a + b) - sa;
     } else {
       // no preemphasis
       anew = a;

@@ -176,6 +176,7 @@ public:
   simError initSimulationPre();
   void initEnvironmentSetup();
   simError initSimulation();
+  void setVel(const int& srcxy, const float& magnitude, const float& alpha);
   //   Processes the next simulation iteration.
   void processSim();
 
