@@ -29,6 +29,8 @@
       args="load image_manip/Convert manager"
       output="screen">
     <param name="frame_rate" value="$(arg frame_rate)"/>
+    <param name="offset" value="5.0" />
+    <param name="scale" value="12.0" />
     <remap from="image_in" to="pressure_image"/>
     <remap from="image_out" to="scaled_pressure_image"/>
   </node>
