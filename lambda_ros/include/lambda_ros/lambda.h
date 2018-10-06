@@ -25,6 +25,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <map>
 #include <opencv2/core.hpp>
 #include <string>
@@ -321,6 +322,8 @@ private:
   simIndex index;
   simFiles files;
   int MEMSRC;
+
+  static constexpr float rad_per_deg = M_PI / 180.f;
 };
 
 #endif
