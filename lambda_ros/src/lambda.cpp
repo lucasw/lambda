@@ -53,7 +53,6 @@ SimData::SimData()
       filtcoeffsB_top(NULL), filtcoeffsA_right(NULL), filtcoeffsB_right(NULL),
       filtcoeffsA_bottom(NULL), filtcoeffsB_bottom(NULL),
       // Initialize velocity source pointers
-      velo_left(NULL), velo_top(NULL), velo_right(NULL), velo_bottom(NULL),
       mem(NULL), samples(NULL) {}
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,22 +369,7 @@ void Lambda::resetSimulation() {
     }
   }
   // Delete velocity source memory
-  if (data.velo_left != NULL) {
-    delete[] data.velo_left;
-    data.velo_left = NULL;
-  }
-  if (data.velo_top != NULL) {
-    delete[] data.velo_top;
-    data.velo_top = NULL;
-  }
-  if (data.velo_right != NULL) {
-    delete[] data.velo_right;
-    data.velo_right = NULL;
-  }
-  if (data.velo_bottom != NULL) {
-    delete[] data.velo_bottom;
-    data.velo_bottom = NULL;
-  }
+  // TODO(lucasw) for key in velo keys, velo[key] = cv::Mat()
 }
 
 //   Processes input parameters and sets internal variables accordingly.
@@ -1556,17 +1540,9 @@ simError Lambda::initSimulation() {
     }
   }
 
-  // reserve+initialize memory for velocity sources
-  data.velo_left = new float[config.nNodes];
-  data.velo_top = new float[config.nNodes];
-  data.velo_right = new float[config.nNodes];
-  data.velo_bottom = new float[config.nNodes];
-
-  for (int pos = 0; pos < config.nNodes; pos++) {
-    data.velo_left[pos] = 0.f;
-    data.velo_top[pos] = 0.f;
-    data.velo_right[pos] = 0.f;
-    data.velo_bottom[pos] = 0.f;
+  // velocity sources
+  for (const std::string& dir : dirs_) {
+    data.velo_[dir] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0.0));
   }
 
   return NONE;
@@ -1725,23 +1701,23 @@ void Lambda::processSim() {
         if ((alpha >= 0.f) && (alpha < 90.f)) {
           // alpha between 0 and 90 degrees? -> left and top incidence
           tmp0 = alpha * (3.1415926f / 180.f);
-          data.velo_left[srcxy] = cos(tmp0) * magnitude;
-          data.velo_top[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 90.f) && (alpha < 180.f)) {
           // alpha between 90 and 180 degrees? -> top and right incidence
           tmp0 = (alpha - 90.f) * (3.1415926f / 180.f);
-          data.velo_top[srcxy] = cos(tmp0) * magnitude;
-          data.velo_right[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["right"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 180.f) && (alpha < 270.f)) {
           // alpha between 180 and 270 degrees? -> right and bottom incidence
           tmp0 = (alpha - 180.f) * (3.1415926f / 180.f);
-          data.velo_right[srcxy] = cos(tmp0) * magnitude;
-          data.velo_bottom[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["right"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["bottom"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 270.f) && (alpha < 360.f)) {
           // alpha between 270 and 360 degrees? -> bottom and left incidence
           tmp0 = (alpha - 270.f) * (3.1415926f / 180.f);
-          data.velo_bottom[srcxy] = cos(tmp0) * magnitude;
-          data.velo_left[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["bottom"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         }
         break;
       case 7: // rectangular velocity source
@@ -1752,23 +1728,23 @@ void Lambda::processSim() {
         if ((alpha >= 0.f) && (alpha < 90.f)) {
           // alpha between 0 and 90 degrees? -> left and top incidence
           tmp0 = alpha * (3.1415926f / 180.f);
-          data.velo_left[srcxy] = cos(tmp0) * magnitude;
-          data.velo_top[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 90.f) && (alpha < 180.f)) {
           // alpha between 90 and 180 degrees? -> top and right incidence
           tmp0 = (alpha - 90.f) * (3.1415926f / 180.f);
-          data.velo_top[srcxy] = cos(tmp0) * magnitude;
-          data.velo_right[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["right"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 180.f) && (alpha < 270.f)) {
           // alpha between 180 and 270 degrees? -> right and bottom incidence
           tmp0 = (alpha - 180.f) * (3.1415926f / 180.f);
-          data.velo_right[srcxy] = cos(tmp0) * magnitude;
-          data.velo_bottom[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["right"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["bottom"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         } else if ((alpha >= 270.f) && (alpha < 360.f)) {
           // alpha between 270 and 360 degrees? -> bottom and left incidence
           tmp0 = (alpha - 270.f) * (3.1415926f / 180.f);
-          data.velo_bottom[srcxy] = cos(tmp0) * magnitude;
-          data.velo_left[srcxy] = sin(tmp0) * magnitude;
+          data.velo_["bottom"].ptr<float>(0)[srcxy] = cos(tmp0) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = sin(tmp0) * magnitude;
         }
         break;
       case 8: // delta-pulse velocity source
@@ -1776,25 +1752,25 @@ void Lambda::processSim() {
           magnitude = config.rho * config.cTube * amp;
         if ((alpha >= 0.f) && (alpha < 90.f)) {
           // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_left[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
-          data.velo_top[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 90.f) && (alpha < 180.f)) {
           // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_top[srcxy] =
+          data.velo_["top"].ptr<float>(0)[srcxy] =
               cos((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               sin((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 180.f) && (alpha < 270.f)) {
           // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               cos((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               sin((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 270.f) && (alpha < 360.f)) {
           // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               cos((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_left[srcxy] =
+          data.velo_["left"].ptr<float>(0)[srcxy] =
               sin((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
         }
         break;
@@ -1803,25 +1779,25 @@ void Lambda::processSim() {
         magnitude = config.rho * config.cTube * amp * exp(-(float)config.n);
         if ((alpha >= 0.f) && (alpha < 90.f)) {
           // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_left[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
-          data.velo_top[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 90.f) && (alpha < 180.f)) {
           // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_top[srcxy] =
+          data.velo_["top"].ptr<float>(0)[srcxy] =
               cos((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               sin((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 180.f) && (alpha < 270.f)) {
           // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               cos((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               sin((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 270.f) && (alpha < 360.f)) {
           // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               cos((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_left[srcxy] =
+          data.velo_["left"].ptr<float>(0)[srcxy] =
               sin((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
         }
         break;
@@ -1839,25 +1815,25 @@ void Lambda::processSim() {
                     (float)sin(twopi * freq * t + 3.1415926f * phi / 180.f);
         if ((alpha >= 0.f) && (alpha < 90.f)) {
           // alpha between 0 and 90 degrees? -> left and top incidence
-          data.velo_left[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
-          data.velo_top[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["left"].ptr<float>(0)[srcxy] = cos(alpha * (3.1415926f / 180.f)) * magnitude;
+          data.velo_["top"].ptr<float>(0)[srcxy] = sin(alpha * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 90.f) && (alpha < 180.f)) {
           // alpha between 90 and 180 degrees? -> top and right incidence
-          data.velo_top[srcxy] =
+          data.velo_["top"].ptr<float>(0)[srcxy] =
               cos((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               sin((alpha - 90.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 180.f) && (alpha < 270.f)) {
           // alpha between 180 and 270 degrees? -> right and bottom incidence
-          data.velo_right[srcxy] =
+          data.velo_["right"].ptr<float>(0)[srcxy] =
               cos((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               sin((alpha - 180.f) * (3.1415926f / 180.f)) * magnitude;
         } else if ((alpha >= 270.f) && (alpha < 360.f)) {
           // alpha between 270 and 360 degrees? -> bottom and left incidence
-          data.velo_bottom[srcxy] =
+          data.velo_["bottom"].ptr<float>(0)[srcxy] =
               cos((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
-          data.velo_left[srcxy] =
+          data.velo_["left"].ptr<float>(0)[srcxy] =
               sin((alpha - 270.f) * (3.1415926f / 180.f)) * magnitude;
         }
         break;
@@ -1912,7 +1888,7 @@ void Lambda::processSim() {
               yn -= data.oldy_left[pos][n - 1] * data.filtcoeffsA_left[pos][n];
             }
             // add magnitude of a possible velocity source
-            yn += data.velo_left[pos];
+            yn += data.velo_["left"].ptr<float>(0)[pos];
             // rotate the filter memories
             for (n = data.filtnumcoeffs_left[pos] - 2; n > 0; n--) {
               data.oldx_left[pos][n] = data.oldx_left[pos][n - 1];
@@ -1940,7 +1916,7 @@ void Lambda::processSim() {
               yn -= data.oldy_top[pos][n - 1] * data.filtcoeffsA_top[pos][n];
             }
             // add magnitude of a possible velocity source
-            yn += data.velo_top[pos];
+            yn += data.velo_["top"].ptr<float>(0)[pos];
             // rotate the filter memories
             for (n = data.filtnumcoeffs_top[pos] - 2; n > 0; n--) {
               data.oldx_top[pos][n] = data.oldx_top[pos][n - 1];
@@ -1970,7 +1946,7 @@ void Lambda::processSim() {
                   data.oldy_right[pos][n - 1] * data.filtcoeffsA_right[pos][n];
             }
             // add magnitude of a possible velocity source
-            yn += data.velo_right[pos];
+            yn += data.velo_["right"].ptr<float>(0)[pos];
             // rotate the filter memories
             for (n = data.filtnumcoeffs_right[pos] - 2; n > 0; n--) {
               data.oldx_right[pos][n] = data.oldx_right[pos][n - 1];
@@ -2000,7 +1976,7 @@ void Lambda::processSim() {
                     data.filtcoeffsA_bottom[pos][n];
             }
             // add magnitude of a possible velocity source
-            yn += data.velo_bottom[pos];
+            yn += data.velo_["bottom"].ptr<float>(0)[pos];
             // rotate the filter memories
             for (n = data.filtnumcoeffs_bottom[pos] - 2; n > 0; n--) {
               data.oldx_bottom[pos][n] = data.oldx_bottom[pos][n - 1];

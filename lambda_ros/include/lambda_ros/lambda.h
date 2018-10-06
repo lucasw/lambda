@@ -25,6 +25,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <opencv2/core.hpp>
 #include <string>
 #include <sys/stat.h>
@@ -99,14 +100,10 @@ struct SimData {
   float **filtcoeffsB_right;  // non-recursive filter coeffs for right filters
   float **filtcoeffsA_bottom; // recursive filter coeffs for bottom filters
   float **filtcoeffsB_bottom; // non-recursive filter coeffs for bottom filters
-  float *velo_left; // array containing the actual velocity of velo sources from
-                    // left dir.
-  float *velo_top;  // array containing the actual velocity of velo sources from
-                    // top dir.
-  float *velo_right;  // array containing the actual velocity of velo sources
-                      // from right dir.
-  float *velo_bottom; // array containing the actual velocity of velo sources
-                      // from bottom dir.
+
+  // array containing the actual velocity of velo sources from four directions
+  std::map<std::string, cv::Mat> velo_;
+
   float
       *mem; // array for sources to use for storing information between samples.
   simSample **samples; // contains sample data from soundfiles embedded in the
@@ -168,6 +165,9 @@ typedef enum { kHorizontal = 0, kVertical, kNone } simAngularType;
 class Lambda {
 public:
   Lambda();
+
+  // TODO(lucasw) 3D add up and down?
+  const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
 
   //   Prepares variables needed for simulation.
   // RETURN VALUE
