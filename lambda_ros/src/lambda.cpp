@@ -1527,10 +1527,14 @@ void Lambda::initEnvironmentSetup() {
 simError Lambda::initSimulation() {
   config.n = 0;
   // reserve memory for node pressure and incident pressure pulses
+  // for (size_t i = 0; i < 3; ++i)
+  //   data.pressure_[i] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
+  #if 1
   data.pres = new float[3 * config.nNodes];
   for (int pos = 0; pos < 3 * config.nNodes; pos++) {
     data.pres[pos] = 0;
   }
+  #endif
   data.inci = new float[12 * config.nNodes];
   for (int pos = 0; pos < 12 * config.nNodes; pos++) {
     data.inci[pos] = 0;
@@ -1634,7 +1638,9 @@ void Lambda::setPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= config.nY)
     return;
-  data.pres[y * config.nX + x] = value;
+  int idx = ((config.n + 2) % 3); // present index
+  data.pres[config.nNodes * idx + y * config.nX + x + config.nNodes] = value;
+  // data.pressure_[1].at<float>(y, x) = value;
 }
 
 void Lambda::addPressure(const size_t x, const size_t y, const float value)
@@ -1643,7 +1649,9 @@ void Lambda::addPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= config.nY)
     return;
-  data.pres[y * config.nX + x] += value;
+  int idx = ((config.n + 2) % 3); // present index
+  data.pres[config.nNodes * idx + y * config.nX + x + config.nNodes] += value;
+  // data.pressure_[1].at<float>(y, x) += value;
 }
 
 // this has to be done before initSimulation

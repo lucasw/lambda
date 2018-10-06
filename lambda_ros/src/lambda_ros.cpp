@@ -89,7 +89,7 @@ public:
       publishImage();
       // Can get 203 fps and 100% one cpu core with no sleeping
       // 84 fps with this 5 ms sleep
-      // ros::Duration(0.005).sleep();
+      ros::Duration(0.005).sleep();
     }
   }
 

@@ -68,6 +68,7 @@ struct SimData {
   float *angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
   float *pres;       // array containing the actual node pressure distribution
+  // cv::Mat pressure_[3];
   float *inci;       // array containing the incident node pressures
   float *recs;       // array containing the receivers
   bool *boundary;    // array indicating boundary nodes
