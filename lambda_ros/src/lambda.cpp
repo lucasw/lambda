@@ -1401,6 +1401,7 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
   if (y >= config.nY)
     return;
   data.envi.at<float>(y, x) = value;
+  // processWall(x, y);
 }
 
 // alpha is angle

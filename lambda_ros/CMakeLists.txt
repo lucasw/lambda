@@ -3,7 +3,7 @@ project(lambda_ros)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-  # dynamic_reconfigure
+  dynamic_reconfigure
   # nodelet
   geometry_msgs
   message_generation
@@ -17,9 +17,9 @@ roslint_cpp()
 
 # find_package(lambda REQUIRED)
 
-# generate_dynamic_reconfigure_options(
-#   cfg/Delay.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/Lambda.cfg
+)
 
 # add_message_files(
 #   FILES
@@ -31,11 +31,11 @@ roslint_cpp()
 #   AddAssembly.srv
 # )
 
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 #   geometry_msgs
-# )
+)
 
 catkin_package(
   # INCLUDE_DIRS include
@@ -55,10 +55,10 @@ add_library(lambda_synth
 
 # TODO(lucasw) replace cimg with opencv and eliminate this X11
 target_link_libraries(lambda_synth ${catkin_LIBRARIES} X11)
-# add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 # add_dependencies(lambda_synth ${PROJECT_NAME}_gencpp)
 
 add_executable(${PROJECT_NAME} src/lambda_ros.cpp)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} lambda_synth)
 
 add_executable(array_test src/array_test.cpp)

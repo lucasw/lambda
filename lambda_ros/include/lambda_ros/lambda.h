@@ -62,7 +62,8 @@ struct DirData {
   // TODO(lucasw) need to init these to nullptr?
 
   bool *filt_;            // array indicating filters at the nodes for this direction
-  float **oldx_;          // filter non-recursive memory for filters
+  //std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
+  float **oldx_;          // filter recursive memory for filters
   float **oldy_;          // filter recursive memory for filters
   int *filtnumcoeffs_;    // number of filter coeffs for filters
   float **filtcoeffsA_;   // recursive filter coeffs for filters
