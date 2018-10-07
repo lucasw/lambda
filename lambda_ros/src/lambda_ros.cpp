@@ -61,15 +61,20 @@ public:
       lambda_->getPressure(10, 10);
       std::cout << "top wall\n";
       lambda_->getPressure(30, 0);
-      lambda_->getPressure(0, 30);
+      lambda_->getPressure(30, 1);
       std::cout << "left wall\n";
-      lambda_->getPressure(30, 0);
+      lambda_->getPressure(0, 30);
+      lambda_->getPressure(1, 30);
       std::cout << "pos\n";
       lambda_->getPressure(20, 30);
+      lambda_->getPressure(19, 30);
+      lambda_->getPressure(20, 29);
       std::cout << "neg\n";
       lambda_->getPressure(350, 100);
+      lambda_->getPressure(349, 100);
       std::cout << "absorb\n";
       lambda_->getPressure(50, 390);
+      lambda_->getPressure(50, 389);
     }
 
     ros::param::get("~point_pressure", point_pressure_);

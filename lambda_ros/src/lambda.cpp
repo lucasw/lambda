@@ -564,6 +564,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
       // is the actual node a real-valued-reflecting node?
       const float envi = data.envi.ptr<float>(0)[pos];
       const float angle = data.angle.ptr<float>(0)[pos];
+      // TODO(lucasw) is there any difference with the > 1.0 code below?
       if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
         data.boundary[pos] = true;
         data.dir_data_["left"].filt_[pos] = true;
@@ -1368,8 +1369,10 @@ void DirData::print(const size_t pos)
   for (size_t i = 0; i < filtnumcoeffs_[pos]; ++i)
   {
     std::cout << "        " << filtcoeffsA_[pos][i] << " "
-        << filtcoeffsB_[pos][i] << "\n";
-   // TODO(lucasw) print out oldx and oldy also?
+       << filtcoeffsB_[pos][i] << "\n";
+    // std::cout << "        " << filtcoeffsA_[pos] << " " << filtcoeffsA_[pos][i] << " "
+    //     << filtcoeffsB_[pos] << " " << filtcoeffsB_[pos][i] << "\n";
+    // TODO(lucasw) print out oldx and oldy also?
   }
 }
 
