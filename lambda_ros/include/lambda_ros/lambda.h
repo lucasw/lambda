@@ -163,6 +163,8 @@ public:
   // TODO(lucasw) 3D add up and down?
   const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
 
+  typedef enum {LEFT, RIGHT, TOP, BOTTOM} dir;
+
   //   Prepares variables needed for simulation.
   // RETURN VALUE
   //   simError: NONE if no error occured, error identfier otherwise.

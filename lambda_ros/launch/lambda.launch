@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_rate" default="30"/>
-  <arg name="width" default="8"/>
-  <arg name="height" default="8"/>
+  <arg name="width" default="400"/>
+  <arg name="height" default="400"/>
 
   <group ns="lambda">
     <node pkg="lambda_ros" type="lambda_ros" name="lambda"

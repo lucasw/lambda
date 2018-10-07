@@ -1423,6 +1423,7 @@ void Lambda::processSim() {
           index.inci_[dir].idxI[idxFutu]; // future left incident pressure index
     }
 
+    // TODO(lucasw) map lookups are slow
     // future+present scattered pressure in each direction
     std::map<std::string, float> scatFutu;
     std::map<std::string, float> scatPres;
@@ -1563,15 +1564,18 @@ void Lambda::processSim() {
     // they don't get optimized out, so set up these temp arrays instead.
     std::vector<DirData*> dir_datas;
     std::vector<Inci*> incis;
-    std::vector<float*> scat_futus;
-    std::vector<float*> scat_press;
-    std::vector<std::string> dirs;
+    std::vector<int> dirs;
     for (const std::string& dir : dirs_) {
       dir_datas.push_back(&data.dir_data_[dir]);
       incis.push_back(&index.inci_[dir]);
-      scat_futus.push_back(&scatFutu[dir]);
-      scat_press.push_back(&scatPres[dir]);
-      dirs.push_back(dir);
+      if (dir == "left")
+        dirs.push_back(LEFT);
+      if (dir == "right")
+        dirs.push_back(RIGHT);
+      if (dir == "top")
+        dirs.push_back(TOP);
+      if (dir == "bottom")
+        dirs.push_back(BOTTOM);
     }
     int n;    // counter variable
     float yn; // filter output
@@ -1589,9 +1593,9 @@ void Lambda::processSim() {
           //  filter
           if (dir_datas[d]->filt_[pos]) {
             // calculate filter input
-            *scat_futus[d] = presPres[pos] - incis[d]->pres_[pos];
+            const float scat_futu = presPres[pos] - incis[d]->pres_[pos];
             // calculate the digital filter
-            yn = *scat_futus[d] * dir_datas[d]->filtcoeffsB_[pos][0];
+            yn = scat_futu * dir_datas[d]->filtcoeffsB_[pos][0];
             for (n = 1; n < dir_datas[d]->filtnumcoeffs_[pos]; n++) {
               yn += dir_datas[d]->oldx_[pos][n - 1] *
                   dir_datas[d]->filtcoeffsB_[pos][n];
@@ -1605,25 +1609,27 @@ void Lambda::processSim() {
               dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];
               dir_datas[d]->oldy_[pos][n] = dir_datas[d]->oldy_[pos][n - 1];
             }
-            dir_datas[d]->oldx_[pos][0] = *scat_futus[d];
+            dir_datas[d]->oldx_[pos][0] = scat_futu;
             dir_datas[d]->oldy_[pos][0] = yn;
             // and write the filter output into the pressure matrix
             incis[d]->futu_[pos] = yn;
             index_presFutu[pos] += incis[d]->futu_[pos];
           } else {
             // no filter in this direction
-            *scat_press[d] = index.presPast[pos] - incis[d]->past_[pos];
+            const float scat_pres = index.presPast[pos] - incis[d]->past_[pos];
 
-            if (dirs[d] == "left")
-              incis[d]->futu_[pos] = presPres[pos - 1] - *scat_press[d];
-            else if (dirs[d] == "top")
-              incis[d]->futu_[pos] = presPres[pos - config_nX] - *scat_press[d];
-            else if (dirs[d] == "right")
-              incis[d]->futu_[pos] = presPres[pos + 1] - *scat_press[d];
-            else if (dirs[d] == "bottom")
-              incis[d]->futu_[pos] =
-                presPres[pos + config_nX] - *scat_press[d];
-            index_presFutu[pos] += incis[d]->futu_[pos];
+            float incis_futu = 0.0;
+            if (dirs[d] == LEFT)
+              incis_futu = presPres[pos - 1] - scat_pres;
+            else if (dirs[d] == TOP)
+              incis_futu = presPres[pos - config_nX] - scat_pres;
+            else if (dirs[d] == RIGHT)
+              incis_futu = presPres[pos + 1] - scat_pres;
+            else if (dirs[d] == BOTTOM)
+              incis_futu = presPres[pos + config_nX] - scat_pres;
+
+            incis[d]->futu_[pos] = incis_futu;
+            index_presFutu[pos] += incis_futu;
           }
           index_presFutu[pos] *= 0.5f;
         } // dir loop
