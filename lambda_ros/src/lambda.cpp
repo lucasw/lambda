@@ -1361,6 +1361,38 @@ void Lambda::addPressure(const size_t x, const size_t y, const float value)
   data.pressure_[idx].at<float>(y, x) += value;
 }
 
+void DirData::print(const size_t pos)
+{
+  std::cout << " has filter " << filt_[pos] << ", num coeffs "
+      << filtnumcoeffs_[pos] << "\n";
+  for (size_t i = 0; i < filtnumcoeffs_[pos]; ++i)
+  {
+    std::cout << "        " << filtcoeffsA_[pos][i] << " "
+        << filtcoeffsB_[pos][i] << "\n";
+   // TODO(lucasw) print out oldx and oldy also?
+  }
+}
+
+float Lambda::getPressure(const size_t x, const size_t y)
+{
+  const int idx = ((config.n + 1) % 3); // present index
+  if (x >= data.pressure_[idx].cols)
+    return 0.0;
+  if (y >= data.pressure_[idx].rows)
+    return 0.0;
+
+  const size_t pos = y * config.nX + x;
+
+  // print out filter information
+  std::cout << "x: " << x <<  ", y: " << y << "\n";
+  for (auto dir : dirs_)
+  {
+    std::cout << "    " << dir <<  " ";
+    data.dir_data_[dir].print(pos);
+  }
+  return data.pressure_[idx].at<float>(y, x);
+}
+
 // this has to be done before initSimulation
 void Lambda::setWall(const size_t x, const size_t y, const float value)
 {
@@ -1410,7 +1442,7 @@ void Lambda::processSim() {
     index.presPres = index.idxP[idxPres]; // present pressure index
     index.presFutu = index.idxP[idxFutu]; // future pressure index
     // std::cout << index.presPast[0] << " " << index.presPres[1]
-    //    << " " << index.presFutu[2] << std::endl;
+    //    << " " << index.presFutu[2] << "\n";
     float *index_presFutu = index.presFutu;
     float *presPres = index.presPres;
 
@@ -1604,6 +1636,8 @@ void Lambda::processSim() {
             }
             // add magnitude of a possible velocity source
             yn += dir_datas[d]->velo_.ptr<float>(0)[pos];
+            // TODO(lucasw) replace with a std container that can push front and pop_back,
+            // should be faster than all this copying.
             // rotate the filter memories
             for (n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
               dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];

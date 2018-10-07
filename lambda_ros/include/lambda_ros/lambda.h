@@ -68,6 +68,8 @@ struct DirData {
   float **filtcoeffsA_;   // recursive filter coeffs for filters
   float **filtcoeffsB_;   // non-recursive filter coeffs for filters
 
+  void print(const size_t pos);
+
   // array containing the actual velocity of velo sources from four directions
   cv::Mat velo_;
 };
@@ -182,15 +184,8 @@ public:
     const int idx = ((config.n + 1) % 3); // present index
     image = data.pressure_[idx];
   }
-  float getPressure(const size_t x, const size_t y)
-  {
-    const int idx = ((config.n + 1) % 3); // present index
-    if (x >= data.pressure_[idx].cols)
-      return 0.0;
-    if (y >= data.pressure_[idx].rows)
-      return 0.0;
-    return data.pressure_[idx].at<float>(y, x);
-  }
+  float getPressure(const size_t x, const size_t y);
+
   void setWall(const size_t x, const size_t y, const float value);
 
   //   Function template. This function should be used whenever one of the key
