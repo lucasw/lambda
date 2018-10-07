@@ -1559,6 +1559,20 @@ void Lambda::processSim() {
     }
 
     ////////////////////////////////////////////////////////////////////////
+    // it's expensive to do a lot of map lookups in the big loop before,
+    // they don't get optimized out, so set up these temp arrays instead.
+    std::vector<DirData*> dir_datas;
+    std::vector<Inci*> incis;
+    std::vector<float*> scat_futus;
+    std::vector<float*> scat_press;
+    std::vector<std::string> dirs;
+    for (const std::string& dir : dirs_) {
+      dir_datas.push_back(&data.dir_data_[dir]);
+      incis.push_back(&index.inci_[dir]);
+      scat_futus.push_back(&scatFutu[dir]);
+      scat_press.push_back(&scatPres[dir]);
+      dirs.push_back(dir);
+    }
     int n;    // counter variable
     float yn; // filter output
     int config_nX = config.nX;
@@ -1570,52 +1584,46 @@ void Lambda::processSim() {
 
       if (data.boundary[pos]) // boundary? --> no standard propagation!
       {
-        for (const std::string& dir : dirs_) {
+        for (size_t d = 0; d < 4; ++d) {
           // TODO(lucasw) clean this up by make this a method of DirData?
-          // TODO(lucasw) these are relatively expensive compared to arrays-
-          // make a tmp array of them?
-          DirData& dir_data = data.dir_data_[dir];
-          Inci& inci = index.inci_[dir];
-          float& scat_futu = scatFutu[dir];
-          float& scat_pres = scatPres[dir];
           //  filter
-          if (dir_data.filt_[pos]) {
+          if (dir_datas[d]->filt_[pos]) {
             // calculate filter input
-            scat_futu = presPres[pos] - inci.pres_[pos];
+            *scat_futus[d] = presPres[pos] - incis[d]->pres_[pos];
             // calculate the digital filter
-            yn = scat_futu * dir_data.filtcoeffsB_[pos][0];
-            for (n = 1; n < dir_data.filtnumcoeffs_[pos]; n++) {
-              yn += dir_data.oldx_[pos][n - 1] *
-                  dir_data.filtcoeffsB_[pos][n];
-              yn -= dir_data.oldy_[pos][n - 1] *
-                  dir_data.filtcoeffsA_[pos][n];
+            yn = *scat_futus[d] * dir_datas[d]->filtcoeffsB_[pos][0];
+            for (n = 1; n < dir_datas[d]->filtnumcoeffs_[pos]; n++) {
+              yn += dir_datas[d]->oldx_[pos][n - 1] *
+                  dir_datas[d]->filtcoeffsB_[pos][n];
+              yn -= dir_datas[d]->oldy_[pos][n - 1] *
+                  dir_datas[d]->filtcoeffsA_[pos][n];
             }
             // add magnitude of a possible velocity source
-            yn += dir_data.velo_.ptr<float>(0)[pos];
+            yn += dir_datas[d]->velo_.ptr<float>(0)[pos];
             // rotate the filter memories
-            for (n = dir_data.filtnumcoeffs_[pos] - 2; n > 0; n--) {
-              dir_data.oldx_[pos][n] = dir_data.oldx_[pos][n - 1];
-              dir_data.oldy_[pos][n] = dir_data.oldy_[pos][n - 1];
+            for (n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
+              dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];
+              dir_datas[d]->oldy_[pos][n] = dir_datas[d]->oldy_[pos][n - 1];
             }
-            dir_data.oldx_[pos][0] = scat_futu;
-            dir_data.oldy_[pos][0] = yn;
+            dir_datas[d]->oldx_[pos][0] = *scat_futus[d];
+            dir_datas[d]->oldy_[pos][0] = yn;
             // and write the filter output into the pressure matrix
-            inci.futu_[pos] = yn;
-            index_presFutu[pos] += inci.futu_[pos];
+            incis[d]->futu_[pos] = yn;
+            index_presFutu[pos] += incis[d]->futu_[pos];
           } else {
             // no filter in this direction
-            scat_pres = index.presPast[pos] - inci.past_[pos];
+            *scat_press[d] = index.presPast[pos] - incis[d]->past_[pos];
 
-            if (dir == "left")
-              inci.futu_[pos] = presPres[pos - 1] - scat_pres;
-            else if (dir == "top")
-              inci.futu_[pos] = presPres[pos - config_nX] - scat_pres;
-            else if (dir == "right")
-              inci.futu_[pos] = presPres[pos + 1] - scat_pres;
-            else if (dir == "bottom")
-              inci.futu_[pos] =
-                presPres[pos + config_nX] - scat_pres;
-            index_presFutu[pos] += inci.futu_[pos];
+            if (dirs[d] == "left")
+              incis[d]->futu_[pos] = presPres[pos - 1] - *scat_press[d];
+            else if (dirs[d] == "top")
+              incis[d]->futu_[pos] = presPres[pos - config_nX] - *scat_press[d];
+            else if (dirs[d] == "right")
+              incis[d]->futu_[pos] = presPres[pos + 1] - *scat_press[d];
+            else if (dirs[d] == "bottom")
+              incis[d]->futu_[pos] =
+                presPres[pos + config_nX] - *scat_press[d];
+            index_presFutu[pos] += incis[d]->futu_[pos];
           }
           index_presFutu[pos] *= 0.5f;
         } // dir loop
