@@ -219,9 +219,7 @@ private:
   //   matrices. Sets pointers to NULL. Called only one single time at startup.
   void initVariables();
 
-  void initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
-                       float **&tmp_filtcoeffsA, float **&tmp_filtcoeffsB,
-                       int &tmp_numfilters);
+  void initEnvironment();
 
   //   Processes input parameters and sets internal variables accordingly.
   // INPUT
@@ -245,6 +243,14 @@ private:
   //   simError: NONE if file was opened successfully, error identfier
   //   otherwise.
   virtual simError loadRecord(const std::string fileName);
+
+  int *tmp_filtid = NULL;         // temporary filter ID array
+  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
+  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
+  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
+  int tmp_numfilters;             // temporary number of filters
+
+  void processWall(const int x, const int y);
 
   // load a simulation file.
   // RETURN VALUE

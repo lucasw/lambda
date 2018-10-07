@@ -487,9 +487,7 @@ simError Lambda::defineSource(const int idx, const simSource *srcData) {
 }
 
 //  ----- PREPROCESSING OF THE ENVIRONMENT -----
-void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
-                             float **&tmp_filtcoeffsA, float **&tmp_filtcoeffsB,
-                             int &tmp_numfilters) {
+void Lambda::initEnvironment() {
   data.boundary = new bool[config.nNodes]; // mem for boundary indicator
   for (int pos = 0; pos < config.nNodes; pos++) {
     data.boundary[pos] = false;
@@ -520,7 +518,7 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
   // work through all nodes in the environment
   for (int y = 0; y < config.nY; y++) {
     for (int x = 0; x < config.nX; x++) {
-      int pos = y * config.nX + x;
+      const int pos = y * config.nX + x;
       if ((y == 0) || (x == 0) || (y == config.nY - 1) ||
           (x == config.nX - 1)) // is this a simfield border node?
       {
@@ -562,161 +560,168 @@ void Lambda::initEnvironment(int *&tmp_filtid, int *&tmp_filtnumcoeffs,
         }
       }
       // is the actual node a real-valued-reflecting node?
-      const float envi = data.envi.ptr<float>(0)[pos];
-      const float angle = data.angle.ptr<float>(0)[pos];
-      // TODO(lucasw) is there any difference with the > 1.0 code below?
-      if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
-        data.boundary[pos] = true;
-        data.dir_data_["left"].filt_[pos] = true;
-        data.dir_data_["top"].filt_[pos] = true;
-        data.dir_data_["right"].filt_[pos] = true;
-        data.dir_data_["bottom"].filt_[pos] = true;
-        // apply a left filter with correspondig reflection factor to it
-        adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos],
-                             data.dir_data_["left"].filtcoeffsA_[pos],
-                             data.dir_data_["left"].filtcoeffsB_[pos], envi,
-                             angle, kHorizontal);
-        // apply a top filter with correspondig reflection factor to it
-        adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos],
-                             data.dir_data_["top"].filtcoeffsA_[pos],
-                             data.dir_data_["top"].filtcoeffsB_[pos], envi,
-                             angle, kVertical);
-        // apply a right filter with correspondig reflection factor to it
-        adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos],
-                             data.dir_data_["right"].filtcoeffsA_[pos],
-                             data.dir_data_["right"].filtcoeffsB_[pos], envi,
-                             angle, kHorizontal);
-        // apply a bottom filter with correspondig reflection factor to it
-        adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos],
-                             data.dir_data_["bottom"].filtcoeffsA_[pos],
-                             data.dir_data_["bottom"].filtcoeffsB_[pos], envi,
-                             angle, kVertical);
-        if (x <
-            config.nX - 1) // apply a left filter to its right neighbour, if it
-        {                  // isn't outside the simfield
-          data.boundary[pos + 1] = true;
-          data.dir_data_["left"].filt_[pos + 1] = true;
-          adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos + 1],
-                               data.dir_data_["left"].filtcoeffsA_[pos + 1],
-                               data.dir_data_["left"].filtcoeffsB_[pos + 1], envi,
-                               angle, kHorizontal);
-        }
-        if (y <
-            config.nY - 1) // apply a top filter to its bottom neighbour, if it
-        {                  // isn't outside the simfield
-          data.boundary[pos + config.nX] = true;
-          data.dir_data_["top"].filt_[pos + config.nX] = true;
-          adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
-                               data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
-                               data.dir_data_["top"].filtcoeffsB_[pos + config.nX],
-                               envi, angle, kVertical);
-        }
-        if (x > 0) // apply a right filter to its left neighbour, if it
-        {          // isn't outside the simfield
-          data.boundary[pos - 1] = true;
-          data.dir_data_["right"].filt_[pos - 1] = true;
-          adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
-                               data.dir_data_["right"].filtcoeffsA_[pos - 1],
-                               data.dir_data_["right"].filtcoeffsB_[pos - 1], envi,
-                               angle, kHorizontal);
-        }
-        if (y > 0) // apply a bottom filter to its top neighbour, if it
-        {          // isn't outside the simfield
-          data.boundary[pos - config.nX] = true;
-          data.dir_data_["bottom"].filt_[pos - config.nX] = true;
-          adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
-                               data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
-                               data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX],
-                               envi, angle, kVertical);
-        }
-      // is the actual node a filter-node?
-      } else if ((envi > 1.0) && (envi <= 1000.0)) {
-        data.boundary[pos] = true;
-        data.dir_data_["left"].filt_[pos] = true;
-        data.dir_data_["top"].filt_[pos] = true;
-        data.dir_data_["right"].filt_[pos] = true;
-        data.dir_data_["bottom"].filt_[pos] = true;
-        // apply the left filter with the correspondig ID to it
-        adaptfilter(data.dir_data_["left"].filtnumcoeffs_[pos],
-                    data.dir_data_["left"].filtcoeffsA_[pos],
-                    data.dir_data_["left"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
-                    tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)envi, angle, kHorizontal);
-        // apply the top filter with the correspondig ID to it
-        adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos],
-                    data.dir_data_["top"].filtcoeffsA_[pos],
-                    data.dir_data_["top"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
-                    tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)envi, angle, kVertical);
-        // apply the right filter with the correspondig ID to it
-        adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos],
-                    data.dir_data_["right"].filtcoeffsA_[pos],
-                    data.dir_data_["right"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
-                    tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                    (int)envi, angle, kHorizontal);
-        // apply the bottom filter with the correspondig ID to it
-        adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos],
-                    data.dir_data_["bottom"].filtcoeffsA_[pos],
-                    data.dir_data_["bottom"].filtcoeffsB_[pos],
-                    tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
-                    tmp_filtcoeffsB, tmp_numfilters, (int)envi,
-                    angle, kVertical);
-        if (x <
-            config.nX - 1) // apply a left filter to its right neighbour, if it
-        {                  // isn't outside the simfield
-          data.boundary[pos + 1] = true;
-          data.dir_data_["left"].filt_[pos + 1] = true;
-          adaptfilter(
-              data.dir_data_["left"].filtnumcoeffs_[pos + 1],
-              data.dir_data_["left"].filtcoeffsA_[pos + 1],
-              data.dir_data_["left"].filtcoeffsB_[pos + 1], tmp_filtid, tmp_filtnumcoeffs,
-              tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-              (int)envi, angle, kHorizontal);
-        }
-        if (y <
-            config.nY - 1) // apply a top filter to its bottom neighbour, if it
-        {                  // isn't outside the simfield
-          data.boundary[pos + config.nX] = true;
-          data.dir_data_["top"].filt_[pos + config.nX] = true;
-          adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
-                      data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
-                      data.dir_data_["top"].filtcoeffsB_[pos + config.nX], tmp_filtid,
-                      tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)envi, angle,
-                      kVertical);
-        }
-        if (x > 0) // apply a right filter to its left neighbour, if it
-        {          // isn't outside the simfield
-          data.boundary[pos - 1] = true;
-          data.dir_data_["right"].filt_[pos - 1] = true;
-          adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
-                      data.dir_data_["right"].filtcoeffsA_[pos - 1],
-                      data.dir_data_["right"].filtcoeffsB_[pos - 1], tmp_filtid,
-                      tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)envi, angle,
-                      kHorizontal);
-        }
-        if (y > 0) // apply a bottom filter to its top neighbour, if it
-        {          // isn't outside the simfield
-          data.boundary[pos - config.nX] = true;
-          data.dir_data_["bottom"].filt_[pos - config.nX] = true;
-          adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
-                      data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
-                      data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX], tmp_filtid,
-                      tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                      tmp_numfilters, (int)envi, angle,
-                      kVertical);
-        }
-      } else if (envi < -1.0) // is the actual node a receiver-node?
-      {
-        if (actrec < config.nRec) {
-          data.recIdx[actrec] =
-              pos;  // yes, add the receiver's position into the
-          actrec++; // recIdx-Array
-        }
-      }
+      processWall(x, y);
     } // x-loop
   }   // y-loop
+}
+
+void Lambda::processWall(const int x, const int y) {
+  const int pos = y * config.nX + x;
+  const float envi = data.envi.ptr<float>(0)[pos];
+  const float angle = data.angle.ptr<float>(0)[pos];
+  // TODO(lucasw) is there any difference with the > 1.0 code below?
+  if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
+    data.boundary[pos] = true;
+    data.dir_data_["left"].filt_[pos] = true;
+    data.dir_data_["top"].filt_[pos] = true;
+    data.dir_data_["right"].filt_[pos] = true;
+    data.dir_data_["bottom"].filt_[pos] = true;
+    // apply a left filter with correspondig reflection factor to it
+    adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos],
+                         data.dir_data_["left"].filtcoeffsA_[pos],
+                         data.dir_data_["left"].filtcoeffsB_[pos], envi,
+                         angle, kHorizontal);
+    // apply a top filter with correspondig reflection factor to it
+    adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos],
+                         data.dir_data_["top"].filtcoeffsA_[pos],
+                         data.dir_data_["top"].filtcoeffsB_[pos], envi,
+                         angle, kVertical);
+    // apply a right filter with correspondig reflection factor to it
+    adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos],
+                         data.dir_data_["right"].filtcoeffsA_[pos],
+                         data.dir_data_["right"].filtcoeffsB_[pos], envi,
+                         angle, kHorizontal);
+    // apply a bottom filter with correspondig reflection factor to it
+    adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos],
+                         data.dir_data_["bottom"].filtcoeffsA_[pos],
+                         data.dir_data_["bottom"].filtcoeffsB_[pos], envi,
+                         angle, kVertical);
+    if (x <
+        config.nX - 1) // apply a left filter to its right neighbour, if it
+    {                  // isn't outside the simfield
+      data.boundary[pos + 1] = true;
+      data.dir_data_["left"].filt_[pos + 1] = true;
+      adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos + 1],
+                           data.dir_data_["left"].filtcoeffsA_[pos + 1],
+                           data.dir_data_["left"].filtcoeffsB_[pos + 1], envi,
+                           angle, kHorizontal);
+    }
+    if (y <
+        config.nY - 1) // apply a top filter to its bottom neighbour, if it
+    {                  // isn't outside the simfield
+      data.boundary[pos + config.nX] = true;
+      data.dir_data_["top"].filt_[pos + config.nX] = true;
+      adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
+                           data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
+                           data.dir_data_["top"].filtcoeffsB_[pos + config.nX],
+                           envi, angle, kVertical);
+    }
+    if (x > 0) // apply a right filter to its left neighbour, if it
+    {          // isn't outside the simfield
+      data.boundary[pos - 1] = true;
+      data.dir_data_["right"].filt_[pos - 1] = true;
+      adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
+                           data.dir_data_["right"].filtcoeffsA_[pos - 1],
+                           data.dir_data_["right"].filtcoeffsB_[pos - 1], envi,
+                           angle, kHorizontal);
+    }
+    if (y > 0) // apply a bottom filter to its top neighbour, if it
+    {          // isn't outside the simfield
+      data.boundary[pos - config.nX] = true;
+      data.dir_data_["bottom"].filt_[pos - config.nX] = true;
+      adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
+                           data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
+                           data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX],
+                           envi, angle, kVertical);
+    }
+  // is the actual node a filter-node?
+  } else if ((envi > 1.0) && (envi <= 1000.0)) {
+    data.boundary[pos] = true;
+    data.dir_data_["left"].filt_[pos] = true;
+    data.dir_data_["top"].filt_[pos] = true;
+    data.dir_data_["right"].filt_[pos] = true;
+    data.dir_data_["bottom"].filt_[pos] = true;
+    // apply the left filter with the correspondig ID to it
+    adaptfilter(data.dir_data_["left"].filtnumcoeffs_[pos],
+                data.dir_data_["left"].filtcoeffsA_[pos],
+                data.dir_data_["left"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+                (int)envi, angle, kHorizontal);
+    // apply the top filter with the correspondig ID to it
+    adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos],
+                data.dir_data_["top"].filtcoeffsA_[pos],
+                data.dir_data_["top"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+                (int)envi, angle, kVertical);
+    // apply the right filter with the correspondig ID to it
+    adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos],
+                data.dir_data_["right"].filtcoeffsA_[pos],
+                data.dir_data_["right"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+                (int)envi, angle, kHorizontal);
+    // apply the bottom filter with the correspondig ID to it
+    adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos],
+                data.dir_data_["bottom"].filtcoeffsA_[pos],
+                data.dir_data_["bottom"].filtcoeffsB_[pos],
+                tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
+                tmp_filtcoeffsB, tmp_numfilters, (int)envi,
+                angle, kVertical);
+    if (x <
+        config.nX - 1) // apply a left filter to its right neighbour, if it
+    {                  // isn't outside the simfield
+      data.boundary[pos + 1] = true;
+      data.dir_data_["left"].filt_[pos + 1] = true;
+      adaptfilter(
+          data.dir_data_["left"].filtnumcoeffs_[pos + 1],
+          data.dir_data_["left"].filtcoeffsA_[pos + 1],
+          data.dir_data_["left"].filtcoeffsB_[pos + 1], tmp_filtid, tmp_filtnumcoeffs,
+          tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+          (int)envi, angle, kHorizontal);
+    }
+    if (y <
+        config.nY - 1) // apply a top filter to its bottom neighbour, if it
+    {                  // isn't outside the simfield
+      data.boundary[pos + config.nX] = true;
+      data.dir_data_["top"].filt_[pos + config.nX] = true;
+      adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
+                  data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
+                  data.dir_data_["top"].filtcoeffsB_[pos + config.nX], tmp_filtid,
+                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
+                  tmp_numfilters, (int)envi, angle,
+                  kVertical);
+    }
+    if (x > 0) // apply a right filter to its left neighbour, if it
+    {          // isn't outside the simfield
+      data.boundary[pos - 1] = true;
+      data.dir_data_["right"].filt_[pos - 1] = true;
+      adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
+                  data.dir_data_["right"].filtcoeffsA_[pos - 1],
+                  data.dir_data_["right"].filtcoeffsB_[pos - 1], tmp_filtid,
+                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
+                  tmp_numfilters, (int)envi, angle,
+                  kHorizontal);
+    }
+    if (y > 0) // apply a bottom filter to its top neighbour, if it
+    {          // isn't outside the simfield
+      data.boundary[pos - config.nX] = true;
+      data.dir_data_["bottom"].filt_[pos - config.nX] = true;
+      adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
+                  data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
+                  data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX], tmp_filtid,
+                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
+                  tmp_numfilters, (int)envi, angle,
+                  kVertical);
+    }
+  } else if (envi < -1.0) // is the actual node a receiver-node?
+  {
+    #if 0
+    if (actrec < config.nRec) {
+      data.recIdx[actrec] =
+          pos;  // yes, add the receiver's position into the
+      actrec++; // recIdx-Array
+    }
+    #endif
+  }
 }
 
 // RETURN VALUE
@@ -978,8 +983,7 @@ simError Lambda::loadSimulation(const std::string fileName) {
     data.recIdx = new int[config.nRec];
   }
 
-  initEnvironment(tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
-                  tmp_filtcoeffsB, tmp_numfilters);
+  initEnvironment();
 
   // read samples
   if (!donotreadnextblockid) // read the chunk header if it is required (see
@@ -1271,12 +1275,6 @@ simError Lambda::initSimulationPre() {
 }
 
 void Lambda::initEnvironmentSetup() {
-  int *tmp_filtid = NULL;         // temporary filter ID array
-  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
-  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
-  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
-  int tmp_numfilters;             // temporary number of filters
-
   tmp_numfilters = 1;                   // if yes, initialize only the 0 filter
   tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
   tmp_filtnumcoeffs =
@@ -1292,8 +1290,7 @@ void Lambda::initEnvironmentSetup() {
   tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
   tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
 
-  initEnvironment(tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
-                  tmp_filtcoeffsB, tmp_numfilters);
+  initEnvironment();
 }
 
 simError Lambda::initSimulation() {
