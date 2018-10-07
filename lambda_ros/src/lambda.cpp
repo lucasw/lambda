@@ -584,43 +584,59 @@ void Lambda::processWall(const int x, const int y) {
                          data.dir_data_["bottom"].filtcoeffsA_[pos],
                          data.dir_data_["bottom"].filtcoeffsB_[pos], envi,
                          angle, kVertical);
+
+    for (auto dir : dirs_)
+      setupOldXY(dir, pos);
+
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
-      data.boundary[pos + 1] = true;
-      data.dir_data_["left"].filt_[pos + 1] = true;
-      adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos + 1],
-                           data.dir_data_["left"].filtcoeffsA_[pos + 1],
-                           data.dir_data_["left"].filtcoeffsB_[pos + 1], envi,
+      const int new_pos = pos + 1;
+      const std::string dir = "left";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                           data.dir_data_[dir].filtcoeffsA_[new_pos],
+                           data.dir_data_[dir].filtcoeffsB_[new_pos], envi,
                            angle, kHorizontal);
+      setupOldXY(dir, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
     {                  // isn't outside the simfield
-      data.boundary[pos + config.nX] = true;
-      data.dir_data_["top"].filt_[pos + config.nX] = true;
-      adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
-                           data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
-                           data.dir_data_["top"].filtcoeffsB_[pos + config.nX],
+      const int new_pos = pos + config.nX;
+      const std::string dir = "top";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                           data.dir_data_[dir].filtcoeffsA_[new_pos],
+                           data.dir_data_[dir].filtcoeffsB_[new_pos],
                            envi, angle, kVertical);
+      setupOldXY(dir, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
-      data.boundary[pos - 1] = true;
-      data.dir_data_["right"].filt_[pos - 1] = true;
-      adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
-                           data.dir_data_["right"].filtcoeffsA_[pos - 1],
-                           data.dir_data_["right"].filtcoeffsB_[pos - 1], envi,
+      const int new_pos = pos - 1;
+      const std::string dir = "right";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                           data.dir_data_[dir].filtcoeffsA_[new_pos],
+                           data.dir_data_[dir].filtcoeffsB_[new_pos], envi,
                            angle, kHorizontal);
+      setupOldXY(dir, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
-      data.boundary[pos - config.nX] = true;
-      data.dir_data_["bottom"].filt_[pos - config.nX] = true;
-      adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
-                           data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
-                           data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX],
+      const int new_pos = pos - config.nX;
+      const std::string dir = "bottom";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                           data.dir_data_[dir].filtcoeffsA_[new_pos],
+                           data.dir_data_[dir].filtcoeffsB_[new_pos],
                            envi, angle, kVertical);
+      setupOldXY(dir, new_pos);
     }
   // is the actual node a filter-node?
   } else if ((envi > 1.0) && (envi <= 1000.0)) {
@@ -654,51 +670,67 @@ void Lambda::processWall(const int x, const int y) {
                 tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
                 tmp_filtcoeffsB, tmp_numfilters, (int)envi,
                 angle, kVertical);
+
+    for (auto dir : dirs_)
+      setupOldXY(dir, pos);
+
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
-      data.boundary[pos + 1] = true;
-      data.dir_data_["left"].filt_[pos + 1] = true;
+      const int new_pos = pos + 1;
+      const std::string dir = "left";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
       adaptfilter(
-          data.dir_data_["left"].filtnumcoeffs_[pos + 1],
-          data.dir_data_["left"].filtcoeffsA_[pos + 1],
-          data.dir_data_["left"].filtcoeffsB_[pos + 1], tmp_filtid, tmp_filtnumcoeffs,
+          data.dir_data_[dir].filtnumcoeffs_[new_pos],
+          data.dir_data_[dir].filtcoeffsA_[new_pos],
+          data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid, tmp_filtnumcoeffs,
           tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
           (int)envi, angle, kHorizontal);
+      setupOldXY(dir, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
     {                  // isn't outside the simfield
-      data.boundary[pos + config.nX] = true;
-      data.dir_data_["top"].filt_[pos + config.nX] = true;
-      adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos + config.nX],
-                  data.dir_data_["top"].filtcoeffsA_[pos + config.nX],
-                  data.dir_data_["top"].filtcoeffsB_[pos + config.nX], tmp_filtid,
+      const int new_pos = pos + config.nX;
+      const std::string dir = "top";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptfilter(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                  data.dir_data_[dir].filtcoeffsA_[new_pos],
+                  data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
+      setupOldXY(dir, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
-      data.boundary[pos - 1] = true;
-      data.dir_data_["right"].filt_[pos - 1] = true;
-      adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos - 1],
-                  data.dir_data_["right"].filtcoeffsA_[pos - 1],
-                  data.dir_data_["right"].filtcoeffsB_[pos - 1], tmp_filtid,
+      const int new_pos = pos - 1;
+      const std::string dir = "right";
+      data.boundary[new_pos] = true;
+      data.dir_data_[dir].filt_[new_pos] = true;
+      adaptfilter(data.dir_data_[dir].filtnumcoeffs_[new_pos],
+                  data.dir_data_[dir].filtcoeffsA_[new_pos],
+                  data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kHorizontal);
+      setupOldXY(dir, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
-      data.boundary[pos - config.nX] = true;
-      data.dir_data_["bottom"].filt_[pos - config.nX] = true;
-      adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos - config.nX],
-                  data.dir_data_["bottom"].filtcoeffsA_[pos - config.nX],
-                  data.dir_data_["bottom"].filtcoeffsB_[pos - config.nX], tmp_filtid,
+      const int new_pos = pos - config.nX;
+      const std::string dir = "bottom";
+      data.boundary[new_pos] = true;
+      data.dir_data_["bottom"].filt_[new_pos] = true;
+      adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[new_pos],
+                  data.dir_data_["bottom"].filtcoeffsA_[new_pos],
+                  data.dir_data_["bottom"].filtcoeffsB_[new_pos], tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
+      setupOldXY(dir, new_pos);
     }
   } else if (envi < -1.0) // is the actual node a receiver-node?
   {
@@ -1311,20 +1343,25 @@ simError Lambda::initSimulation() {
     data.dir_data_[dir].oldy_.reset(new std::unique_ptr<float[]>[config.nNodes]);
 
     for (int pos = 0; pos < config.nNodes; pos++) {
-      if (data.dir_data_[dir].filtnumcoeffs_[pos] >= 1) {
-        // reserve+initialize recursive and non-recursive memory for left filters
-        int memorycnt = data.dir_data_[dir].filtnumcoeffs_[pos] - 1;
-        if (memorycnt == 0) // to ensure that even 0th order filters have
-          memorycnt = 1; // memory; this spares an if-condition in the algorithm
-        // data.dir_data_[dir].oldx_[pos].resize(memorycnt, 0.0f);
-        // data.dir_data_[dir].oldy_[pos].resize(memorycnt, 0.0f);
-        data.dir_data_[dir].oldx_[pos].reset(new float[memorycnt]);
-        data.dir_data_[dir].oldy_[pos].reset(new float[memorycnt]);
-      }
+      setupOldXY(dir, pos);
     }
   }
 
   return NONE;
+}
+
+void Lambda::setupOldXY(const std::string dir, const int pos)
+{
+  if (data.dir_data_[dir].filtnumcoeffs_[pos] >= 1) {
+    // reserve+initialize recursive and non-recursive memory for left filters
+    int memorycnt = data.dir_data_[dir].filtnumcoeffs_[pos] - 1;
+    if (memorycnt == 0) // to ensure that even 0th order filters have
+      memorycnt = 1; // memory; this spares an if-condition in the algorithm
+    // data.dir_data_[dir].oldx_[pos].resize(memorycnt, 0.0f);
+    // data.dir_data_[dir].oldy_[pos].resize(memorycnt, 0.0f);
+    data.dir_data_[dir].oldx_[pos].reset(new float[memorycnt]);
+    data.dir_data_[dir].oldy_[pos].reset(new float[memorycnt]);
+  }
 }
 
 void Lambda::setPressure(const size_t x, const size_t y, const float value)
@@ -1389,7 +1426,9 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
   if (y >= config.nY)
     return;
   data.envi.at<float>(y, x) = value;
-  // processWall(x, y);
+  processWall(x, y);
+  for (auto dir : dirs_)
+    setupOldXY(dir, y * config.nX + x);
 }
 
 // alpha is angle

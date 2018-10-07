@@ -58,7 +58,12 @@ public:
       lambda_->getPressure(50, 389);
     }
     #endif
+    ROS_INFO_STREAM("init environment");
+    lambda_->initEnvironmentSetup();
+    ROS_INFO_STREAM("init sim");
+    lambda_->initSimulation();
 
+    #if 0
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
@@ -73,6 +78,7 @@ public:
         for (int oy = 0; oy < 3; ++oy)
           addWall(x + ox, y + oy, -1.0);
     }
+    #endif
     #if 0
     for (size_t i = 0; i < 90; ++i)
     {
@@ -90,10 +96,6 @@ public:
       }
     }
     #endif
-    ROS_INFO_STREAM("init environment");
-    lambda_->initEnvironmentSetup();
-    ROS_INFO_STREAM("init sim");
-    lambda_->initSimulation();
 
     ROS_INFO_STREAM("start sim");
 
@@ -130,7 +132,11 @@ public:
       if (config_.click_mode == lambda_ros::Lambda_pressure_impulse)
         addPressure(point_->x, point_->y, config_.click_value);
       else if (config_.click_mode == lambda_ros::Lambda_wall)
-        addWall(point_->x, point_->y, config_.click_value);
+      {
+        for (int ox = -2; ox < 3; ++ox)
+          for (int oy = -2; oy < 3; ++oy)
+            addWall(point_->x + ox, point_->y + oy, config_.click_value);
+      }
       point_.reset();
     }
 
@@ -185,7 +191,7 @@ public:
 
   void pointCallback(const geometry_msgs::PointConstPtr& msg)
   {
-    ROS_INFO_STREAM("new pressure point " << msg->x << " " << msg->y);
+    ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
     point_ = msg;
   }
 

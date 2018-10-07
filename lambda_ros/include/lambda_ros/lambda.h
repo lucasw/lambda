@@ -226,6 +226,8 @@ private:
 
   void initEnvironment();
 
+  void setupOldXY(const std::string dir, const int pos);
+
   //   Processes input parameters and sets internal variables accordingly.
   // INPUT
   //   int argc     : Number of elements in input vector argv
