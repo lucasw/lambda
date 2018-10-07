@@ -11,7 +11,7 @@
 class LambdaRos
 {
 public:
-  LambdaRos(int argc, char* argv[]) :
+  LambdaRos() :
     spinner_(3)
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
@@ -95,8 +95,6 @@ public:
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
-    spinner_.start();
-
     ROS_INFO_STREAM("start sim");
 
     {
@@ -114,29 +112,39 @@ public:
 
     addPressure(wd / 2, ht / 2, 1.0);
 
-    while (ros::ok())
-    {
-      if (point_)
-      {
-        if (config_.click_mode == lambda_ros::Lambda_pressure_impulse)
-          addPressure(point_->x, point_->y, config_.click_value);
-        else if (config_.click_mode == lambda_ros::Lambda_wall)
-          addWall(point_->x, point_->y, config_.click_value);
-        point_.reset();
-      }
+    reconfigure_server_.reset(new ReconfigureServer(dr_mutex_, nh_));
+    dynamic_reconfigure::Server<lambda_ros::LambdaConfig>::CallbackType cbt =
+        boost::bind(&LambdaRos::reconfigureCallback, this, _1, _2);
+    reconfigure_server_->setCallback(cbt);
 
-      if (!config_.publish_rate == 0.0)
-      {
-        lambda_->processSim();
-        publishImage();
-        // Can get 203 fps and 100% one cpu core with no sleeping
-        // 84 fps with this 5 ms sleep
-        ros::Duration(0.005).sleep();
-      }
-      else
-      {
-        ros::Duration(0.03).sleep();
-      }
+    update_timer_ = nh_.createTimer(ros::Duration(0.02),
+        &LambdaRos::update, this);
+
+    spinner_.start();
+  }
+
+  void update(const ros::TimerEvent& e)
+  {
+    if (point_)
+    {
+      if (config_.click_mode == lambda_ros::Lambda_pressure_impulse)
+        addPressure(point_->x, point_->y, config_.click_value);
+      else if (config_.click_mode == lambda_ros::Lambda_wall)
+        addWall(point_->x, point_->y, config_.click_value);
+      point_.reset();
+    }
+
+    if (!config_.publish_rate == 0.0)
+    {
+      lambda_->processSim();
+      publishImage();
+      // Can get 203 fps and 100% one cpu core with no sleeping
+      // 84 fps with this 5 ms sleep
+      ros::Duration(0.005).sleep();
+    }
+    else
+    {
+      ros::Duration(0.03).sleep();
     }
   }
 
@@ -207,6 +215,7 @@ private:
     config_ = config;
   }
 
+  ros::Timer update_timer_;
   ros::AsyncSpinner spinner_;
   geometry_msgs::PointConstPtr point_;
 };
@@ -214,5 +223,6 @@ private:
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "lambda");
-  LambdaRos lambda_ros(argc, argv);
+  LambdaRos lambda_ros;
+  ros::waitForShutdown();
 }

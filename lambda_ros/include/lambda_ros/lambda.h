@@ -63,8 +63,10 @@ struct DirData {
   // TODO(lucasw) need to init these to nullptr?
 
   bool *filt_;            // array indicating filters at the nodes for this direction
+  // about 10% slower than float**
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
   // std::vector<std::vector<float> > oldy_;          // filter non-recursive memory for filters
+  // these seem almost as fast as float**
   std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
   std::unique_ptr<std::unique_ptr<float[]>[]> oldy_;          // filter non-recursive memory for filters
   int *filtnumcoeffs_;    // number of filter coeffs for filters
