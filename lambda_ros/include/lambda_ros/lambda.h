@@ -58,6 +58,20 @@ struct simSample {
   float *data;
 };
 
+struct DirData {
+  // TODO(lucasw) need to init these to nullptr?
+
+  bool *filt_;            // array indicating filters at the nodes for this direction
+  float **oldx_;          // filter non-recursive memory for filters
+  float **oldy_;          // filter recursive memory for filters
+  int *filtnumcoeffs_;    // number of filter coeffs for filters
+  float **filtcoeffsA_;   // recursive filter coeffs for filters
+  float **filtcoeffsB_;   // non-recursive filter coeffs for filters
+
+  // array containing the actual velocity of velo sources from four directions
+  cv::Mat velo_;
+};
+
 // TODO(lucasw) make an array of SimDatas of length nNodes instead
 // of many many individual arrays - or will that hurt performance?
 // This struct contains specific data about the simulation environment.
@@ -74,36 +88,10 @@ struct SimData {
   float *recs;       // array containing the receivers
   bool *boundary;    // array indicating boundary nodes
   bool *deadnode;    // array indicating "dead" nodes
-  bool *filt_left;   // array indicating left filters at the nodes
-  bool *filt_top;    // array indicating top filters at the nodes
-  bool *filt_right;  // array indicating right filters at the nodes
-  bool *filt_bottom; // array indicating bottom filters at the nodes
   int *recIdx;       // array containing the receiver positions
   float *record; // in case of recording into rco file, this array contains the
                  // recorded data
-  float **oldx_left;          // filter non-recursive memory for left filters
-  float **oldx_top;           // filter non-recursive memory for top filters
-  float **oldx_right;         // filter non-recursive memory for right filters
-  float **oldx_bottom;        // filter non-recursive memory for bottom filters
-  float **oldy_left;          // filter recursive memory for left filters
-  float **oldy_top;           // filter recursive memory for top filters
-  float **oldy_right;         // filter recursive memory for right filters
-  float **oldy_bottom;        // filter recursive memory for bottom filters
-  int *filtnumcoeffs_left;    // number of filter coeffs for left filters
-  int *filtnumcoeffs_top;     // number of filter coeffs for top filters
-  int *filtnumcoeffs_right;   // number of filter coeffs for right filters
-  int *filtnumcoeffs_bottom;  // number of filter coeffs for bottom filters
-  float **filtcoeffsA_left;   // recursive filter coeffs for left filters
-  float **filtcoeffsB_left;   // non-recursive filter coeffs for left filters
-  float **filtcoeffsA_top;    // recursive filter coeffs for top filters
-  float **filtcoeffsB_top;    // non-recursive filter coeffs for top filters
-  float **filtcoeffsA_right;  // recursive filter coeffs for right filters
-  float **filtcoeffsB_right;  // non-recursive filter coeffs for right filters
-  float **filtcoeffsA_bottom; // recursive filter coeffs for bottom filters
-  float **filtcoeffsB_bottom; // non-recursive filter coeffs for bottom filters
-
-  // array containing the actual velocity of velo sources from four directions
-  std::map<std::string, cv::Mat> velo_;
+  std::map<std::string, DirData> dir_data_;
 
   float
       *mem; // array for sources to use for storing information between samples.
@@ -112,12 +100,17 @@ struct SimData {
 };
 
 // Indices used during simulation process.
+struct Inci {
+  float *past_;
+  float *pres_;
+  float *futu_;
+  float *idxI[3];
+};
+
 struct simIndex {
   float *presPast, *presPres, *presFutu;
-  float *inciPastTop, *inciPastRight, *inciPastBottom, *inciPastLeft;
-  float *inciPresTop, *inciPresRight, *inciPresBottom, *inciPresLeft;
-  float *inciFutuTop, *inciFutuRight, *inciFutuBottom, *inciFutuLeft;
-  float *idxP[3], *idxITop[3], *idxILeft[3], *idxIRight[3], *idxIBottom[3];
+  std::map<std::string, Inci> inci_;
+  float *idxP[3];
 };
 
 // Files used in the program.
