@@ -34,6 +34,18 @@ public:
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
+    const float radius = wd * 0.4;
+    for (size_t i = 0; i < 400; ++i)
+    {
+      const float angle = i * 0.01;
+      const int x = wd * 0.5 + radius * cos(angle);
+      const int y = ht * 0.5 + radius * sin(angle);
+      std::cout << x << " " << y << "\n";
+      for (int ox = 0; ox < 3; ++ox)
+        for (int oy = 0; oy < 3; ++oy)
+          lambda_->setWall(x + ox, y + oy, -1.0);
+    }
+    #if 0
     for (size_t i = 0; i < 90; ++i)
     {
       for (size_t j = 0; j < 4; ++j)
@@ -49,11 +61,13 @@ public:
         lambda_->setWall(50 + i / 2 + j, 390 + i / 2 + j, 5.0);
       }
     }
+    #endif
     ROS_INFO_STREAM("init environment");
     lambda_->initEnvironmentSetup();
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
+    #if 0
     {
       // debug - look at initial pressures
       lambda_->processSim();
@@ -76,6 +90,7 @@ public:
       lambda_->getPressure(50, 390);
       lambda_->getPressure(50, 389);
     }
+    #endif
 
     ros::param::get("~point_pressure", point_pressure_);
 
