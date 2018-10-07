@@ -201,25 +201,11 @@ void Lambda::resetSimulation() {
     }
 
     // Delete bottom filter non-recursive memory
-    if (data.dir_data_[dir].oldx_ != NULL) {
-      for (int n = 0; n < config.nNodes; n++) {
-        if (data.dir_data_[dir].oldx_[n] != NULL)
-          delete[] data.dir_data_[dir].oldx_[n];
-        data.dir_data_[dir].oldx_[n] = NULL;
-      }
-      delete[] data.dir_data_[dir].oldx_;
-      data.dir_data_[dir].oldx_ = NULL;
-    }
-    // Delete bottom filter recursive memory
-    if (data.dir_data_[dir].oldy_ != NULL) {
-      for (int n = 0; n < config.nNodes; n++) {
-        if (data.dir_data_[dir].oldy_[n] != NULL)
-          delete[] data.dir_data_[dir].oldy_[n];
-        data.dir_data_[dir].oldy_[n] = NULL;
-      }
-      delete[] data.dir_data_[dir].oldy_;
-      data.dir_data_[dir].oldy_ = NULL;
-    }
+    // for (int n = 0; n < data.dir_data_[dir].oldx_.size(); n++) {
+    //   data.dir_data_[dir].oldx_[n].resize(0);
+    // }
+    data.dir_data_[dir].oldx_.resize(0);
+    data.dir_data_[dir].oldy_.resize(0);
   }
   // Delete velocity source memory
   // TODO(lucasw) for key in velo keys, velo[key] = cv::Mat()
@@ -1317,8 +1303,8 @@ simError Lambda::initSimulation() {
 
     // reserve memory for the filter memories
     // data.oldx_left=new float*[config.nNodes];
-    data.dir_data_[dir].oldx_ = new_array2(config.nNodes);
-    data.dir_data_[dir].oldy_ = new_array2(config.nNodes);
+    data.dir_data_[dir].oldx_.resize(config.nNodes);
+    data.dir_data_[dir].oldy_.resize(config.nNodes);
 
     for (int pos = 0; pos < config.nNodes; pos++) {
       if (data.dir_data_[dir].filtnumcoeffs_[pos] >= 1) {
@@ -1326,12 +1312,8 @@ simError Lambda::initSimulation() {
         int memorycnt = data.dir_data_[dir].filtnumcoeffs_[pos] - 1;
         if (memorycnt == 0) // to ensure that even 0th order filters have
           memorycnt = 1; // memory; this spares an if-condition in the algorithm
-        data.dir_data_[dir].oldx_[pos] = new float[memorycnt];
-        data.dir_data_[dir].oldy_[pos] = new float[memorycnt];
-        for (int k = 0; k < memorycnt; k++) {
-          data.dir_data_[dir].oldx_[pos][k] = 0.f;
-          data.dir_data_[dir].oldy_[pos][k] = 0.f;
-        }
+        data.dir_data_[dir].oldx_[pos].resize(memorycnt, 0.0f);
+        data.dir_data_[dir].oldy_[pos].resize(memorycnt, 0.0f);
       }
     }
   }
