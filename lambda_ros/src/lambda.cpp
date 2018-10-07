@@ -1612,8 +1612,6 @@ void Lambda::processSim() {
       if (dir == "bottom")
         dirs.push_back(BOTTOM);
     }
-    int n;    // counter variable
-    float yn; // filter output
     int config_nX = config.nX;
     // Work through all the nodes in the environment
     for (int pos = 0; pos < config.nNodes; pos++) {
@@ -1627,22 +1625,41 @@ void Lambda::processSim() {
           // TODO(lucasw) clean this up by make this a method of DirData?
           //  filter
           if (dir_datas[d]->filt_[pos]) {
+            bool debug = false;
             // calculate filter input
             const float scat_futu = presPres[pos] - incis[d]->pres_[pos];
             // calculate the digital filter
-            yn = scat_futu * dir_datas[d]->filtcoeffsB_[pos][0];
-            for (n = 1; n < dir_datas[d]->filtnumcoeffs_[pos]; n++) {
-              yn += dir_datas[d]->oldx_[pos][n - 1] *
-                  dir_datas[d]->filtcoeffsB_[pos][n];
-              yn -= dir_datas[d]->oldy_[pos][n - 1] *
-                  dir_datas[d]->filtcoeffsA_[pos][n];
+            const float cb0 = dir_datas[d]->filtcoeffsB_[pos][0];
+            // filter output - why isn't ca0 used?
+            float yn = scat_futu * cb0;
+            debug = debug && std::abs(yn) > 0.00001;
+            if (debug) {
+              const int x = pos % config.nX;
+              const int y = (pos - x) / config.nX;
+              std::cout << pos << ", " << x << " " << y << " : dir " << d << "\n";
+              std::cout << "   scat futu " << scat_futu << " = " << presPres[pos]
+                  << " - " << incis[d]->pres_[pos] << "\n";
+              std::cout << "   "
+                  << "yn " << yn << ", cb0 " << cb0 << "\n";
+            }
+            // standard walls never have this many coefficients, only cb0 matters
+            for (int n = 1; n < dir_datas[d]->filtnumcoeffs_[pos]; n++) {
+              const float oldx = dir_datas[d]->oldx_[pos][n - 1];
+              const float cb = dir_datas[d]->filtcoeffsB_[pos][n];
+              const float oldy = dir_datas[d]->oldy_[pos][n - 1];
+              const float ca = dir_datas[d]->filtcoeffsA_[pos][n];
+              if (debug) std::cout << n << ", oldx " << oldx << " cb " << cb
+                  << ", oldy " << oldy << " " << ca << "\n";
+              yn += oldx * cb - oldy * ca;
             }
             // add magnitude of a possible velocity source
-            yn += dir_datas[d]->velo_.ptr<float>(0)[pos];
+            const float velo = dir_datas[d]->velo_.ptr<float>(0)[pos];
+            if (debug) std::cout << "velo " << velo << "\n";
+            yn += velo;
             // TODO(lucasw) replace with a std container that can push front and pop_back,
             // should be faster than all this copying.
             // rotate the filter memories
-            for (n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
+            for (int n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
               dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];
               dir_datas[d]->oldy_[pos][n] = dir_datas[d]->oldy_[pos][n - 1];
             }
@@ -1668,8 +1685,8 @@ void Lambda::processSim() {
             incis[d]->futu_[pos] = incis_futu;
             index_presFutu[pos] += incis_futu;
           }
-          index_presFutu[pos] *= 0.5f;
         } // dir loop
+        index_presFutu[pos] *= 0.5f;
       } else {
         // no boundary node: do the fast standard propagation
         index_presFutu[pos] =
