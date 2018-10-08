@@ -59,6 +59,8 @@ struct simSample {
   float *data;
 };
 
+// TODO(lucasw) instead of the below being all independent arrays (and therefore widely
+// spaced in memory), make them all in the same data structure per node.
 struct DirData {
   // TODO(lucasw) need to init these to nullptr?
 

@@ -1591,6 +1591,7 @@ void Lambda::processSources(float*& presPres) {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
 //   Processes the next simulation iteration.
 void Lambda::processSim() {
   {
@@ -1656,6 +1657,10 @@ void Lambda::processSim() {
           // TODO(lucasw) clean this up by make this a method of DirData?
           //  filter
           if (dir_datas[d]->filt_[pos]) {
+            // for filter processing it would pay to have a single
+            // node data structure that holds most of the values below
+            // adjacent in memory rather that in parallel arrays.
+            // No neighboring nodes are used at all.
             bool debug = false;
             // calculate filter input
             const float scat_futu = presPres[pos] - incis[d]->pres_[pos];
@@ -1687,8 +1692,10 @@ void Lambda::processSim() {
             const float velo = dir_datas[d]->velo_.ptr<float>(0)[pos];
             if (debug) std::cout << "velo " << velo << "\n";
             yn += velo;
-            // TODO(lucasw) replace with a std container that can push front and pop_back,
+            // TODO(lucasw) replace with an array that has a start index
+            // that moves in a ring.
             // should be faster than all this copying.
+            // But normal filter length 1 walls don't even use this.
             // rotate the filter memories
             for (int n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
               dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];
@@ -1719,6 +1726,20 @@ void Lambda::processSim() {
         } // dir loop
         index_presFutu[pos] *= 0.5f;
       } else {
+        // TODO(lucasw) this is mostly likely getting executed the most,
+        // so it pays to have all the pressures future past present and
+        // immediate neighbors close together in memory- that argues for preserving
+        // the cv::Mats, though later should break them up into smaller sized mats
+        // that are processed individually which will lend well to multi-threading.
+        // (each thread only needs sub-grid border updates from neighbors)
+        // TODO(lucasw) if only keeping three pressure matrices around
+        // (and not arbitrarily long ring buffers it may pay to use
+        // three channels of a cv::Mat - if each color channel is adjacent in
+        // memory the accessing future and past will be very fast, though getting to
+        // neighbors becomes a longer distance.
+        // TODO(lucasw) do an experiment with 32FC3 to make sure the channels are near
+        // in memory.
+
         // no boundary node: do the fast standard propagation
         index_presFutu[pos] =
             (presPres[pos - 1] + presPres[pos - config_nX] +
