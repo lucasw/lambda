@@ -42,3 +42,10 @@
   on the end of a simulation. This is very useful for batch processing of multiple
   simulations.
 * Added a progress indicator in lambda's status line.
+
+3.0
+
+* ROS version
+* Conversion to library
+* Removal of all functionality that can be outside of library
+* Overhaul of data structure for improved performance and readability.
