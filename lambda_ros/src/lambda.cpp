@@ -98,22 +98,6 @@ void Lambda::resetAll() {
     delete[] data.mem;
     data.mem = NULL;
   }
-  if (data.dir_data_["left"].filt_ != NULL) {
-    delete[] data.dir_data_["left"].filt_;
-    data.dir_data_["left"].filt_ = NULL;
-  }
-  if (data.dir_data_["top"].filt_ != NULL) {
-    delete[] data.dir_data_["top"].filt_;
-    data.dir_data_["top"].filt_ = NULL;
-  }
-  if (data.dir_data_["right"].filt_ != NULL) {
-    delete[] data.dir_data_["right"].filt_;
-    data.dir_data_["right"].filt_ = NULL;
-  }
-  if (data.dir_data_["bottom"].filt_ != NULL) {
-    delete[] data.dir_data_["bottom"].filt_;
-    data.dir_data_["bottom"].filt_ = NULL;
-  }
   if (data.deadnode != NULL) {
     delete[] data.deadnode;
     data.deadnode = NULL;
@@ -140,36 +124,21 @@ void Lambda::resetAll() {
     data.recIdx = NULL;
   }
 
-  for (const std::string& dir : dirs_) {
-    // TODO(lucasw) make a function to eliminate redundant code-
-    // make it a simData method.
-    // delete A filter coefficient arrays
-    if (data.dir_data_[dir].filtcoeffsA_ != NULL) {
-      for (int n = 0; n < config.nNodes; n++) {
-        if (data.dir_data_[dir].filtcoeffsA_[n] != NULL)
-          delete[] data.dir_data_[dir].filtcoeffsA_[n];
-        data.dir_data_[dir].filtcoeffsA_[n] = NULL;
+  for (int n = 0; n < config.nNodes; n++) {
+    for (size_t d = 0; d < 4; ++d) {
+      // TODO(lucasw) make a function to eliminate redundant code-
+      // make it a simData method.
+      // delete A filter coefficient arrays
+      if (data.nodes_[n].filter_[d].coeffsA_ != NULL) {
+        delete[] data.nodes_[n].filter_[d].coeffsA_;
+        data.nodes_[n].filter_[d].coeffsA_ = NULL;
       }
-      delete[] data.dir_data_[dir].filtcoeffsA_;
-      data.dir_data_[dir].filtcoeffsA_ = NULL;
-    }
-    // delete B filter coefficient arrays
-    if (data.dir_data_[dir].filtcoeffsB_ != NULL) {
-      for (int n = 0; n < config.nNodes; n++) {
-        if (data.dir_data_[dir].filtcoeffsB_[n] != NULL)
-          delete[] data.dir_data_[dir].filtcoeffsB_[n];
-        data.dir_data_[dir].filtcoeffsB_[n] = NULL;
+      if (data.nodes_[n].filter_[d].coeffsB_ != NULL) {
+        delete[] data.nodes_[n].filter_[d].coeffsB_;
+        data.nodes_[n].filter_[d].coeffsB_ = NULL;
       }
-      delete[] data.dir_data_[dir].filtcoeffsB_;
-      data.dir_data_[dir].filtcoeffsB_ = NULL;
-    }
-
-    // delete filter number-of-coefficients arrays
-    if (data.dir_data_[dir].filtnumcoeffs_ != NULL) {
-      delete[] data.dir_data_[dir].filtnumcoeffs_;
-      data.dir_data_[dir].filtnumcoeffs_ = NULL;
-    }
-  }  // loop through directions
+    }  // loop through directions
+  }  // loop through nodes
 }
 
 //   Resets variables and arrays used directly for simulation purposes.
@@ -199,18 +168,16 @@ void Lambda::resetSimulation() {
     for (int x = 0; x < 3; x++) {
       index.inci_[dir].idxI[x] = 0;
     }
-
-    // Delete bottom filter non-recursive memory
-    // for (int n = 0; n < data.dir_data_[dir].oldx_.size(); n++) {
-    //   data.dir_data_[dir].oldx_[n].resize(0);
-    // }
-    // data.dir_data_[dir].oldx_.resize(0);
-    // data.dir_data_[dir].oldy_.resize(0);
-    data.dir_data_[dir].oldx_.reset(nullptr);
-    data.dir_data_[dir].oldy_.reset(nullptr);
   }
-  // Delete velocity source memory
-  // TODO(lucasw) for key in velo keys, velo[key] = cv::Mat()
+
+  // Delete bottom filter non-recursive memory
+  for (int n = 0; n < config.nNodes; n++) {
+    for (size_t d = 0; d < 4; ++d) {
+      data.nodes_[n].filter_[d].oldx_.reset(nullptr);
+      data.nodes_[n].filter_[d].oldy_.reset(nullptr);
+      data.nodes_[n].filter_[d].velo_ = 0.0;
+    }
+  }
 }
 
 //   Processes input parameters and sets internal variables accordingly.
@@ -419,56 +386,56 @@ simError Lambda::defineSource(const int idx, const simSource *srcData) {
       // set up a left- and top- filter if angle of incidence is
       // between 0 and 90 degrees
       data.boundary[srcxy] = true;
-      data.dir_data_["left"].filt_[srcxy] = true;
-      data.dir_data_["top"].filt_[srcxy] = true;
+      data.nodes_[srcxy].filter_[LEFT].filt_ = true;
+      data.nodes_[srcxy].filter_[TOP].filt_ = true;
       adaptreflexionfactor(
-          data.dir_data_["left"].filtnumcoeffs_[srcxy],
-          data.dir_data_["left"].filtcoeffsA_[srcxy],
-          data.dir_data_["left"].filtcoeffsB_[srcxy], 1.f, 180.f, kHorizontal);
-      adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[srcxy],
-                           data.dir_data_["top"].filtcoeffsA_[srcxy],
-                           data.dir_data_["top"].filtcoeffsB_[srcxy], 1.f, 270.f, kVertical);
+          data.nodes_[srcxy].filter_[LEFT].numcoeffs_,
+          data.nodes_[srcxy].filter_[LEFT].coeffsA_,
+          data.nodes_[srcxy].filter_[LEFT].coeffsB_, 1.f, 180.f, kHorizontal);
+      adaptreflexionfactor(data.nodes_[srcxy].filter_[TOP].numcoeffs_,
+                           data.nodes_[srcxy].filter_[TOP].coeffsA_,
+                           data.nodes_[srcxy].filter_[TOP].coeffsB_, 1.f, 270.f, kVertical);
     } else if ((alpha >= 90.f) && (alpha < 180.f)) {
       // set up a top- and right- filter if angle of incidence is
       // between 90 and 180 degrees
       data.boundary[srcxy] = true;
-      data.dir_data_["top"].filt_[srcxy] = true;
-      data.dir_data_["right"].filt_[srcxy] = true;
-      adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[srcxy],
-                           data.dir_data_["top"].filtcoeffsA_[srcxy],
-                           data.dir_data_["top"].filtcoeffsB_[srcxy], 1.f, 270.f, kVertical);
+      data.nodes_[srcxy].filter_[TOP].filt_ = true;
+      data.nodes_[srcxy].filter_[RIGHT].filt_ = true;
+      adaptreflexionfactor(data.nodes_[srcxy].filter_[TOP].numcoeffs_,
+                           data.nodes_[srcxy].filter_[TOP].coeffsA_,
+                           data.nodes_[srcxy].filter_[TOP].coeffsB_, 1.f, 270.f, kVertical);
       adaptreflexionfactor(
-          data.dir_data_["right"].filtnumcoeffs_[srcxy],
-          data.dir_data_["right"].filtcoeffsA_[srcxy],
-          data.dir_data_["right"].filtcoeffsB_[srcxy], 1.f, 0.f, kHorizontal);
+          data.nodes_[srcxy].filter_[RIGHT].numcoeffs_,
+          data.nodes_[srcxy].filter_[RIGHT].coeffsA_,
+          data.nodes_[srcxy].filter_[RIGHT].coeffsB_, 1.f, 0.f, kHorizontal);
     } else if ((alpha >= 180.f) && (alpha < 270.f)) {
       // set up a right- and bottom- filter if angle of incidence is
       // between 180 and 270 degrees
       data.boundary[srcxy] = true;
-      data.dir_data_["right"].filt_[srcxy] = true;
-      data.dir_data_["bottom"].filt_[srcxy] = true;
+      data.nodes_[srcxy].filter_[RIGHT].filt_ = true;
+      data.nodes_[srcxy].filter_[BOTTOM].filt_ = true;
       adaptreflexionfactor(
-          data.dir_data_["right"].filtnumcoeffs_[srcxy],
-          data.dir_data_["right"].filtcoeffsA_[srcxy],
-          data.dir_data_["right"].filtcoeffsB_[srcxy], 1.f, 0.f, kHorizontal);
+          data.nodes_[srcxy].filter_[RIGHT].numcoeffs_,
+          data.nodes_[srcxy].filter_[RIGHT].coeffsA_,
+          data.nodes_[srcxy].filter_[RIGHT].coeffsB_, 1.f, 0.f, kHorizontal);
       adaptreflexionfactor(
-          data.dir_data_["bottom"].filtnumcoeffs_[srcxy],
-          data.dir_data_["bottom"].filtcoeffsA_[srcxy],
-          data.dir_data_["bottom"].filtcoeffsB_[srcxy], 1.f, 90.f, kVertical);
+          data.nodes_[srcxy].filter_[BOTTOM].numcoeffs_,
+          data.nodes_[srcxy].filter_[BOTTOM].coeffsA_,
+          data.nodes_[srcxy].filter_[BOTTOM].coeffsB_, 1.f, 90.f, kVertical);
     } else if ((alpha >= 270.f) && (alpha < 360.f)) {
       // set up a bottom- and left- filter if angle of incidence is
       // between 270 and 360 degrees
       data.boundary[srcxy] = true;
-      data.dir_data_["bottom"].filt_[srcxy] = true;
-      data.dir_data_["left"].filt_[srcxy] = true;
+      data.nodes_[srcxy].filter_[BOTTOM].filt_ = true;
+      data.nodes_[srcxy].filter_[LEFT].filt_ = true;
       adaptreflexionfactor(
-          data.dir_data_["bottom"].filtnumcoeffs_[srcxy],
-          data.dir_data_["bottom"].filtcoeffsA_[srcxy],
-          data.dir_data_["bottom"].filtcoeffsB_[srcxy], 1.f, 90.f, kVertical);
+          data.nodes_[srcxy].filter_[BOTTOM].numcoeffs_,
+          data.nodes_[srcxy].filter_[BOTTOM].coeffsA_,
+          data.nodes_[srcxy].filter_[BOTTOM].coeffsB_, 1.f, 90.f, kVertical);
       adaptreflexionfactor(
-          data.dir_data_["left"].filtnumcoeffs_[srcxy],
-          data.dir_data_["left"].filtcoeffsA_[srcxy],
-          data.dir_data_["left"].filtcoeffsB_[srcxy], 1.f, 180.f, kHorizontal);
+          data.nodes_[srcxy].filter_[LEFT].numcoeffs_,
+          data.nodes_[srcxy].filter_[LEFT].coeffsA_,
+          data.nodes_[srcxy].filter_[LEFT].coeffsB_, 1.f, 180.f, kHorizontal);
     }
   }
   return NONE;
@@ -482,24 +449,7 @@ void Lambda::initEnvironment() {
   }
   // data.deadnode=new bool[config.nNodes];              // mem for deadnode
   // indicator
-  for (const std::string& dir : dirs_)
-  {
-    data.dir_data_[dir].filt_ = new bool[config.nNodes];   // mem for filter left indicator
-    // mem for number of filter coeffs
-    data.dir_data_[dir].filtnumcoeffs_ = new int[config.nNodes];
-    // mem for filter a-coeffs
-    data.dir_data_[dir].filtcoeffsA_ = new float *[config.nNodes];
-    // mem for filter b-coeffs
-    data.dir_data_[dir].filtcoeffsB_ = new float *[config.nNodes];
-    // Initialize all these memories
-    // data.deadnode[pos]=false;
-    for (int pos = 0; pos < config.nNodes; pos++) {
-      data.dir_data_[dir].filt_[pos] = false;
-      data.dir_data_[dir].filtnumcoeffs_[pos] = 0;
-      data.dir_data_[dir].filtcoeffsA_[pos] = NULL;
-      data.dir_data_[dir].filtcoeffsB_[pos] = NULL;
-    }
-  }
+  data.nodes_.reset(new Node[config.nNodes]);
 
   int actrec = 0;
 
@@ -513,38 +463,39 @@ void Lambda::initEnvironment() {
         data.boundary[pos] = true;
         if (x == 0) // left simfield border
         {
-          data.dir_data_["left"].filt_[pos] = true;
+          data.nodes_[pos].filter_[LEFT].filt_ = true;
           // apply a zero-reflection-filter to left border node
           adaptreflexionfactor(
-              data.dir_data_["left"].filtnumcoeffs_[pos],
-              data.dir_data_["left"].filtcoeffsA_[pos],
-              data.dir_data_["left"].filtcoeffsB_[pos], 0.f, 180.f, kHorizontal);
+              data.nodes_[pos].filter_[LEFT].numcoeffs_,
+              data.nodes_[pos].filter_[LEFT].coeffsA_,
+              data.nodes_[pos].filter_[LEFT].coeffsB_, 0.f, 180.f, kHorizontal);
         }
         if (y == 0) // top simfield border
         {
-          data.dir_data_["top"].filt_[pos] = true;
+          data.nodes_[pos].filter_[TOP].filt_ = true;
           // apply a zero-reflection-filter to top border node
           adaptreflexionfactor(
-              data.dir_data_["top"].filtnumcoeffs_[pos], data.dir_data_["top"].filtcoeffsA_[pos],
-              data.dir_data_["top"].filtcoeffsB_[pos], 0.f, 270.f, kVertical);
+              data.nodes_[pos].filter_[TOP].numcoeffs_,
+              data.nodes_[pos].filter_[TOP].coeffsA_,
+              data.nodes_[pos].filter_[TOP].coeffsB_, 0.f, 270.f, kVertical);
         }
         if (x == config.nX - 1) // right simfield border
         {
-          data.dir_data_["right"].filt_[pos] = true;
+          data.nodes_[pos].filter_[RIGHT].filt_ = true;
           // apply a zero-reflection-filter to right border node
           adaptreflexionfactor(
-              data.dir_data_["right"].filtnumcoeffs_[pos],
-              data.dir_data_["right"].filtcoeffsA_[pos],
-              data.dir_data_["right"].filtcoeffsB_[pos], 0.f, 0.f, kHorizontal);
+              data.nodes_[pos].filter_[RIGHT].numcoeffs_,
+              data.nodes_[pos].filter_[RIGHT].coeffsA_,
+              data.nodes_[pos].filter_[RIGHT].coeffsB_, 0.f, 0.f, kHorizontal);
         }
         if (y == config.nY - 1) // bottom simfield border
         {
-          data.dir_data_["bottom"].filt_[pos] = true;
+          data.nodes_[pos].filter_[BOTTOM].filt_ = true;
           // apply a zero-reflection-filter to bottom border node
           adaptreflexionfactor(
-              data.dir_data_["bottom"].filtnumcoeffs_[pos],
-              data.dir_data_["bottom"].filtcoeffsA_[pos],
-              data.dir_data_["bottom"].filtcoeffsB_[pos], 0.f, 90.f, kVertical);
+              data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
+              data.nodes_[pos].filter_[BOTTOM].coeffsA_,
+              data.nodes_[pos].filter_[BOTTOM].coeffsB_, 0.f, 90.f, kVertical);
         }
       }
       // is the actual node a real-valued-reflecting node?
@@ -560,177 +511,177 @@ void Lambda::processWall(const int x, const int y) {
   // TODO(lucasw) is there any difference with the > 1.0 code below?
   if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
     data.boundary[pos] = true;
-    data.dir_data_["left"].filt_[pos] = true;
-    data.dir_data_["top"].filt_[pos] = true;
-    data.dir_data_["right"].filt_[pos] = true;
-    data.dir_data_["bottom"].filt_[pos] = true;
+    data.nodes_[pos].filter_[LEFT].filt_ = true;
+    data.nodes_[pos].filter_[TOP].filt_ = true;
+    data.nodes_[pos].filter_[RIGHT].filt_ = true;
+    data.nodes_[pos].filter_[BOTTOM].filt_ = true;
     // apply a left filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.dir_data_["left"].filtnumcoeffs_[pos],
-                         data.dir_data_["left"].filtcoeffsA_[pos],
-                         data.dir_data_["left"].filtcoeffsB_[pos], envi,
+    adaptreflexionfactor(data.nodes_[pos].filter_[LEFT].numcoeffs_,
+                         data.nodes_[pos].filter_[LEFT].coeffsA_,
+                         data.nodes_[pos].filter_[LEFT].coeffsB_, envi,
                          angle, kHorizontal);
     // apply a top filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.dir_data_["top"].filtnumcoeffs_[pos],
-                         data.dir_data_["top"].filtcoeffsA_[pos],
-                         data.dir_data_["top"].filtcoeffsB_[pos], envi,
+    adaptreflexionfactor(data.nodes_[pos].filter_[TOP].numcoeffs_,
+                         data.nodes_[pos].filter_[TOP].coeffsA_,
+                         data.nodes_[pos].filter_[TOP].coeffsB_, envi,
                          angle, kVertical);
     // apply a right filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.dir_data_["right"].filtnumcoeffs_[pos],
-                         data.dir_data_["right"].filtcoeffsA_[pos],
-                         data.dir_data_["right"].filtcoeffsB_[pos], envi,
+    adaptreflexionfactor(data.nodes_[pos].filter_[RIGHT].numcoeffs_,
+                         data.nodes_[pos].filter_[RIGHT].coeffsA_,
+                         data.nodes_[pos].filter_[RIGHT].coeffsB_, envi,
                          angle, kHorizontal);
     // apply a bottom filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.dir_data_["bottom"].filtnumcoeffs_[pos],
-                         data.dir_data_["bottom"].filtcoeffsA_[pos],
-                         data.dir_data_["bottom"].filtcoeffsB_[pos], envi,
+    adaptreflexionfactor(data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
+                         data.nodes_[pos].filter_[BOTTOM].coeffsA_,
+                         data.nodes_[pos].filter_[BOTTOM].coeffsB_, envi,
                          angle, kVertical);
 
-    for (auto dir : dirs_)
-      setupOldXY(dir, pos);
+    for (size_t d = 0; d < 4; ++d)
+      setupOldXY(d, pos);
 
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
       const int new_pos = pos + 1;
-      const std::string dir = "left";
+      const size_t d = LEFT;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                           data.dir_data_[dir].filtcoeffsA_[new_pos],
-                           data.dir_data_[dir].filtcoeffsB_[new_pos], envi,
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                           data.nodes_[new_pos].filter_[d].coeffsA_,
+                           data.nodes_[new_pos].filter_[d].coeffsB_, envi,
                            angle, kHorizontal);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
     {                  // isn't outside the simfield
       const int new_pos = pos + config.nX;
-      const std::string dir = "top";
+      const size_t d = TOP;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                           data.dir_data_[dir].filtcoeffsA_[new_pos],
-                           data.dir_data_[dir].filtcoeffsB_[new_pos],
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                           data.nodes_[new_pos].filter_[d].coeffsA_,
+                           data.nodes_[new_pos].filter_[d].coeffsB_,
                            envi, angle, kVertical);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
       const int new_pos = pos - 1;
-      const std::string dir = "right";
+      const size_t d = RIGHT;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                           data.dir_data_[dir].filtcoeffsA_[new_pos],
-                           data.dir_data_[dir].filtcoeffsB_[new_pos], envi,
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                           data.nodes_[new_pos].filter_[d].coeffsA_,
+                           data.nodes_[new_pos].filter_[d].coeffsB_, envi,
                            angle, kHorizontal);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
       const int new_pos = pos - config.nX;
-      const std::string dir = "bottom";
+      const size_t d = BOTTOM;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptreflexionfactor(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                           data.dir_data_[dir].filtcoeffsA_[new_pos],
-                           data.dir_data_[dir].filtcoeffsB_[new_pos],
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                           data.nodes_[new_pos].filter_[d].coeffsA_,
+                           data.nodes_[new_pos].filter_[d].coeffsB_,
                            envi, angle, kVertical);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
   // is the actual node a filter-node?
   } else if ((envi > 1.0) && (envi <= 1000.0)) {
     data.boundary[pos] = true;
-    data.dir_data_["left"].filt_[pos] = true;
-    data.dir_data_["top"].filt_[pos] = true;
-    data.dir_data_["right"].filt_[pos] = true;
-    data.dir_data_["bottom"].filt_[pos] = true;
+    data.nodes_[pos].filter_[LEFT].filt_ = true;
+    data.nodes_[pos].filter_[TOP].filt_ = true;
+    data.nodes_[pos].filter_[RIGHT].filt_ = true;
+    data.nodes_[pos].filter_[BOTTOM].filt_ = true;
     // apply the left filter with the correspondig ID to it
-    adaptfilter(data.dir_data_["left"].filtnumcoeffs_[pos],
-                data.dir_data_["left"].filtcoeffsA_[pos],
-                data.dir_data_["left"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+    adaptfilter(data.nodes_[pos].filter_[LEFT].numcoeffs_,
+                data.nodes_[pos].filter_[LEFT].coeffsA_,
+                data.nodes_[pos].filter_[LEFT].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
                 tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
                 (int)envi, angle, kHorizontal);
     // apply the top filter with the correspondig ID to it
-    adaptfilter(data.dir_data_["top"].filtnumcoeffs_[pos],
-                data.dir_data_["top"].filtcoeffsA_[pos],
-                data.dir_data_["top"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+    adaptfilter(data.nodes_[pos].filter_[TOP].numcoeffs_,
+                data.nodes_[pos].filter_[TOP].coeffsA_,
+                data.nodes_[pos].filter_[TOP].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
                 tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
                 (int)envi, angle, kVertical);
     // apply the right filter with the correspondig ID to it
-    adaptfilter(data.dir_data_["right"].filtnumcoeffs_[pos],
-                data.dir_data_["right"].filtcoeffsA_[pos],
-                data.dir_data_["right"].filtcoeffsB_[pos], tmp_filtid, tmp_filtnumcoeffs,
+    adaptfilter(data.nodes_[pos].filter_[RIGHT].numcoeffs_,
+                data.nodes_[pos].filter_[RIGHT].coeffsA_,
+                data.nodes_[pos].filter_[RIGHT].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
                 tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
                 (int)envi, angle, kHorizontal);
     // apply the bottom filter with the correspondig ID to it
-    adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[pos],
-                data.dir_data_["bottom"].filtcoeffsA_[pos],
-                data.dir_data_["bottom"].filtcoeffsB_[pos],
+    adaptfilter(data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
+                data.nodes_[pos].filter_[BOTTOM].coeffsA_,
+                data.nodes_[pos].filter_[BOTTOM].coeffsB_,
                 tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
                 tmp_filtcoeffsB, tmp_numfilters, (int)envi,
                 angle, kVertical);
 
-    for (auto dir : dirs_)
-      setupOldXY(dir, pos);
+    for (size_t d = 0; d < 4; ++d)
+      setupOldXY(d, pos);
 
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
       const int new_pos = pos + 1;
-      const std::string dir = "left";
+      const size_t d = LEFT;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
+      data.nodes_[new_pos].filter_[d].filt_ = true;
       adaptfilter(
-          data.dir_data_[dir].filtnumcoeffs_[new_pos],
-          data.dir_data_[dir].filtcoeffsA_[new_pos],
-          data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid, tmp_filtnumcoeffs,
+          data.nodes_[new_pos].filter_[d].numcoeffs_,
+          data.nodes_[new_pos].filter_[d].coeffsA_,
+          data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
           tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
           (int)envi, angle, kHorizontal);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
     {                  // isn't outside the simfield
       const int new_pos = pos + config.nX;
-      const std::string dir = "top";
+      const size_t d = TOP;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptfilter(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                  data.dir_data_[dir].filtcoeffsA_[new_pos],
-                  data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid,
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptfilter(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                  data.nodes_[new_pos].filter_[d].coeffsA_,
+                  data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
       const int new_pos = pos - 1;
-      const std::string dir = "right";
+      const size_t d = RIGHT;
       data.boundary[new_pos] = true;
-      data.dir_data_[dir].filt_[new_pos] = true;
-      adaptfilter(data.dir_data_[dir].filtnumcoeffs_[new_pos],
-                  data.dir_data_[dir].filtcoeffsA_[new_pos],
-                  data.dir_data_[dir].filtcoeffsB_[new_pos], tmp_filtid,
+      data.nodes_[new_pos].filter_[d].filt_ = true;
+      adaptfilter(data.nodes_[new_pos].filter_[d].numcoeffs_,
+                  data.nodes_[new_pos].filter_[d].coeffsA_,
+                  data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kHorizontal);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
       const int new_pos = pos - config.nX;
-      const std::string dir = "bottom";
+      const size_t d = BOTTOM;
       data.boundary[new_pos] = true;
-      data.dir_data_["bottom"].filt_[new_pos] = true;
-      adaptfilter(data.dir_data_["bottom"].filtnumcoeffs_[new_pos],
-                  data.dir_data_["bottom"].filtcoeffsA_[new_pos],
-                  data.dir_data_["bottom"].filtcoeffsB_[new_pos], tmp_filtid,
+      data.nodes_[new_pos].filter_[BOTTOM].filt_ = true;
+      adaptfilter(data.nodes_[new_pos].filter_[BOTTOM].numcoeffs_,
+                  data.nodes_[new_pos].filter_[BOTTOM].coeffsA_,
+                  data.nodes_[new_pos].filter_[BOTTOM].coeffsB_, tmp_filtid,
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
-      setupOldXY(dir, new_pos);
+      setupOldXY(d, new_pos);
     }
   } else if (envi < -1.0) // is the actual node a receiver-node?
   {
@@ -1139,24 +1090,24 @@ simError Lambda::loadSimulation(const std::string fileName) {
       if (isvelosource[y * config.nX +
                        x]) // is actual node a velocity source node?
       {
+        const int pos_left = y * config.nX + x - 1;
+        const int pos_top = (y - 1) * config.nX + x;
+        const int pos_right = y * config.nX + x + 1;
+        const int pos_bottom = (y + 1) * config.nX + x;
         if (x > 0)
-          if (isvelosource[y * config.nX + x -
-                           1]) // is left neighbour a velo src?
-            data.dir_data_["left"].filt_[y * config.nX + x] =
+          if (isvelosource[pos_left]) // is left neighbour a velo src?
+            data.nodes_[pos_left].filter_[LEFT].filt_ =
                 false; // yes, disable left filter
         if (y > 0)
-          if (isvelosource[(y - 1) * config.nX +
-                           x]) // is top neighbour a velo src?
-            data.dir_data_["top"].filt_[y * config.nX + x] = false; // yes, disable top filter
+          if (isvelosource[pos_top]) // is top neighbour a velo src?
+            data.nodes_[pos_top].filter_[TOP].filt_ = false; // yes, disable top filter
         if (x < config.nX - 1)
-          if (isvelosource[y * config.nX + x +
-                           1]) // is right neighbour a velo src?
-            data.dir_data_["right"].filt_[y * config.nX + x] =
+          if (isvelosource[pos_right]) // is right neighbour a velo src?
+            data.nodes_[pos_right].filter_[RIGHT].filt_ =
                 false; // yes, disable right filter
         if (y < config.nY - 1)
-          if (isvelosource[(y + 1) * config.nX +
-                           x]) // is bottom neighbour a velo src?
-            data.dir_data_["bottom"].filt_[y * config.nX + x] =
+          if (isvelosource[pos_bottom]) // is bottom neighbour a velo src?
+            data.nodes_[pos_bottom].filter_[BOTTOM].filt_ =
                 false; // yes, disable bottom filter
       }
     }
@@ -1174,10 +1125,10 @@ simError Lambda::loadSimulation(const std::string fileName) {
   // work through all nodes
   for (int pos = 0; pos < config.nNodes; pos++) {
     // four walls around the node?
-    if ((data.dir_data_["left"].filt_[pos]) &&
-        (data.dir_data_["top"].filt_[pos]) &&
-        (data.dir_data_["right"].filt_[pos]) &&
-        (data.dir_data_["bottom"].filt_[pos])) {
+    if ((data.nodes_[pos].filter_[LEFT].filt_) &&
+        (data.nodes_[pos].filter_[TOP].filt_) &&
+        (data.nodes_[pos].filter_[RIGHT].filt_) &&
+        (data.nodes_[pos].filter_[BOTTOM].filt_)) {
       data.deadnode[pos] = true; // ---> yes, it's a deadnode
     }
   }
@@ -1332,35 +1283,26 @@ simError Lambda::initSimulation() {
   }
 
   // velocity sources
-  for (const std::string& dir : dirs_) {
-    data.dir_data_[dir].velo_ = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0.0));
-
-    // reserve memory for the filter memories
-    // data.oldx_left=new float*[config.nNodes];
-    // data.dir_data_[dir].oldx_.resize(config.nNodes);
-    // data.dir_data_[dir].oldy_.resize(config.nNodes);
-    data.dir_data_[dir].oldx_.reset(new std::unique_ptr<float[]>[config.nNodes]);
-    data.dir_data_[dir].oldy_.reset(new std::unique_ptr<float[]>[config.nNodes]);
-
-    for (int pos = 0; pos < config.nNodes; pos++) {
-      setupOldXY(dir, pos);
+  for (int pos = 0; pos < config.nNodes; pos++) {
+    for (size_t d = 0; d < 4; ++d) {
+      setupOldXY(d, pos);
     }
   }
 
   return NONE;
 }
 
-void Lambda::setupOldXY(const std::string dir, const int pos)
+void Lambda::setupOldXY(const size_t d, const int pos)
 {
-  if (data.dir_data_[dir].filtnumcoeffs_[pos] >= 1) {
+  if (data.nodes_[pos].filter_[d].numcoeffs_ >= 1) {
     // reserve+initialize recursive and non-recursive memory for left filters
-    int memorycnt = data.dir_data_[dir].filtnumcoeffs_[pos] - 1;
+    int memorycnt = data.nodes_[pos].filter_[d].numcoeffs_ - 1;
     if (memorycnt == 0) // to ensure that even 0th order filters have
       memorycnt = 1; // memory; this spares an if-condition in the algorithm
-    // data.dir_data_[dir].oldx_[pos].resize(memorycnt, 0.0f);
-    // data.dir_data_[dir].oldy_[pos].resize(memorycnt, 0.0f);
-    data.dir_data_[dir].oldx_[pos].reset(new float[memorycnt]);
-    data.dir_data_[dir].oldy_[pos].reset(new float[memorycnt]);
+    // data.nodes_[pos].filter_[d].oldx_.resize(memorycnt, 0.0f);
+    // data.nodes_[pos].filter_[d].oldy_.resize(memorycnt, 0.0f);
+    data.nodes_[pos].filter_[d].oldx_.reset(new float[memorycnt]);
+    data.nodes_[pos].filter_[d].oldy_.reset(new float[memorycnt]);
   }
 }
 
@@ -1384,16 +1326,16 @@ void Lambda::addPressure(const size_t x, const size_t y, const float value)
   data.pressure_[idx].at<float>(y, x) += value;
 }
 
-void DirData::print(const size_t pos)
+void DirectionalFilter::print()
 {
-  std::cout << " has filter " << filt_[pos] << ", num coeffs "
-      << filtnumcoeffs_[pos] << "\n";
-  for (size_t i = 0; i < filtnumcoeffs_[pos]; ++i)
+  std::cout << " has filter " << filt_ << ", num coeffs "
+      << numcoeffs_ << "\n";
+  for (size_t i = 0; i < numcoeffs_; ++i)
   {
-    std::cout << "        " << filtcoeffsA_[pos][i] << " "
-       << filtcoeffsB_[pos][i] << "\n";
-    // std::cout << "        " << filtcoeffsA_[pos] << " " << filtcoeffsA_[pos][i] << " "
-    //     << filtcoeffsB_[pos] << " " << filtcoeffsB_[pos][i] << "\n";
+    std::cout << "        " << coeffsA_[i] << " "
+       << coeffsB_[i] << "\n";
+    // std::cout << "        " << coeffsA_ << " " << coeffsA_[i] << " "
+    //     << coeffsB_ << " " << coeffsB_[i] << "\n";
     // TODO(lucasw) print out oldx and oldy also?
   }
 }
@@ -1410,10 +1352,10 @@ float Lambda::getPressure(const size_t x, const size_t y)
 
   // print out filter information
   std::cout << "x: " << x <<  ", y: " << y << "\n";
-  for (auto dir : dirs_)
+  for (size_t d = 0; d < 4; ++d)
   {
-    std::cout << "    " << dir <<  " ";
-    data.dir_data_[dir].print(pos);
+    std::cout << "    " << d <<  " ";
+    data.nodes_[pos].filter_[d].print();
   }
   return data.pressure_[idx].at<float>(y, x);
 }
@@ -1427,8 +1369,8 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
     return;
   data.envi.at<float>(y, x) = value;
   processWall(x, y);
-  for (auto dir : dirs_)
-    setupOldXY(dir, y * config.nX + x);
+  for (size_t d = 0; d < 4; ++d)
+    setupOldXY(d, y * config.nX + x);
 }
 
 // alpha is angle
@@ -1436,23 +1378,23 @@ void Lambda::setVel(const int& srcxy, const float& magnitude, const float& alpha
   if ((alpha >= 0.f) && (alpha < 90.f)) {
     // alpha between 0 and 90 degrees? -> left and top incidence
     const float rad = alpha * rad_per_deg;
-    data.dir_data_["left"].velo_.ptr<float>(0)[srcxy] = cos(rad) * magnitude;
-    data.dir_data_["top"].velo_.ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+    data.nodes_[srcxy].filter_[LEFT].velo_ = cos(rad) * magnitude;
+    data.nodes_[srcxy].filter_[TOP].velo_ = sin(rad) * magnitude;
   } else if ((alpha >= 90.f) && (alpha < 180.f)) {
     // alpha between 90 and 180 degrees? -> top and right incidence
     const float rad = (alpha - 90.f) * rad_per_deg;
-    data.dir_data_["top"].velo_.ptr<float>(0)[srcxy] = cos(rad) * magnitude;
-    data.dir_data_["right"].velo_.ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+    data.nodes_[srcxy].filter_[TOP].velo_ = cos(rad) * magnitude;
+    data.nodes_[srcxy].filter_[RIGHT].velo_ = sin(rad) * magnitude;
   } else if ((alpha >= 180.f) && (alpha < 270.f)) {
     // alpha between 180 and 270 degrees? -> right and bottom incidence
     const float rad = (alpha - 180.f) * rad_per_deg;
-    data.dir_data_["right"].velo_.ptr<float>(0)[srcxy] = cos(rad) * magnitude;
-    data.dir_data_["bottom"].velo_.ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+    data.nodes_[srcxy].filter_[RIGHT].velo_ = cos(rad) * magnitude;
+    data.nodes_[srcxy].filter_[BOTTOM].velo_ = sin(rad) * magnitude;
   } else if ((alpha >= 270.f) && (alpha < 360.f)) {
     // alpha between 270 and 360 degrees? -> bottom and left incidence
     const float rad = (alpha - 270.f) * rad_per_deg;
-    data.dir_data_["bottom"].velo_.ptr<float>(0)[srcxy] = cos(rad) * magnitude;
-    data.dir_data_["left"].velo_.ptr<float>(0)[srcxy] = sin(rad) * magnitude;
+    data.nodes_[srcxy].filter_[BOTTOM].velo_ = cos(rad) * magnitude;
+    data.nodes_[srcxy].filter_[LEFT].velo_ = sin(rad) * magnitude;
   }
 }
 
@@ -1629,20 +1571,9 @@ void Lambda::processSim() {
     ////////////////////////////////////////////////////////////////////////
     // it's expensive to do a lot of map lookups in the big loop before,
     // they don't get optimized out, so set up these temp arrays instead.
-    std::vector<DirData*> dir_datas;
     std::vector<Inci*> incis;
-    std::vector<int> dirs;
     for (const std::string& dir : dirs_) {
-      dir_datas.push_back(&data.dir_data_[dir]);
       incis.push_back(&index.inci_[dir]);
-      if (dir == "left")
-        dirs.push_back(LEFT);
-      if (dir == "right")
-        dirs.push_back(RIGHT);
-      if (dir == "top")
-        dirs.push_back(TOP);
-      if (dir == "bottom")
-        dirs.push_back(BOTTOM);
     }
     int config_nX = config.nX;
     // Work through all the nodes in the environment
@@ -1656,7 +1587,7 @@ void Lambda::processSim() {
         for (size_t d = 0; d < 4; ++d) {
           // TODO(lucasw) clean this up by make this a method of DirData?
           //  filter
-          if (dir_datas[d]->filt_[pos]) {
+          if (data.nodes_[pos].filter_[d].filt_) {
             // for filter processing it would pay to have a single
             // node data structure that holds most of the values below
             // adjacent in memory rather that in parallel arrays.
@@ -1665,7 +1596,7 @@ void Lambda::processSim() {
             // calculate filter input
             const float scat_futu = presPres[pos] - incis[d]->pres_[pos];
             // calculate the digital filter
-            const float cb0 = dir_datas[d]->filtcoeffsB_[pos][0];
+            const float cb0 = data.nodes_[pos].filter_[d].coeffsB_[0];
             // filter output - why isn't ca0 used?
             float yn = scat_futu * cb0;
             debug = debug && std::abs(yn) > 0.00001;
@@ -1679,17 +1610,17 @@ void Lambda::processSim() {
                   << "yn " << yn << ", cb0 " << cb0 << "\n";
             }
             // standard walls never have this many coefficients, only cb0 matters
-            for (int n = 1; n < dir_datas[d]->filtnumcoeffs_[pos]; n++) {
-              const float oldx = dir_datas[d]->oldx_[pos][n - 1];
-              const float cb = dir_datas[d]->filtcoeffsB_[pos][n];
-              const float oldy = dir_datas[d]->oldy_[pos][n - 1];
-              const float ca = dir_datas[d]->filtcoeffsA_[pos][n];
+            for (int n = 1; n < data.nodes_[pos].filter_[d].numcoeffs_; n++) {
+              const float oldx = data.nodes_[pos].filter_[d].oldx_[n - 1];
+              const float cb = data.nodes_[pos].filter_[d].coeffsB_[n];
+              const float oldy = data.nodes_[pos].filter_[d].oldy_[n - 1];
+              const float ca = data.nodes_[pos].filter_[d].coeffsA_[n];
               if (debug) std::cout << n << ", oldx " << oldx << " cb " << cb
                   << ", oldy " << oldy << " " << ca << "\n";
               yn += oldx * cb - oldy * ca;
             }
             // add magnitude of a possible velocity source
-            const float velo = dir_datas[d]->velo_.ptr<float>(0)[pos];
+            const float velo = data.nodes_[pos].filter_[d].velo_;
             if (debug) std::cout << "velo " << velo << "\n";
             yn += velo;
             // TODO(lucasw) replace with an array that has a start index
@@ -1697,12 +1628,12 @@ void Lambda::processSim() {
             // should be faster than all this copying.
             // But normal filter length 1 walls don't even use this.
             // rotate the filter memories
-            for (int n = dir_datas[d]->filtnumcoeffs_[pos] - 2; n > 0; n--) {
-              dir_datas[d]->oldx_[pos][n] = dir_datas[d]->oldx_[pos][n - 1];
-              dir_datas[d]->oldy_[pos][n] = dir_datas[d]->oldy_[pos][n - 1];
+            for (int n = data.nodes_[pos].filter_[d].numcoeffs_ - 2; n > 0; n--) {
+              data.nodes_[pos].filter_[d].oldx_[n] = data.nodes_[pos].filter_[d].oldx_[n - 1];
+              data.nodes_[pos].filter_[d].oldy_[n] = data.nodes_[pos].filter_[d].oldy_[n - 1];
             }
-            dir_datas[d]->oldx_[pos][0] = scat_futu;
-            dir_datas[d]->oldy_[pos][0] = yn;
+            data.nodes_[pos].filter_[d].oldx_[0] = scat_futu;
+            data.nodes_[pos].filter_[d].oldy_[0] = yn;
             // and write the filter output into the pressure matrix
             incis[d]->futu_[pos] = yn;
             index_presFutu[pos] += incis[d]->futu_[pos];
@@ -1711,13 +1642,13 @@ void Lambda::processSim() {
             const float scat_pres = index.presPast[pos] - incis[d]->past_[pos];
 
             float incis_futu = 0.0;
-            if (dirs[d] == LEFT)
+            if (d == LEFT)
               incis_futu = presPres[pos - 1] - scat_pres;
-            else if (dirs[d] == TOP)
+            else if (d == TOP)
               incis_futu = presPres[pos - config_nX] - scat_pres;
-            else if (dirs[d] == RIGHT)
+            else if (d == RIGHT)
               incis_futu = presPres[pos + 1] - scat_pres;
-            else if (dirs[d] == BOTTOM)
+            else if (d == BOTTOM)
               incis_futu = presPres[pos + config_nX] - scat_pres;
 
             incis[d]->futu_[pos] = incis_futu;

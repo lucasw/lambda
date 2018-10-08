@@ -59,48 +59,71 @@ struct simSample {
   float *data;
 };
 
-// TODO(lucasw) instead of the below being all independent arrays (and therefore widely
-// spaced in memory), make them all in the same data structure per node.
-struct DirData {
-  // TODO(lucasw) need to init these to nullptr?
+// group all data here that tends to be accessed in the sim update step,
+// so that it is all close together in memory.
+// Initially just the filter data.
+struct DirectionalFilter {
+  // whether to use a filter at this location at all
+  bool filt_ = false;
 
-  bool *filt_;            // array indicating filters at the nodes for this direction
-  // about 10% slower than float**
-  // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
-  // std::vector<std::vector<float> > oldy_;          // filter non-recursive memory for filters
-  // these seem almost as fast as float**
-  std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
-  std::unique_ptr<std::unique_ptr<float[]>[]> oldy_;          // filter non-recursive memory for filters
-  int *filtnumcoeffs_;    // number of filter coeffs for filters
-  float **filtcoeffsA_;   // recursive filter coeffs for filters
-  float **filtcoeffsB_;   // non-recursive filter coeffs for filters
+  // TODO(lucasw)
+  // maybe best to come up with a fixed max filter size and always allocate that
+  // but for now keep to with the dynamic memory
 
-  void print(const size_t pos);
+  std::unique_ptr<float[]> oldx_;          // filter non-recursive memory for filters
+  std::unique_ptr<float[]> oldy_;          // filter non-recursive memory for filters
+  int numcoeffs_ = 0;    // number of filter coeffs for filters
+  float *coeffsA_ = nullptr;   // recursive filter coeffs for filters
+  float *coeffsB_ = nullptr;   // non-recursive filter coeffs for filters
+
+  void print();
 
   // array containing the actual velocity of velo sources from four directions
-  cv::Mat velo_;
+  float velo_;
 };
 
-// TODO(lucasw) make an array of SimDatas of length nNodes instead
+// TODO(lucasw) instead of the below being all independent arrays (and therefore widely
+// spaced in memory), make them all in the same data structure per node.
+struct Node {
+  // TODO(lucasw) maybe this is bad if frequently sparse filters
+  std::array<DirectionalFilter, 4> filter_;
+
+  // TODO(lucasw) keeping these performance notes around for future reference
+  // about 10% slower than float**
+  // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
+  // these seem almost as fast as float**
+  //std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
+};
+
+// TODO(lucasw) make an array of SimDatas of length n Nodes instead
 // of many many individual arrays - or will that hurt performance?
 // This struct contains specific data about the simulation environment.
 struct SimData {
   SimData();
 
+  // the location of these in memory is not that important because
+  // they aren't accessed during the sim update.
   // use cv::Mat 32F for these?  Do a speed comparison before and after
   // the conversion.
   cv::Mat envi;       // simulation environment - the walls
   cv::Mat angle;      // angle matrix as loaded from the .sim-file
   float *srcs;       // array containing the sources
-  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
-  float *inci;       // array containing the incident node pressures
   float *recs;       // array containing the receivers
-  bool *boundary;    // array indicating boundary nodes
-  bool *deadnode;    // array indicating "dead" nodes
   int *recIdx;       // array containing the receiver positions
   float *record; // in case of recording into rco file, this array contains the
                  // recorded data
-  std::map<std::string, DirData> dir_data_;
+
+  // these are important to keep together.
+  // if there a lot of dead nodes, then better to kepep them in own array,
+  // otherwise move into node above
+  bool *deadnode;    // array indicating "dead" nodes
+  // same here- if many boundaries then move into Node
+  bool *boundary;    // array indicating boundary nodes
+  // definitely move into Node
+  float *inci;       // array containing the incident node pressures
+  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
+  // TODO(lucasw) test smart pointer to array vs vector
+  std::unique_ptr<Node[]> nodes_;
 
   float
       *mem; // array for sources to use for storing information between samples.
@@ -172,7 +195,7 @@ public:
   // TODO(lucasw) 3D add up and down?
   const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
 
-  typedef enum {LEFT, RIGHT, TOP, BOTTOM} dir;
+  typedef enum {LEFT, TOP, RIGHT, BOTTOM} dir;
 
   //   Prepares variables needed for simulation.
   // RETURN VALUE
@@ -228,7 +251,7 @@ private:
 
   void initEnvironment();
 
-  void setupOldXY(const std::string dir, const int pos);
+  void setupOldXY(const size_t d, const int pos);
 
   //   Processes input parameters and sets internal variables accordingly.
   // INPUT
