@@ -21,60 +21,26 @@
 
 #include <lambda_ros/lambda.h>
 
-simSample **new_simSample_array(int n) {
-  simSample **out = new simSample *[n];
-  simSample *sample;
-  for (int i = 0; i < n; i++) {
-    sample = new simSample;
-    sample->data = NULL;
-    sample->sr = 0;
-    sample->id = 0;
-    sample->nsamples = 0;
-    out[i] = sample;
-  }
-  return out;
-}
-
 SimData::SimData()
-    : // Initialize receiver/recorder pointers
-      // TODO(lucasw) simData constructor can handle this
-      recs(NULL), record(NULL), recIdx(NULL),
-      // Initialize simulation environment data pointers
-      srcs(NULL), boundary(NULL), deadnode(NULL),
-      inci(NULL),
-      // Initialize velocity source pointers
-      mem(NULL), samples(NULL) {}
+    : boundary(nullptr), deadnode(nullptr),
+      inci(nullptr) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-Lambda::Lambda()
-    : MEMSRC(20) {
-  initVariables();
+Lambda::Lambda() {
+  clear();
   // TODO(lucasw) let something else determine whether or not to randomize like
   // this
-  srand(time(NULL));
+  // srand(time(nullptr));
 }
 
-//   This function intializes all the important variables, arrays and matrices.
-//   Sets pointers to NULL. Called only one single time at startup.
-void Lambda::initVariables() {
-  // Initialize graphics properties & colours
-  resetAll();
-}
-
-//   Resets important variables, arrays and matrices to zero, e.g. before
-//   starting new simulation runs.
-void Lambda::resetAll() {
-  resetSimulation();
-
-  // reset important simfield variables
-  config.n = 0;
-  config.nX = 0;
-  config.nY = 0;
-  config.nN = 0;
-  config.nRec = 0;
-  config.nSrc = 0;
-  config.nNodes = 0;
+void simConfig::clear() {
+  reset();
+  // clear important simfield variables
+  nX = 0;
+  nY = 0;
+  nNodes = 0;
+#if 0
   config.cTube = 0;
   config.lTube = 0;
   config.rho = 0;
@@ -84,167 +50,136 @@ void Lambda::resetAll() {
   config.tSample = 0;
   config.fSample = 0;
   config.t0 = 0;
-
-  // delete simulation environment data pointers
-  for (size_t i = 0; i < 3; ++i)
-    data.pressure_[i] = cv::Mat();
-  data.envi = cv::Mat();
-  data.angle = cv::Mat();
-  if (data.srcs != NULL) {
-    delete[] data.srcs;
-    data.srcs = NULL;
-  }
-  if (data.mem != NULL) {
-    delete[] data.mem;
-    data.mem = NULL;
-  }
-  if (data.deadnode != NULL) {
-    delete[] data.deadnode;
-    data.deadnode = NULL;
-  }
-  if (data.boundary != NULL) {
-    delete[] data.boundary;
-    data.boundary = NULL;
-  }
-  if (data.samples != NULL) {
-    for (int n = 0; n < config.nSamples; n++) {
-      if (data.samples[n]->data != NULL) {
-        delete[] data.samples[n]->data;
-      }
-      delete[] data.samples[n];
-    }
-    delete[] data.samples;
-    data.samples = NULL;
-  }
-  config.nSamples = 0;
-
-  // delete receiver pointers
-  if (data.recIdx != NULL) {
-    delete[] data.recIdx;
-    data.recIdx = NULL;
-  }
-
-  for (int n = 0; n < config.nNodes; n++) {
-    for (size_t d = 0; d < 4; ++d) {
-      // TODO(lucasw) make a function to eliminate redundant code-
-      // make it a simData method.
-      // delete A filter coefficient arrays
-      if (data.nodes_[n].filter_[d].coeffsA_ != NULL) {
-        delete[] data.nodes_[n].filter_[d].coeffsA_;
-        data.nodes_[n].filter_[d].coeffsA_ = NULL;
-      }
-      if (data.nodes_[n].filter_[d].coeffsB_ != NULL) {
-        delete[] data.nodes_[n].filter_[d].coeffsB_;
-        data.nodes_[n].filter_[d].coeffsB_ = NULL;
-      }
-    }  // loop through directions
-  }  // loop through nodes
+#endif
 }
 
-//   Resets variables and arrays used directly for simulation purposes.
-void Lambda::resetSimulation() {
-  // Delete simulation environment data memory
-  if (data.inci != NULL) {
-    delete[] data.inci;
-    data.inci = NULL;
+void simConfig::reset() {
+  n = 0;
+}
+
+void DirectionalFilter::clear() {
+  reset();
+  // TODO(lucasw) make a function to eliminate redundant code-
+  // make it a simData method.
+  // delete A filter coefficient arrays
+  if (coeffsA_ != nullptr) {
+    delete[] coeffsA_;
+    coeffsA_ = nullptr;
   }
+  if (coeffsB_ != nullptr) {
+    delete[] coeffsB_;
+    coeffsB_ = nullptr;
+  }
+
+}
+
+void DirectionalFilter::reset() {
+  oldx_.reset(nullptr);
+  oldy_.reset(nullptr);
+  velo_ = 0.0;
+}
+
+void Node::clear() {
+  reset();
+  for (size_t d = 0; d < 4; ++d) {
+    filter_[d].clear();
+  }  // loop through directions
+}
+
+void Node::reset() {
+  for (size_t d = 0; d < 4; ++d) {
+    filter_[d].reset();
+  }
+}
+
+void SimData::clear(const size_t num_nodes) {
+  reset(num_nodes);
+  // delete simulation environment data pointers
+  for (size_t i = 0; i < 3; ++i)
+    pressure_[i] = cv::Mat();
+  envi = cv::Mat();
+  angle = cv::Mat();
+
+  if (deadnode != nullptr) {
+    delete[] deadnode;
+    deadnode = nullptr;
+  }
+  if (boundary != nullptr) {
+    delete[] boundary;
+    boundary = nullptr;
+  }
+
+  for (int n = 0; n < num_nodes; n++) {
+    nodes_[n].clear();
+  }
+}
+
+void SimData::reset(const size_t num_nodes) {
+  if (inci != nullptr) {
+    delete[] inci;
+    inci = nullptr;
+  }
+
+  // Delete bottom filter non-recursive memory
+  for (int n = 0; n < num_nodes; n++) {
+    nodes_[n].reset();
+  }
+}
+
+//   Resets important variables, arrays and matrices to zero, e.g. before
+//   starting new simulation runs.
+void Lambda::clear() {
+  reset();
+  data.clear(config.nNodes);
+  // save this for last
+  config.clear();
+}
+
+void simIndex::clear() {
+  reset();
+}
+
+void simIndex::reset() {
+  // Delete simulation environment data memory
   // Reset pressure index pointers
-  index.presPast = NULL;
-  index.presPres = NULL;
-  index.presFutu = NULL;
+  presPast = nullptr;
+  presPres = nullptr;
+  presFutu = nullptr;
 
   for (int x = 0; x < 3; x++) {
-    index.idxP[x] = 0;
+    idxP[x] = 0;
   }
 
   for (const std::string& dir : dirs_) {
     // Reset incident pressure index pointers (past)
-    index.inci_[dir].past_ = NULL;
+    inci_[dir].past_ = nullptr;
     // Reset incident pressure index pointers (present)
-    index.inci_[dir].pres_ = NULL;
+    inci_[dir].pres_ = nullptr;
     // Reset incident pressure index pointers (future)
-    index.inci_[dir].pres_ = NULL;
+    inci_[dir].pres_ = nullptr;
     // Reset indices used during calculation
     for (int x = 0; x < 3; x++) {
-      index.inci_[dir].idxI[x] = 0;
-    }
-  }
-
-  // Delete bottom filter non-recursive memory
-  for (int n = 0; n < config.nNodes; n++) {
-    for (size_t d = 0; d < 4; ++d) {
-      data.nodes_[n].filter_[d].oldx_.reset(nullptr);
-      data.nodes_[n].filter_[d].oldy_.reset(nullptr);
-      data.nodes_[n].filter_[d].velo_ = 0.0;
+      inci_[dir].idxI[x] = 0;
     }
   }
 }
 
-//   Processes input parameters and sets internal variables accordingly.
-void Lambda::handleParameters(int argc, char *argv[]) {
-  std::string argument;
-  int arg;
-  // Order of parameters is random, but rce, rco and vis must be
-  // activated after loading a file, if requested. If a file is requested,
-  // the last step must be starting the simulation.
-  // To achieve this order of processing, the parameters are checked and read in
-  // a first step, notifying necessary further steps through theses bool
-  // variables. Theses steps will then be processed in the right order later.
-
-  // Parse array of input arguments
-  for (arg = 0; arg < argc; arg++) {
-    argument = argv[arg];
-
-    if ((argument == "-file") || (argument == "-File") ||
-        (argument == "-FILE") || (argument == "/file") ||
-        (argument == "/File") || (argument == "/FILE")) {
-      // if this argument is "-file" and there is another argument following
-      // this one, try to load the file named like that following parameter.
-      if (arg < argc - 1) {
-        std::string fileName = argv[arg + 1];
-        if (loadSimulation(fileName) != NONE) {
-        }
-      }
-    } else if ((argument == "-help") || (argument == "--help") ||
-               (argument == "/help")) {
-      std::cout
-          << "lambda [options]\n"
-             "\n"
-             "-file simfile   : open the .sim file\n"
-             "-vis            : activate visualization\n"
-             "-rce            : activate recording at receivers, if defined\n"
-             "-walls          : show walls, if defined\n"
-             "-exit           : exit the program after finishing (good for "
-             "batch processes)\n"
-             "\n"
-
-          ;
-      exit(0);
-    }
-  }
+//   Resets variables and arrays used directly for simulation purposes.
+// Should be able to restart the simulation from time zero after this
+void Lambda::reset() {
+  data.reset(config.nNodes);
+  index.reset();
+  config.reset();
 }
 
 #if 0
 void Lambda::stop() {
-  resetSimulation();
+  reset();
   // Reset display, if vis was on and simulation was reset manually
   // (don't change picture if simulation ended automatically)
   config.n = 0;
 }
 #endif
-
-//   Processes the receiver output after each calculated sim iteration if Rce is
-//   switched on.
-void Lambda::processRce() {
-  double *dummy = new double; // double pointer needed for float2double cast
-  for (int rec = 0; rec < config.nRec; rec++) {
-    // For each receiver in the simulation environment, cast
-    // its sound pressure value to double and append it to the rce file.
-    *dummy = (double)*(index.presPres + *(data.recIdx + rec));
-    files.rceFile.write((char *)dummy, sizeof(double));
-  }
-  delete dummy;
-}
 
 // TODO(lucasw) split this up into inidividual setters
 // PURPOSE
@@ -256,39 +191,40 @@ void Lambda::processRce() {
 //   will check wether the second argument is a valid value for nX
 //   (>0) and will update nNodes (which should always be nX*nY at any time) and
 //   dispSizeX automatically.
-template <class T> simError Lambda::set(const std::string what, const T value) {
-  if (what == "nX") {
-    // If nX is to be set, check if new X-size is greater than 0.
-    if ((int)value < 1)
-      return NO_NODES;
-    config.nX = (int)value;
-    // Adjust nNodes and dispSizeX to fit the new setting
-    set("nNodes", config.nX * config.nY);
-    return NONE;
-  }
-  if (what == "nY") {
-    // If nY is to be set, check if new Y-size is greater than 0.
-    if ((int)value < 1)
-      return NO_NODES;
-    config.nY = (int)value;
-    // Adjust nNodes and dispSizeY to fit the new setting
-    set("nNodes", config.nX * config.nY);
-    return NONE;
-  }
-  if (what == "nN") {
-    // If nN is to be set, check if new number of nodes is greater than 0.
-    if ((int)value < 0)
-      return NO_SAMPLES;
-    config.nN = (int)value;
-    return NONE;
-  }
+bool Lambda::setNX(const int value) {
+  // If nX is to be set, check if new X-size is greater than 0.
+  if (value < 1)
+    return false;
+  config.nX = (int)value;
+  // Adjust nNodes and dispSizeX to fit the new setting
+  setNNodes(config.nX * config.nY);
+  return true;
+}
+
+bool Lambda::setNY(const int value) {
+  // If nY is to be set, check if new Y-size is greater than 0.
+  if (value < 1)
+    return false;
+  config.nY = value;
+  // Adjust nNodes and dispSizeY to fit the new setting
+  setNNodes(config.nX * config.nY);
+  return true;
+}
+
+bool Lambda::setNNodes(const int value) {
+  if (value < 0)
+    return false;
+  config.nNodes = (int)value;
+  return true;
+}
+#if 0
   if (what == "cTube") {
     // If cTube is to be set, check if new tube speed is greater than 0.
     if (value <= 0)
       return TUBE_SPEED_BAD;
     config.cTube = value;
     set("fSample", config.cTube / config.lTube);
-    return NONE;
+    return true;
   }
   if (what == "lTube") {
     // If lTube is to be set, check if new tube length is greater than 0.
@@ -296,83 +232,32 @@ template <class T> simError Lambda::set(const std::string what, const T value) {
       return TUBE_LENGTH_BAD;
     config.lTube = value;
     set("fSample", config.cTube / config.lTube);
-    return NONE;
+    return true;
   }
   if (what == "rho") {
     // If rho is to be set, check if new rho is greater than 0.
     if (value <= 0)
       return RHO_BAD;
     config.rho = value;
-    return NONE;
-  }
-  if (what == "nRec") {
-    config.nRec = (int)value;
-    return NONE;
-  }
-  if (what == "nSrc") {
-    config.nSrc = (int)value;
-    return NONE;
-  }
-  if (what == "nNodes") {
-    config.nNodes = (int)value;
-    return NONE;
+    return true;
   }
   if (what == "nSamples") {
     config.nSamples = (int)value;
-    return NONE;
+    return true;
   }
   if (what == "tSample") {
     config.tSample = value;
-    return NONE;
+    return true;
   }
   if (what == "fSample") {
     config.fSample = value;
     // Adjust sample duration
     set("tSample", 1 / config.fSample);
-    return NONE;
+    return true;
   }
-  return NONE;
-}
+#endif
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::defineSource()
-//
-// PURPOSE
-//   Adds a source to the array of sources (data.srcs) after performing a few
-//   checks on the data.
-//
-// INPUT
-//   const unsigned int idx   : An integer defining the source's index in the
-//   array. const simSource *srcData : Pointer to the source to be added.
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   simError: NONE if source was added successfully, error identfier otherwise.
-//
-//	AUTHOR		CHANGES
-// DATE	VERSION 	S. Ahrens 	First build
-// 05/06	1.0 	M. Ruhland 	added velocity sources handling
-// 05/09	2.0
-//
-simError Lambda::defineSource(const int idx, const simSource *srcData) {
-  // Check if coordinates are in range of environment size
-  if ((srcData->y < 0) || (srcData->y >= config.nY) || (srcData->x < 0) ||
-      (srcData->x >= config.nX))
-    return SRC_COORDS_BAD;
-  // Check if source has legal source function type
-  if ((srcData->type < 1) || (srcData->type > 100))
-    return SRC_TYPE_BAD;
-  // Check for positive frequency
-  // if (srcData->freq<=0) return SRC_FREQ_BAD;
-  // Add data to source array
-  data.srcs[idx * 6 + 0] = srcData->y * config.nX;
-  data.srcs[idx * 6 + 1] = srcData->x;
-  data.srcs[idx * 6 + 2] = srcData->type;
-  data.srcs[idx * 6 + 3] = srcData->amp;
-  data.srcs[idx * 6 + 4] = srcData->freq;
-  data.srcs[idx * 6 + 5] = srcData->phase;
+#if 0
   int srcxy;
   srcxy = (int)data.srcs[idx * 6 + 0] + (int)data.srcs[idx * 6 + 1];
   float alpha;
@@ -438,7 +323,22 @@ simError Lambda::defineSource(const int idx, const simSource *srcData) {
           data.nodes_[srcxy].filter_[LEFT].coeffsB_, 1.f, 180.f, kHorizontal);
     }
   }
-  return NONE;
+#endif
+
+bool Lambda::initSimulationPre() {
+  // Check one more time
+  if (config.nNodes < 1)
+    return false;
+
+  data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
+  data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
+  for (int pos = 0; pos < config.nNodes; pos++) {
+     data.deadnode[pos] = false;
+  }
+
+   // 400.0f means no preemphasis is done on the nodes)
+  data.angle = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(400.0f));
+  return true;
 }
 
 //  ----- PREPROCESSING OF THE ENVIRONMENT -----
@@ -695,393 +595,7 @@ void Lambda::processWall(const int x, const int y) {
   }
 }
 
-// RETURN VALUE
-//   simError: NONE if file was opened successfully, error identfier otherwise.
-simError Lambda::loadSimulation(const std::string fileName) {
-  // some variables needed during the read-in process
-  struct stat results;
-  char *pblockid;
-  double *pdummy;
-  simError error = NONE;
-  simSource curSource;
-  bool donotreadnextblockid = false;
-  float value;
-
-  // check the filename
-  if (stat((char *)fileName.c_str(), &results) != 0)
-    return FILE_BAD;
-  // reset all variables
-  resetAll();
-  // open the simfile
-  std::ifstream simFile((char *)fileName.c_str(),
-                        std::ios::in | std::ios::binary);
-
-  //  ------ HEADER ------
-  //  read the simfile header. it consists of the std::string "LAMBDASIM200".
-  // otherwise, the file is corrupt or wrong version
-  pblockid = new char[12];
-  simFile.read(pblockid, sizeof(char) * 12);
-  if (strncmp(pblockid, "LAMBDASIM200", 12) != 0) {
-    simFile.close();
-    delete[] pblockid;
-    return FILE_HEADER_BAD_OR_WRONG_VERSION;
-  }
-  delete[] pblockid;
-
-  pblockid = new char[3];
-  //  ----- DEFINITIONS -----
-  // read in the important simulation definitions.
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "DEF", 3) == 0) // DEF-Chunk exists?
-  {
-    std::cout << "parsing DEF chunk\n";
-    pdummy = new double[6];
-    simFile.read((char *)pdummy, sizeof(double) * 6); // read the data
-    if (error == NONE)
-      error = set("nY", (int)pdummy[0]); // simulation Y-size
-    if (error == NONE)
-      error = set("nX", (int)pdummy[1]); // simulation X-size
-    if (error == NONE)
-      error = set("nN", (int)pdummy[2]); // number of iterations
-    if (error == NONE)
-      error = set(
-          "cTube",
-          M_SQRT2 *
-              (float)pdummy[3]); // Speed in tubes is sqrt(2)*c_{free field}!
-    if (error == NONE)
-      error = set("lTube", (float)pdummy[4]); // tube length
-    if (error == NONE)
-      error = set("rho", (float)pdummy[5]); // air density in kg/m^3
-    delete[] pdummy;
-    if (error != NONE) // if there was an error, close the file and exit
-    {
-      simFile.close();
-      delete[] pblockid;
-      return FILE_DEF_BLOCK_BAD;
-    }
-  } else // if no DEF-Chunk exists, close the file and exit
-  {
-    std::cout << "no DEF-Chunk exists, close the file and exit\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_DEF_BLOCK_BAD;
-  }
-
-  //  ----- ENVIRONMENT -----
-  // read in the simulation environment matrix.
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "ENV", 3) == 0) // ENV-Chunk exists?
-  {
-    std::cout << "parsing ENV chunk\n";
-    pdummy =
-        new double[config.nNodes]; // reserve memory for env-data in simfile
-    data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-    data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
-    simFile.read((char *)pdummy,
-                 sizeof(double) * config.nNodes); // read envi-matrix
-    for (int pos = 0; pos < config.nNodes;
-         pos++) // and cast it from double to float
-    {
-      value = (float)pdummy[pos];
-      data.deadnode[pos] = false;
-      if (value == -999) {         // is it a dead node?
-        value = 0;                 // turn it into empty
-        data.deadnode[pos] = true; // mark it as dead
-      }
-      data.envi.ptr<float>(0)[pos] = (float)value; // (all nodes)
-    }
-    delete[] pdummy;
-  } else // ENV-Chunk does not exist -> close file and exit
-  {
-    simFile.close();
-    delete[] pblockid;
-    return FILE_ENV_BLOCK_BAD;
-  }
-
-  //  ----- ANGLES -----
-  // read in the angle-matrix
-  simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "ANG", 3) == 0) // ANG-Chunk exists?
-  {
-    std::cout << "parsing ANG chunk\n";
-    pdummy =
-        new double[config.nNodes]; // reserve memory for ang-data in simfile
-    data.angle = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-    simFile.read((char *)pdummy,
-                 sizeof(double) * config.nNodes); // read angle-matrix
-    for (int pos = 0; pos < config.nNodes;
-         pos++)                             // and cast it from double to float
-      data.angle.ptr<float>(0)[pos] = (float)pdummy[pos]; // (all nodes)
-    delete[] pdummy;
-    donotreadnextblockid = false; // make shure that the next chunk will be read
-  } else if ((strncmp(pblockid, "FLT", 3) == 0) ||
-             (strncmp(pblockid, "SRC", 3) == 0) ||
-             (strncmp(pblockid, "SMP", 3) ==
-              0)) { // if angle-matrix does not exist and the next Chunk is FLT
-                    // or SMP or SRC
-    std::cout
-        << "angle-matrix does not exist and the next Chunk is FLT or SMP or "
-           "SRC\n";
-    // 400.0f this means no preemphasis is done on the nodes)
-    data.angle = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(400.0f));
-    donotreadnextblockid =
-        true; // do not read the next Chunk ID, because we have it already
-  } else      // if angle-matrix does not exist and no valid chunk is following
-  {
-    std::cout
-        << "angle matrix does not exist and no valid chunk is following\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_ANG_BLOCK_BAD;
-  }
-
-  //  ----- FILTERS -----
-  //  read in the filter data
-  int tmp_numfilters;             // temporary number of filters
-  int *tmp_filtid = NULL;         // temporary filter ID array
-  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
-  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
-  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
-  tmp_numfilters = 1;             // at least one filter must exist!
-  if (!donotreadnextblockid) // do not read the next Chunk-ID if ANG-Chunk was
-                             // left out
-    simFile.read(pblockid, sizeof(char) * 3);
-  if (strncmp(pblockid, "FLT", 3) == 0) // FLT-Chunk exists?
-  {
-    std::cout << "parsing FLT chunk\n";
-    pdummy = new double;
-    simFile.read((char *)pdummy,
-                 sizeof(double)); // yes, read in number of filters in chunk
-    tmp_numfilters = ((int)*pdummy) + 1; // one more for the standard 0 filter
-    delete pdummy;
-
-    tmp_filtid = new int[tmp_numfilters]; // reserve memory for filter IDs
-    tmp_filtnumcoeffs = new int[tmp_numfilters]; // reserve memory for numcoeffs
-    tmp_filtcoeffsA =
-        new float *[tmp_numfilters]; // reserve memory for filter a-coeffs
-    tmp_filtcoeffsB =
-        new float *[tmp_numfilters]; // reserve memory for filter b-coeffs
-
-    for (int n = 1; n < tmp_numfilters;
-         n++) // work through all the filters, except for
-    {         // the 0 filter
-      int numcoeffsA;
-      int numcoeffsB;
-
-      pdummy = new double;
-      simFile.read((char *)pdummy, sizeof(double)); // read next filter ID
-      tmp_filtid[n] = (int)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read number of a-coeffs
-      numcoeffsA = (int)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read number of b-coeffs
-      numcoeffsB = (int)*pdummy;
-      delete pdummy;
-
-      tmp_filtnumcoeffs[n] =
-          std::max(numcoeffsA, numcoeffsB); // numcoeffs=maximum
-
-      pdummy = new double[numcoeffsA];
-      simFile.read((char *)pdummy,
-                   sizeof(double) * numcoeffsA); // read the a-coeffs
-      tmp_filtcoeffsA[n] =
-          new float[tmp_filtnumcoeffs[n]]; // reserve mem for a-coeffs
-      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
-        tmp_filtcoeffsA[n][k] = 0.f; // initialize the a-coeffs array
-      for (int k = 0; k < numcoeffsA; k++)
-        tmp_filtcoeffsA[n][k] =
-            (float)pdummy[k]; // and cast the a-coeffs to float
-      delete[] pdummy;
-
-      pdummy = new double[numcoeffsB];
-      simFile.read((char *)pdummy,
-                   sizeof(double) * numcoeffsB); // read the b-coeffs
-      tmp_filtcoeffsB[n] =
-          new float[tmp_filtnumcoeffs[n]]; // reserve mem for b-coeffs
-      for (int k = 0; k < tmp_filtnumcoeffs[n]; k++)
-        tmp_filtcoeffsB[n][k] = 0.f; // initialize the b-coeffs array
-      for (int k = 0; k < numcoeffsB; k++)
-        tmp_filtcoeffsB[n][k] =
-            (float)pdummy[k]; // and cast the b-coeffs to float
-      delete[] pdummy;
-    }
-    tmp_filtid[0] = 0;                 // set up the 0 filter
-    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
-    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
-    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
-    donotreadnextblockid = false;      // make sure that the next chunk is read
-  } else if ((strncmp(pblockid, "SRC", 3) == 0) ||
-             (strncmp(pblockid, "SMP", 3) ==
-              0)) // the FLT-chunk is missing, is this a valid chunk?
-  {
-    std::cout
-        << "the FLT-chunk is missing, this a valid chunk, initialize filters "
-           "to 0\n";
-    tmp_numfilters = 1; // if yes, initialize only the 0 filter
-    tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtnumcoeffs =
-        new int[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtcoeffsA =
-        new float *[tmp_numfilters]; // reserve memory for the 0 filter
-    tmp_filtcoeffsB =
-        new float *[tmp_numfilters];   // reserve memory for the 0 filter
-    tmp_filtid[0] = 0;                 // set up the 0 filter
-    tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
-    tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
-    tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
-    tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
-    donotreadnextblockid = true;       // and don't read the next chunk-header,
-                                       // because we already have it
-  } else // if FLT-chunk does not exist and no valid chunk is following
-  {
-    std::cout << "FLT-chunk does not exist and no valid chunk is following\n";
-    simFile.close();
-    delete[] pblockid;
-    return FILE_FLT_BLOCK_BAD;
-  }
-
-  //  ----- count the receivers -----
-  set("nRec", 0);
-  for (int pos = 0; pos < config.nNodes; pos++)
-    if (data.envi.ptr(0)[pos] < -1.0)
-      set("nRec", config.nRec + 1);
-  // and reserve memory for the receivers
-  if (config.nRec > 0) {
-    if (data.recIdx != NULL)
-      delete[] data.recIdx;
-    data.recIdx = new int[config.nRec];
-  }
-
-  initEnvironment();
-
-  // read samples
-  if (!donotreadnextblockid) // read the chunk header if it is required (see
-                             // above)
-    simFile.read(pblockid, sizeof(char) * 3);
-  set("nSamples", 0);
-  simSample *sample = NULL;
-  if (strncmp(pblockid, "SMP", 3) == 0) // is it a SMP-chuck
-  {
-    std::cout << "parsing SMP\n";
-    pdummy = new double;
-    simFile.read((char *)pdummy, sizeof(double));
-    set("nSamples", (int)*pdummy);
-    delete[] pdummy;
-    std::cout << "found " << config.nSamples << " sources\n";
-    data.samples = new_simSample_array(config.nSamples);
-    for (int n = 0; n < config.nSamples; n++) // read all the samples
-    {
-      std::cout << "reading source " << n << "\n";
-      pdummy = new double;
-      sample = data.samples[n];
-      simFile.read((char *)pdummy, sizeof(double)); // read sample ID
-      sample->id = (int)*pdummy;
-      std::cout << "IDX: " << sample->id << "\n";
-      simFile.read((char *)pdummy, sizeof(double)); // read sample SR
-      sample->sr = (int)*pdummy;
-      std::cout << "SR: " << sample->sr << "\n";
-      simFile.read((char *)pdummy, sizeof(double)); // read numsamples
-      sample->nsamples = (int)*pdummy;
-      std::cout << "nsamples: " << sample->nsamples << "\n";
-      sample->data = new float[sample->nsamples]; // allocate memory
-      delete[] pdummy;
-
-      pdummy = new double[sample->nsamples];
-      std::cout << "reading sample data\n";
-      simFile.read((char *)pdummy, sizeof(double) * sample->nsamples);
-      std::cout << "finished reading sample data\n";
-      for (int pos = 0; pos < sample->nsamples; pos++) // convert it to float
-      {
-        sample->data[pos] = (float)pdummy[pos];
-      }
-      delete[] pdummy;
-      std::cout << "\nfinished reading samples\n";
-    }
-    std::cout << "finished reading all samples\n";
-    donotreadnextblockid = false;
-  }
-
-  //  ----- SOURCES -----
-  // read in the sources
-  bool *isvelosource;
-  isvelosource =
-      new bool[config.nNodes]; // temporary array, indicating velocity sources
-  for (int pos = 0; pos < config.nNodes; pos++)
-    isvelosource[pos] = false; // initialize the temp array
-  set("nSrc", 0);
-
-  if (!donotreadnextblockid) // read the chunk header if it is required (see
-                             // above)
-  {
-    std::cout << "reading block ID\n";
-    simFile.read(pblockid, sizeof(char) * 3);
-    std::cout << "found: " << pblockid << "\n";
-  } else
-    std::cout << "skipping reading blockid for SRC chunk\n";
-  if (strncmp(pblockid, "SRC", 3) == 0) // is it a SRC-chunk?
-  {
-    std::cout << "parsing SRC chunk\n";
-    pdummy = new double;
-    simFile.read((char *)pdummy,
-                 sizeof(double)); // yes, read in the number of sources
-    set("nSrc", (int)*pdummy);
-    data.srcs = new float[config.nSrc * 6]; // reserve memory for the sources
-    data.mem = new float[config.nSrc * MEMSRC]; // sources extra data
-    for (int n = 0; n < config.nSrc * MEMSRC; n++)
-      data.mem[n] = 0.0;
-    for (int n = 0; n < config.nSrc; n++) {
-      simFile.read((char *)pdummy, sizeof(double)); // read src y-position
-      curSource.y = (int)*pdummy - 1;
-      simFile.read((char *)pdummy, sizeof(double)); // read src x-position
-      curSource.x = (int)*pdummy - 1;
-      simFile.read((char *)pdummy, sizeof(double)); // read src type
-      curSource.type = (float)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read src amplitude
-      curSource.amp = (float)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read src frequency
-      curSource.freq = (float)*pdummy;
-      simFile.read((char *)pdummy, sizeof(double)); // read src phase angle
-      curSource.phase = (float)*pdummy;
-      // if the source type is between 6 and 10, then it is a velocity source:
-      if ((curSource.type >= 6) && (curSource.type <= 10))
-        isvelosource[(int)curSource.y * (int)config.nX + (int)curSource.x] =
-            true;
-      // a sample source
-      if (curSource.type == 30) {
-        sample = data.samples[(int)curSource.freq];
-        std::cout << "sample source: IDX=" << sample->id << " SR=" << sample->sr
-                  << " NSAMPLES=" << sample->nsamples
-                  << " DURATION(ms)=" << (sample->nsamples * 1000) / sample->sr
-                  << "\n";
-      }
-      defineSource(n, &curSource); // and add the source to the simulation
-      std::cout << "finished defining source of type " << curSource.type
-                << "\n";
-    }
-    delete pdummy;
-  } else // no SRC-chunk found --> delete all our work we've done so far
-  {
-    std::cout << "no SRC-chunk found, found instead " << pblockid << "\n";
-    std::cout
-        << "no SRC-chunk found --> delete all our work we've done so far\n";
-    simFile.close();
-    delete[] pblockid;
-    delete[] isvelosource;
-    for (int n = 0; n < tmp_numfilters; n++)
-      delete[] tmp_filtcoeffsB[n];
-    delete[] tmp_filtcoeffsB;
-    for (int n = 0; n < tmp_numfilters; n++)
-      delete[] tmp_filtcoeffsA[n];
-    delete[] tmp_filtcoeffsA;
-    delete[] tmp_filtnumcoeffs;
-    delete[] tmp_filtid;
-    return FILE_SRC_BLOCK_BAD;
-  }
-
-  delete[] pblockid;
-
+#if 0
   //  ----- DEACTIVATE BOUNDARIES BETWEEN ADJACENT VELOCITY SOURCES
   // this is important for the stability of the simulation. all boundaries
   // between adjacent velocity source nodes must be removed again.
@@ -1132,118 +646,12 @@ simError Lambda::loadSimulation(const std::string fileName) {
       data.deadnode[pos] = true; // ---> yes, it's a deadnode
     }
   }
+#endif
 
-  for (int n = 0; n < tmp_numfilters;
-       n++) // delete all the temporary filter stuff
-    delete[] tmp_filtcoeffsB[n];
-  delete[] tmp_filtcoeffsB;
-  for (int n = 0; n < tmp_numfilters;
-       n++) // delete all the temporary filter stuff
-    delete[] tmp_filtcoeffsA[n];
-  delete[] tmp_filtcoeffsA;   // delete all the temporary filter stuff
-  delete[] tmp_filtnumcoeffs; // delete all the temporary filter stuff
-  delete[] tmp_filtid;        // delete all the temporary filter stuff
-
-  simFile.close();               // close the simfile
-  files.lastFileName = fileName; // and remember its name
-  return NONE;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// Lambda::loadRecord
-//
-// PURPOSE
-//   Tries to load a recorded playback file.
-//
-// INPUT
-//   const std::string fileName : name of the file to be opened.
-//
-// OUTPUT
-//   None
-//
-// RETURN VALUE
-//   simError: NONE if file was opened successfully, error identfier otherwise.
-//
-//	AUTHOR		CHANGES
-// DATE	VERSION 	S. Ahrens 	First build
-// 05/06	1.0 	M. Ruhland 	no changes
-// 05/09	2.0
-//
-simError Lambda::loadRecord(const std::string fileName) {
-  struct stat results; // File info
-  // Try to get file info, return error if file could not be opened
-  if (stat((char *)fileName.c_str(), &results) != 0)
-    return FILE_BAD;
-  // Each record file should at least contain 2 doubles: nY and nX.
-  if ((int)results.st_size <= 2 * (int)sizeof(double))
-    return FILE_SIZE_BAD;
-  resetAll();
-  // open recfile and create pointer
-  std::ifstream recFile((char *)fileName.c_str(),
-                        std::ios::in | std::ios::binary);
-  // read nY and nX into the dim array
-  double *dim = new double[2];
-  recFile.read((char *)dim, sizeof(double) * 2);
-  // Make sure that nY and nX (dim[0] and dim[1] are greater than 0
-  // and check if the rest of the file is dividable by nY*nX doubles. If not,
-  // the file must be corrupt. If the file is okay, behind the two dim doubles
-  // there is an unknown number of frames, each consisting of nY*nX floats.
-  if (((int)dim[0] * (int)dim[1] <= 0) ||
-      ((results.st_size - sizeof(double) * 2) %
-           ((int)dim[0] * (int)dim[1] * sizeof(float)) !=
-       0)) {
-    recFile.close();
-    delete[] dim;
-    return FILE_SIZE_BAD;
-  }
-  // Set nX and nY to the new values
-  set("nX", (int)dim[0]);
-  set("nY", (int)dim[1]);
-  delete[] dim;
-  // The number of frames is the file size minus the two dim doubles divided
-  // by the size of one single frame.
-  set("nN",
-      (results.st_size - 2 * sizeof(double)) / (config.nNodes * sizeof(float)));
-  // Make sure that the user cannot choose to watch more frames than available
-  // Prepare recorded data array
-  data.record = new float[config.nNodes * config.nN];
-  // read recorded data
-  recFile.read((char *)data.record, sizeof(float) * config.nN * config.nNodes);
-  recFile.close();
-  files.lastFileName = fileName;
-  return NONE;
-}
-
-float **new_array2(int n) {
-  // allocate a new array of array, without allocating the sub-arrays
-  // these will be allocated if filters are defined
-  // important: set each slot to NULL
-  float **out = new float *[n];
-  for (int i = 0; i < n; i++) {
-    out[i] = NULL;
-  }
-  return out;
-}
-
-//   Prepares variables needed for simulation.
-// RETURN VALUE
-//   simError: NONE if no error occured, error identfier otherwise.
-simError Lambda::initSimulationPre() {
-  // Check one more time
-  if (config.nNodes < 1)
-    return NO_NODES;
-
-  data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-  data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
-  for (int pos = 0; pos < config.nNodes; pos++) {
-    data.deadnode[pos] = false;
-  }
-
+#if 0
   // 400.0f means no preemphasis is done on the nodes)
   data.angle = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(400.0f));
-
-  return NONE;
-}
+#endif
 
 void Lambda::initEnvironmentSetup() {
   tmp_numfilters = 1;                   // if yes, initialize only the 0 filter
@@ -1264,7 +672,7 @@ void Lambda::initEnvironmentSetup() {
   initEnvironment();
 }
 
-simError Lambda::initSimulation() {
+bool Lambda::initSimulation() {
   config.n = 0;
   // incident pressure pulses
   data.inci = new float[12 * config.nNodes];
@@ -1289,7 +697,7 @@ simError Lambda::initSimulation() {
     }
   }
 
-  return NONE;
+  return true;
 }
 
 void Lambda::setupOldXY(const size_t d, const int pos)
@@ -1398,6 +806,7 @@ void Lambda::setVel(const int& srcxy, const float& magnitude, const float& alpha
   }
 }
 
+#if 0
 // TODO(lucasw probably going to delete this once confident
 // all the nuance of these sources can be handled externally
 void Lambda::processSources(float*& presPres) {
@@ -1532,6 +941,7 @@ void Lambda::processSources(float*& presPres) {
       }
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Processes the next simulation iteration.
@@ -1565,8 +975,6 @@ void Lambda::processSim() {
     // future+present scattered pressure in each direction
     std::map<std::string, float> scatFutu;
     std::map<std::string, float> scatPres;
-
-    processSources(presPres);
 
     ////////////////////////////////////////////////////////////////////////
     // it's expensive to do a lot of map lookups in the big loop before,
@@ -1704,9 +1112,9 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
   // new filter has got only one a- and one b-coefficient
   dest_numcoeffs = 1;
   // if a destination filter is already existing, then delete it
-  if (dest_coeffsA != NULL)
+  if (dest_coeffsA != nullptr)
     delete[] dest_coeffsA;
-  if (dest_coeffsB != NULL)
+  if (dest_coeffsB != nullptr)
     delete[] dest_coeffsB;
   // reserve memory for the a- and b-coefficient
   dest_coeffsA = new float[1];
@@ -1774,9 +1182,9 @@ void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
   // get number of filter coefficients
   dest_numcoeffs = src_numcoeffs[actnum];
   // if a destination filter is already existing, then delete it
-  if (dest_coeffsA != NULL)
+  if (dest_coeffsA != nullptr)
     delete[] dest_coeffsA;
-  if (dest_coeffsB != NULL)
+  if (dest_coeffsB != nullptr)
     delete[] dest_coeffsB;
   // reserve memory for the a- and b-coefficients
   dest_coeffsA = new float[src_numcoeffs[actnum]];

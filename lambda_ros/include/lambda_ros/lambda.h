@@ -35,13 +35,15 @@
 
 // This struct contains all the simulation config data.
 struct simConfig {
+  // clear is for starting from scratch, also resets
+  void clear();
+  // reset is just for restarting the current sim
+  void reset();
   int n;         // actual iteration #
   int nX;        // number of nodes in X-direction
   int nY;        // number of nodes in Y-direction
-  int nN;        // total number of iterations
-  int nRec;      // number of receivers
-  int nSrc;      // number of sources
   int nNodes;    // total number of nodes
+#if 0
   float cTube;   // sound speed in the tubes in meters/sec.
   float lTube;   // tube length in meters
   float rho;     // air density in kg/m^3, needed for velocity sources
@@ -49,20 +51,15 @@ struct simConfig {
   float fSample; // sampling frequency in Hz
   int nSamples;  // number of embedded samples for sources
   double t0;     // last time, used to check render speed
-};
-
-// Sample Data
-struct simSample {
-  int id;
-  int sr;
-  int nsamples;
-  float *data;
+#endif
 };
 
 // group all data here that tends to be accessed in the sim update step,
 // so that it is all close together in memory.
 // Initially just the filter data.
 struct DirectionalFilter {
+  void clear();
+  void reset();
   // whether to use a filter at this location at all
   bool filt_ = false;
 
@@ -70,9 +67,9 @@ struct DirectionalFilter {
   // maybe best to come up with a fixed max filter size and always allocate that
   // but for now keep to with the dynamic memory
 
+  int numcoeffs_ = 0;    // number of filter coeffs for filters
   std::unique_ptr<float[]> oldx_;          // filter non-recursive memory for filters
   std::unique_ptr<float[]> oldy_;          // filter non-recursive memory for filters
-  int numcoeffs_ = 0;    // number of filter coeffs for filters
   float *coeffsA_ = nullptr;   // recursive filter coeffs for filters
   float *coeffsB_ = nullptr;   // non-recursive filter coeffs for filters
 
@@ -85,6 +82,8 @@ struct DirectionalFilter {
 // TODO(lucasw) instead of the below being all independent arrays (and therefore widely
 // spaced in memory), make them all in the same data structure per node.
 struct Node {
+  void clear();
+  void reset();
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
 
@@ -100,18 +99,14 @@ struct Node {
 // This struct contains specific data about the simulation environment.
 struct SimData {
   SimData();
-
+  void clear(const size_t num_nodes);
+  void reset(const size_t num_nodes);
   // the location of these in memory is not that important because
   // they aren't accessed during the sim update.
   // use cv::Mat 32F for these?  Do a speed comparison before and after
   // the conversion.
   cv::Mat envi;       // simulation environment - the walls
   cv::Mat angle;      // angle matrix as loaded from the .sim-file
-  float *srcs;       // array containing the sources
-  float *recs;       // array containing the receivers
-  int *recIdx;       // array containing the receiver positions
-  float *record; // in case of recording into rco file, this array contains the
-                 // recorded data
 
   // these are important to keep together.
   // if there a lot of dead nodes, then better to kepep them in own array,
@@ -124,11 +119,6 @@ struct SimData {
   cv::Mat pressure_[3];  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector
   std::unique_ptr<Node[]> nodes_;
-
-  float
-      *mem; // array for sources to use for storing information between samples.
-  simSample **samples; // contains sample data from soundfiles embedded in the
-                       // simulation
 };
 
 // Indices used during simulation process.
@@ -140,19 +130,16 @@ struct Inci {
 };
 
 struct simIndex {
+  void clear();
+  void reset();
   float *presPast, *presPres, *presFutu;
+  // TODO(lwalter) replace with array with integers for LEFT, RIGHT etc.
+  const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
   std::map<std::string, Inci> inci_;
   float *idxP[3];
 };
 
-// Files used in the program.
-struct simFiles {
-  std::string lastFileName;
-  std::ofstream aviFile;
-  std::ofstream rceFile;
-  std::ofstream rcoFile;
-};
-
+#if 0
 // Source data.
 struct simSource {
   float y;     // y-position of source
@@ -162,28 +149,7 @@ struct simSource {
   float freq;  // frequency of source
   float phase; // phase angle of source
 };
-
-// Error identifiers.
-typedef enum {
-  NONE = 0,
-  FILE_BAD,
-  FILE_SIZE_BAD,
-  FILE_HEADER_BAD_OR_WRONG_VERSION,
-  FILE_DEF_BLOCK_BAD,
-  FILE_ENV_BLOCK_BAD,
-  FILE_ANG_BLOCK_BAD,
-  FILE_FLT_BLOCK_BAD,
-  FILE_SRC_BLOCK_BAD,
-  TUBE_SPEED_BAD,
-  TUBE_LENGTH_BAD,
-  RHO_BAD,
-  SRC_COORDS_BAD,
-  SRC_FREQ_BAD,
-  SRC_TYPE_BAD,
-  NO_SAMPLES,
-  NO_NODES,
-  NO_SOURCES,
-} simError;
+#endif
 
 // Angular preemphasis identifiers.
 typedef enum { kHorizontal = 0, kVertical, kNone } simAngularType;
@@ -193,16 +159,17 @@ public:
   Lambda();
 
   // TODO(lucasw) 3D add up and down?
+  // static constexpr std::array<char[7], 4> dirs_ = {"left", "right", "top", "bottom"};
   const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
 
-  typedef enum {LEFT, TOP, RIGHT, BOTTOM} dir;
+  typedef enum {LEFT, TOP, RIGHT, BOTTOM, NUM_DIRS} dir;
 
   //   Prepares variables needed for simulation.
   // RETURN VALUE
-  //   simError: NONE if no error occured, error identfier otherwise.
-  simError initSimulationPre();
+  //   return true if no error occured, false identfier otherwise.
+  bool initSimulationPre();
   void initEnvironmentSetup();
-  simError initSimulation();
+  bool initSimulation();
   void setVel(const int& srcxy, const float& magnitude, const float& alpha);
   //   Processes the next simulation iteration.
   void processSim();
@@ -227,24 +194,12 @@ public:
   //   value for nX
   //   (>0) and will update nNodes (which should always be nX*nY at any time)
   //   and dispSizeX automatically.
-  template <class T> simError set(const std::string what, const T value);
+  // TODO(lucasw) size_t
+  bool setNX(const int value);
+  bool setNY(const int value);
+  bool setNNodes(const int value);
 
 private:
-  //   starts or quits receiver. The
-  //   receiver stores sound pressure data at user specified receiver pixels to
-  //   a file.
-  void rce();
-
-  //   QT Slot connected to the Walls/Showbounds checkbox. Updates the
-  //   visualization window when checkbox is clicked.
-  void showbounds();
-
-  void setContrast();
-  void setZoom();
-  void setSkip();
-  void setColormap();
-  void setSamples();
-
   //   This function intializes all the important variables, arrays and
   //   matrices. Sets pointers to NULL. Called only one single time at startup.
   void initVariables();
@@ -252,29 +207,6 @@ private:
   void initEnvironment();
 
   void setupOldXY(const size_t d, const int pos);
-
-  //   Processes input parameters and sets internal variables accordingly.
-  // INPUT
-  //   int argc     : Number of elements in input vector argv
-  //   char *argv[] : Array of variable input parameters
-  void handleParameters(int argc, char *argv[]);
-
-  //   Adds a source to the array of sources (data.srcs) after performing a few
-  //   checks on the data.
-  // INPUT
-  //   const unsigned int idx   : An integer defining the source's index in the
-  //   array. const simSource *srcData : Pointer to the source to be added.
-  // RETURN VALUE
-  //   simError: NONE if source was added successfully, error identfier
-  //   otherwise.
-  virtual simError defineSource(const int idx, const simSource *srcData);
-
-  // PURPOSE
-  //   Tries to load a recorded playback file.
-  // RETURN VALUE
-  //   simError: NONE if file was opened successfully, error identfier
-  //   otherwise.
-  virtual simError loadRecord(const std::string fileName);
 
   int *tmp_filtid = NULL;         // temporary filter ID array
   int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
@@ -284,24 +216,12 @@ private:
 
   void processWall(const int x, const int y);
 
-  // load a simulation file.
-  // RETURN VALUE
-  //   simError: NONE if file was opened successfully, error identfier
-  //   otherwise.
-  virtual simError loadSimulation(const std::string fileName);
-
-  void processSources(float*& presPres);
-
   //   Resets important variables, arrays and matrices to zero, e.g. before
   //   starting new simulation runs.
-  virtual void resetAll();
+  virtual void clear();
 
   //   Resets variables and arrays used directly for simulation purposes.
-  virtual void resetSimulation();
-
-  //   Processes the receiver output after each calculated sim iteration if Rce
-  //   is switched on.
-  virtual void processRce();
+  virtual void reset();
 
   //   Creates a new digital filter for a given real-valued reflexion factor and
   //   preemphases the filter coefficients due to a given sonic incidence angle
@@ -351,8 +271,6 @@ private:
   simConfig config;
   SimData data;
   simIndex index;
-  simFiles files;
-  int MEMSRC;
 
   static constexpr float rad_per_deg = M_PI / 180.f;
 };

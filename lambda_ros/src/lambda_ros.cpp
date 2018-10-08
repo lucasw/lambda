@@ -23,10 +23,10 @@ public:
     // the width of each cell is 343.0 / 44100.0 = 0.0078 meters, or 1/3"
     int wd = 5;
     ros::param::get("~width", wd);
-    lambda_->set("nX", wd);
+    lambda_->setNX(wd);
     int ht = 5;
     ros::param::get("~height", ht);
-    lambda_->set("nY", ht);
+    lambda_->setNY(ht);
     // rho doesn't change the sim at all, it is for the internal sources
     // float rho = 0.01;
     // ros::param::get("~rho", rho);
