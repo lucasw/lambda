@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+set (CMAKE_CXX_STANDARD 11)
+
 roslint_cpp()
 
 # find_package(lambda REQUIRED)
