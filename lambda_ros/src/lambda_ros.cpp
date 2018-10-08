@@ -63,14 +63,14 @@ public:
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
-    #if 0
+    #if 1
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
     const float radius = wd * 0.4;
-    for (size_t i = 0; i < 400; ++i)
+    for (size_t i = 0; i < 250; ++i)
     {
-      const float angle = i * 0.01;
+      const float angle = i * 0.02;
       const int x = wd * 0.5 + radius * cos(angle);
       const int y = ht * 0.5 + radius * sin(angle);
       // std::cout << x << " " << y << "\n";

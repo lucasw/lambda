@@ -1456,38 +1456,9 @@ void Lambda::setVel(const int& srcxy, const float& magnitude, const float& alpha
   }
 }
 
-//   Processes the next simulation iteration.
-void Lambda::processSim() {
-  {
-    // periodic cycling of time indices
-    int idxPast = ((config.n + 0) % 3); // past index
-    int idxPres = ((config.n + 1) % 3); // present index
-    int idxFutu = ((config.n + 2) % 3); // future index
-    // Set these pointers at the beginning of the iteration.
-    // They would have to be calculated several times during the process
-    // otherwise.
-    index.presPast = index.idxP[idxPast]; // past pressure index
-    index.presPres = index.idxP[idxPres]; // present pressure index
-    index.presFutu = index.idxP[idxFutu]; // future pressure index
-    // std::cout << index.presPast[0] << " " << index.presPres[1]
-    //    << " " << index.presFutu[2] << "\n";
-    float *index_presFutu = index.presFutu;
-    float *presPres = index.presPres;
-
-    for (const std::string& dir : dirs_) {
-      index.inci_[dir].past_ =
-          index.inci_[dir].idxI[idxPast]; // past left incident pressure index
-      index.inci_[dir].pres_ =
-          index.inci_[dir].idxI[idxPres]; // present left incident pressure index
-      index.inci_[dir].futu_ =
-          index.inci_[dir].idxI[idxFutu]; // future left incident pressure index
-    }
-
-    // TODO(lucasw) map lookups are slow
-    // future+present scattered pressure in each direction
-    std::map<std::string, float> scatFutu;
-    std::map<std::string, float> scatPres;
-
+// TODO(lucasw probably going to delete this once confident
+// all the nuance of these sources can be handled externally
+void Lambda::processSources(float*& presPres) {
     // TODO(lucasw) is there anything special about these sources vs.
     // feeding in the source externally?
     // Work through all the sources. First init all the sources
@@ -1618,6 +1589,41 @@ void Lambda::processSim() {
                     sample->nsamples); // advance read position, loop if at end
       }
     }
+}
+
+//   Processes the next simulation iteration.
+void Lambda::processSim() {
+  {
+    // periodic cycling of time indices
+    int idxPast = ((config.n + 0) % 3); // past index
+    int idxPres = ((config.n + 1) % 3); // present index
+    int idxFutu = ((config.n + 2) % 3); // future index
+    // Set these pointers at the beginning of the iteration.
+    // They would have to be calculated several times during the process
+    // otherwise.
+    index.presPast = index.idxP[idxPast]; // past pressure index
+    index.presPres = index.idxP[idxPres]; // present pressure index
+    index.presFutu = index.idxP[idxFutu]; // future pressure index
+    // std::cout << index.presPast[0] << " " << index.presPres[1]
+    //    << " " << index.presFutu[2] << "\n";
+    float *index_presFutu = index.presFutu;
+    float *presPres = index.presPres;
+
+    for (const std::string& dir : dirs_) {
+      index.inci_[dir].past_ =
+          index.inci_[dir].idxI[idxPast]; // past left incident pressure index
+      index.inci_[dir].pres_ =
+          index.inci_[dir].idxI[idxPres]; // present left incident pressure index
+      index.inci_[dir].futu_ =
+          index.inci_[dir].idxI[idxFutu]; // future left incident pressure index
+    }
+
+    // TODO(lucasw) map lookups are slow
+    // future+present scattered pressure in each direction
+    std::map<std::string, float> scatFutu;
+    std::map<std::string, float> scatPres;
+
+    processSources(presPres);
 
     ////////////////////////////////////////////////////////////////////////
     // it's expensive to do a lot of map lookups in the big loop before,

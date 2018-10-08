@@ -265,6 +265,8 @@ private:
   //   otherwise.
   virtual simError loadSimulation(const std::string fileName);
 
+  void processSources(float*& presPres);
+
   //   Resets important variables, arrays and matrices to zero, e.g. before
   //   starting new simulation runs.
   virtual void resetAll();
