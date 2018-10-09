@@ -18,9 +18,12 @@ public:
     spinner_(3)
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
+    environment_pub_ = nh_.advertise<sensor_msgs::Image>("environment_image", 1);
     audio_pub_ = nh_.advertise<spectrogram_paint_ros::Audio>("audio", 1);
     point_sub_ = nh_.subscribe<geometry_msgs::Point>("pressure_image_mouse_left", 10,
         &LambdaRos::pointCallback, this);
+    wall_point_sub_ = nh_.subscribe<geometry_msgs::Point>("environment_image_mouse_left", 10,
+        &LambdaRos::wallPointCallback, this);
     lambda_.reset(new Lambda());
 
     // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
@@ -67,7 +70,7 @@ public:
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
-    #if 1
+    #if 0
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
@@ -125,7 +128,7 @@ public:
     reconfigure_server_->setCallback(cbt);
 
     // TODO(lucasw) need to adjust the timer based on publish rate
-    update_timer_ = nh_.createTimer(ros::Duration(0.02),
+    update_timer_ = nh_.createTimer(ros::Duration(0.04),
         &LambdaRos::update, this);
     audio_update_timer_ = nh_.createTimer(ros::Duration(1.0),
         &LambdaRos::audio_update, this);
@@ -140,15 +143,16 @@ public:
   {
     if (point_)
     {
-      if (config_.click_mode == lambda_ros::Lambda_pressure_impulse)
-        addPressure(point_->x, point_->y, config_.click_value);
-      else if (config_.click_mode == lambda_ros::Lambda_wall)
-      {
-        for (int ox = -2; ox < 3; ++ox)
-          for (int oy = -2; oy < 3; ++oy)
-            addWall(point_->x + ox, point_->y + oy, config_.click_value);
-      }
+      addPressure(point_->x, point_->y, config_.click_value);
       point_.reset();
+    }
+
+    if (wall_point_)
+    {
+      for (int ox = -2; ox < 3; ++ox)
+        for (int oy = -2; oy < 3; ++oy)
+          addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
+      wall_point_.reset();
     }
 
     if (!config_.publish_rate == 0.0)
@@ -162,7 +166,7 @@ public:
         lambda_->processSim();
         {
           std::lock_guard<std::mutex> lock(audio_mutex_);
-          new_samples_.push_back(lambda_->getPressure(180, 160));
+          new_samples_.push_back(lambda_->getPressure(200, 200));
         }
         fr_accum_ += 1.0;
       }
@@ -235,24 +239,40 @@ public:
 
   void pointCallback(const geometry_msgs::PointConstPtr& msg)
   {
-    ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
+    // ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
     point_ = msg;
+  }
+
+  void wallPointCallback(const geometry_msgs::PointConstPtr& msg)
+  {
+    // ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
+    wall_point_ = msg;
   }
 
   void publishImage()
   {
-    cv_image_.header.stamp = ros::Time::now();
-    lambda_->getPressure(cv_image_.image);
-    cv_image_.encoding = "32FC1";
-    pressure_pub_.publish(cv_image_.toImageMsg());
+    {
+      cv_image_.header.stamp = ros::Time::now();
+      lambda_->getPressure(cv_image_.image);
+      cv_image_.encoding = "32FC1";
+      pressure_pub_.publish(cv_image_.toImageMsg());
+    }
+    {
+      cv_image_.header.stamp = ros::Time::now();
+      lambda_->getEnvironment(cv_image_.image);
+      cv_image_.encoding = "32FC1";
+      environment_pub_.publish(cv_image_.toImageMsg());
+    }
   }
 
 private:
   ros::NodeHandle nh_;
   ros::Publisher pressure_pub_;
+  ros::Publisher environment_pub_;
   spectrogram_paint_ros::Audio audio_;
   ros::Publisher audio_pub_;
   ros::Subscriber point_sub_;
+  ros::Subscriber wall_point_sub_;
   cv_bridge::CvImage cv_image_;
   std::unique_ptr<Lambda> lambda_;
 
@@ -273,6 +293,7 @@ private:
   ros::Timer audio_update_timer_;
   ros::AsyncSpinner spinner_;
   geometry_msgs::PointConstPtr point_;
+  geometry_msgs::PointConstPtr wall_point_;
 };
 
 int main(int argc, char* argv[])

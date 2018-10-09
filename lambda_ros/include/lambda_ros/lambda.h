@@ -171,6 +171,10 @@ public:
   float getPressure(const size_t x, const size_t y);
 
   void setWall(const size_t x, const size_t y, const float value);
+  void getEnvironment(cv::Mat& image)
+  {
+    image = data.envi;
+  }
 
   // TODO(lucasw) size_t
   bool setNX(const int value);
