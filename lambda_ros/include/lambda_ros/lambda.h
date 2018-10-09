@@ -179,15 +179,6 @@ public:
 
   void setWall(const size_t x, const size_t y, const float value);
 
-  //   Function template. This function should be used whenever one of the key
-  //   variables of the lambda class is changed. It performs the necessary
-  //   checks before changing one of those variables and makes necessary
-  //   additional changes after changing. For example, the number of elements in
-  //   X-direction should not just be changed. Instead, you should use
-  //   set("nX",41);. This will check wether the second argument is a valid
-  //   value for nX
-  //   (>0) and will update nNodes (which should always be nX*nY at any time)
-  //   and dispSizeX automatically.
   // TODO(lucasw) size_t
   bool setNX(const int value);
   bool setNY(const int value);
@@ -202,6 +193,7 @@ private:
 
   void setupOldXY(const size_t d, const int pos);
 
+  // TODO(lucasw) do something with these
   int *tmp_filtid = NULL;         // temporary filter ID array
   int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
   float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array

@@ -919,18 +919,10 @@ void Lambda::processSim() {
     const size_t idxPast = ((config.n + 0) % 3); // past index
     const size_t idxPres = ((config.n + 1) % 3); // present index
     const size_t idxFutu = ((config.n + 2) % 3); // future index
-    // Set these pointers at the beginning of the iteration.
-    // They would have to be calculated several times during the process
-    // otherwise.
+
     float* presPast = data.pressure_[idxPast].ptr<float>(0);
     float* presPres = data.pressure_[idxPres].ptr<float>(0);
     float* presFutu = data.pressure_[idxFutu].ptr<float>(0);
-
-    // TODO(lucasw) map lookups are slow
-
-    ////////////////////////////////////////////////////////////////////////
-    // it's expensive to do a lot of map lookups in the big loop before,
-    // they don't get optimized out.
 
     // Work through all the nodes in the environment
     for (int pos = 0; pos < config.nNodes; pos++) {
@@ -938,10 +930,8 @@ void Lambda::processSim() {
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!
         continue;
 
-      const int pos_left = pos - 1;
-      const int pos_top = pos - config.nX;
-      const size_t pos_right = pos + 1;
-      const size_t pos_bottom = pos + config.nX;
+      const std::array<int, 4> neighbors = {pos - 1, pos - config.nX,
+                                            pos + 1, pos + config.nX};
       if (data.boundary[pos]) // boundary? --> no standard propagation!
       {
         for (size_t d = 0; d < 4; ++d) {
@@ -998,25 +988,17 @@ void Lambda::processSim() {
             data.nodes_[pos].inci_[d][idxFutu] = yn;
             presFutu[pos] += yn;
           } else {
-            // no filter in this direction
+            // TODO(lucasw) a proper setting of boundaries on the edges
+            // of the grid means that neighbors[d] will never be out of bounds.
+            // There is no filter in this direction
             const float scat_pres = presPast[pos] - data.nodes_[pos].inci_[d][idxPast];
-
-            float incis_futu = 0.0;
-            if (d == LEFT)
-              incis_futu = presPres[pos_left] - scat_pres;
-            else if (d == TOP)
-              incis_futu = presPres[pos_top] - scat_pres;
-            else if (d == RIGHT)
-              incis_futu = presPres[pos_right] - scat_pres;
-            else if (d == BOTTOM)
-              incis_futu = presPres[pos_bottom] - scat_pres;
-
+            const float incis_futu = presPres[neighbors[d]] - scat_pres;
             data.nodes_[pos].inci_[d][idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
         } // dir loop
         presFutu[pos] *= 0.5f;
-      } else {
+      } else {  // not a boundary
         // TODO(lucasw) this is mostly likely getting executed the most,
         // so it pays to have all the pressures future past present and
         // immediate neighbors close together in memory- that argues for preserving
@@ -1033,8 +1015,8 @@ void Lambda::processSim() {
 
         // no boundary node: do the fast standard propagation
         presFutu[pos] =
-            (presPres[pos_left] + presPres[pos_top] +
-             presPres[pos_right] + presPres[pos_bottom]) *
+            (presPres[neighbors[LEFT]] + presPres[neighbors[TOP]] +
+             presPres[neighbors[RIGHT]] + presPres[neighbors[BOTTOM]]) *
                 0.5f - presPast[pos];
       }  // boundary
     }  // loop through all nodes
