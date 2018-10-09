@@ -70,6 +70,10 @@ struct DirectionalFilter {
   int numcoeffs_ = 0;    // number of filter coeffs for filters
 
   // Constant array size for now, later try to make it more dynamic
+  // TODO(lucasw) need a small array optimization if size 0..4 or some other
+  // low value use a std::array, but still allow special large filters
+  // that use dynamic memory
+  // which should be fine if not on too many nodes.
   std::array<float, 4> oldx_;
   std::array<float, 4> oldy_;
   std::array<float, 4> coeffsA_;
@@ -124,10 +128,10 @@ struct SimData {
   // these are important to keep together.
   // if there a lot of dead nodes, then better to kepep them in own array,
   // otherwise move into node above
-  bool *deadnode;    // array indicating "dead" nodes
+  std::unique_ptr<bool[]> deadnode;    // array indicating "dead" nodes
   // same here- if many boundaries then move into Node
   // seems much faster outside of node (but maybe didn't test correctly).
-  bool *boundary;    // array indicating boundary nodes
+  std::unique_ptr<bool[]> boundary;    // array indicating boundary nodes
   cv::Mat pressure_[3];  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector
   std::unique_ptr<Node[]> nodes_;
@@ -191,8 +195,6 @@ private:
   void initVariables();
 
   void initEnvironment();
-
-  void setupOldXY(const size_t d, const int pos);
 
   // TODO(lucasw) do something with these
   int *tmp_filtid = NULL;         // temporary filter ID array

@@ -21,8 +21,7 @@
 
 #include <lambda_ros/lambda.h>
 
-SimData::SimData()
-    : deadnode(nullptr) {}
+SimData::SimData() {}
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
@@ -105,14 +104,8 @@ void SimData::clear(const size_t num_nodes) {
   envi = cv::Mat();
   angle = cv::Mat();
 
-  if (deadnode != nullptr) {
-    delete[] deadnode;
-    deadnode = nullptr;
-  }
-  if (boundary != nullptr) {
-    delete[] boundary;
-    boundary = nullptr;
-  }
+  deadnode.reset(nullptr);
+  boundary.reset(nullptr);
 
   for (int n = 0; n < num_nodes; n++) {
     nodes_[n].clear();
@@ -296,13 +289,14 @@ bool Lambda::setNNodes(const int value) {
   }
 #endif
 
+// TODO(lucasw) merge this with other init methods
 bool Lambda::initSimulationPre() {
   // Check one more time
   if (config.nNodes < 1)
     return false;
 
   data.envi = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-  data.deadnode = new bool[config.nNodes]; // reserve mem for deadnode matrix
+  data.deadnode.reset(new bool[config.nNodes]); // reserve mem for deadnode matrix
   for (int pos = 0; pos < config.nNodes; pos++) {
      data.deadnode[pos] = false;
   }
@@ -314,12 +308,10 @@ bool Lambda::initSimulationPre() {
 
 //  ----- PREPROCESSING OF THE ENVIRONMENT -----
 void Lambda::initEnvironment() {
-  data.boundary = new bool[config.nNodes]; // mem for boundary indicator
+  data.boundary.reset(new bool[config.nNodes]); // mem for boundary indicator
   // data.deadnode=new bool[config.nNodes];              // mem for deadnode
   // indicator
   data.nodes_.reset(new Node[config.nNodes]);
-
-  int actrec = 0;
 
   // work through all nodes in the environment
   for (int y = 0; y < config.nY; y++) {
@@ -405,9 +397,6 @@ void Lambda::processWall(const int x, const int y) {
                          data.nodes_[pos].filter_[BOTTOM].coeffsB_, envi,
                          angle, kVertical);
 
-    for (size_t d = 0; d < 4; ++d)
-      setupOldXY(d, pos);
-
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
@@ -419,7 +408,6 @@ void Lambda::processWall(const int x, const int y) {
                            data.nodes_[new_pos].filter_[d].coeffsA_,
                            data.nodes_[new_pos].filter_[d].coeffsB_, envi,
                            angle, kHorizontal);
-      setupOldXY(d, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
@@ -432,7 +420,6 @@ void Lambda::processWall(const int x, const int y) {
                            data.nodes_[new_pos].filter_[d].coeffsA_,
                            data.nodes_[new_pos].filter_[d].coeffsB_,
                            envi, angle, kVertical);
-      setupOldXY(d, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
@@ -444,7 +431,6 @@ void Lambda::processWall(const int x, const int y) {
                            data.nodes_[new_pos].filter_[d].coeffsA_,
                            data.nodes_[new_pos].filter_[d].coeffsB_, envi,
                            angle, kHorizontal);
-      setupOldXY(d, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
@@ -456,7 +442,6 @@ void Lambda::processWall(const int x, const int y) {
                            data.nodes_[new_pos].filter_[d].coeffsA_,
                            data.nodes_[new_pos].filter_[d].coeffsB_,
                            envi, angle, kVertical);
-      setupOldXY(d, new_pos);
     }
   // is the actual node a filter-node?
   } else if ((envi > 1.0) && (envi <= 1000.0)) {
@@ -491,9 +476,6 @@ void Lambda::processWall(const int x, const int y) {
                 tmp_filtcoeffsB, tmp_numfilters, (int)envi,
                 angle, kVertical);
 
-    for (size_t d = 0; d < 4; ++d)
-      setupOldXY(d, pos);
-
     if (x <
         config.nX - 1) // apply a left filter to its right neighbour, if it
     {                  // isn't outside the simfield
@@ -507,7 +489,6 @@ void Lambda::processWall(const int x, const int y) {
           data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
           tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
           (int)envi, angle, kHorizontal);
-      setupOldXY(d, new_pos);
     }
     if (y <
         config.nY - 1) // apply a top filter to its bottom neighbour, if it
@@ -522,7 +503,6 @@ void Lambda::processWall(const int x, const int y) {
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
-      setupOldXY(d, new_pos);
     }
     if (x > 0) // apply a right filter to its left neighbour, if it
     {          // isn't outside the simfield
@@ -536,7 +516,6 @@ void Lambda::processWall(const int x, const int y) {
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kHorizontal);
-      setupOldXY(d, new_pos);
     }
     if (y > 0) // apply a bottom filter to its top neighbour, if it
     {          // isn't outside the simfield
@@ -550,17 +529,10 @@ void Lambda::processWall(const int x, const int y) {
                   tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
                   tmp_numfilters, (int)envi, angle,
                   kVertical);
-      setupOldXY(d, new_pos);
     }
   } else if (envi < -1.0) // is the actual node a receiver-node?
   {
-    #if 0
-    if (actrec < config.nRec) {
-      data.recIdx[actrec] =
-          pos;  // yes, add the receiver's position into the
-      actrec++; // recIdx-Array
-    }
-    #endif
+    // envi < -1.0 used to be used for recorders
   }
 }
 
@@ -656,28 +628,7 @@ bool Lambda::initSimulation() {
     data.pressure_[x] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
   }
 
-  // velocity sources
-  for (int pos = 0; pos < config.nNodes; pos++) {
-    for (size_t d = 0; d < 4; ++d) {
-      setupOldXY(d, pos);
-    }
-  }
-
   return true;
-}
-
-void Lambda::setupOldXY(const size_t d, const int pos)
-{
-  if (data.nodes_[pos].filter_[d].numcoeffs_ >= 1) {
-    // reserve+initialize recursive and non-recursive memory for left filters
-    int memorycnt = data.nodes_[pos].filter_[d].numcoeffs_ - 1;
-    if (memorycnt == 0) // to ensure that even 0th order filters have
-      memorycnt = 1; // memory; this spares an if-condition in the algorithm
-    // data.nodes_[pos].filter_[d].oldx_.resize(memorycnt, 0.0f);
-    // data.nodes_[pos].filter_[d].oldy_.resize(memorycnt, 0.0f);
-    // data.nodes_[pos].filter_[d].oldx_.reset(new float[memorycnt]);
-    // data.nodes_[pos].filter_[d].oldy_.reset(new float[memorycnt]);
-  }
 }
 
 void Lambda::setPressure(const size_t x, const size_t y, const float value)
@@ -743,8 +694,6 @@ void Lambda::setWall(const size_t x, const size_t y, const float value)
     return;
   data.envi.at<float>(y, x) = value;
   processWall(x, y);
-  for (size_t d = 0; d < 4; ++d)
-    setupOldXY(d, y * config.nX + x);
 }
 
 // alpha is angle
