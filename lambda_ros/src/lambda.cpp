@@ -20,6 +20,7 @@
 //  or visit http://www.gnu.org/licenses/gpl.html
 
 #include <lambda_ros/lambda.h>
+#include <omp.h>
 
 SimData::SimData() {}
 
@@ -876,6 +877,9 @@ void Lambda::processSim() {
     float* presFutu = data.pressure_[idxFutu].ptr<float>(0);
 
     // Work through all the nodes in the environment
+    // TODO(lucasw) static will be imbalanced when the distribution
+    // of boundaries is imbalanced
+    // # pragma omp parallel for schedule(dynamic, 400)
     for (int pos = 0; pos < config.nNodes; pos++) {
       presFutu[pos] = 0.f;
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!

@@ -4,6 +4,8 @@
 #include <lambda_ros/LambdaConfig.h>
 #include <lambda_ros/lambda.h>
 #include <memory>
+#include <mutex>
+#include <omp.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <spectrogram_paint_ros/Audio.h>
@@ -102,8 +104,9 @@ public:
     ROS_INFO_STREAM("start sim");
 
     {
+      ros::Duration(1.0).sleep();
       ros::Time t0 = ros::Time::now();
-      const float num = 800.0;
+      const float num = 2800;
       for (size_t i = 0; i < num; ++i)
       {
         lambda_->processSim();
@@ -111,6 +114,7 @@ public:
       ros::Time t1 = ros::Time::now();
       // this is currently around 1500
       ROS_INFO_STREAM("speed = " << num / (t1 - t0).toSec());
+      ros::Duration(1.0).sleep();
     }
 
     addPressure(wd / 2, ht / 2, 1.0);
@@ -123,6 +127,8 @@ public:
     // TODO(lucasw) need to adjust the timer based on publish rate
     update_timer_ = nh_.createTimer(ros::Duration(0.02),
         &LambdaRos::update, this);
+    audio_update_timer_ = nh_.createTimer(ros::Duration(1.0),
+        &LambdaRos::audio_update, this);
 
     spinner_.start();
   }
@@ -154,17 +160,41 @@ public:
       for (size_t i = 0; i < num; ++i)
       {
         lambda_->processSim();
-        audio_.data.push_back(lambda_->getPressure(180, 160));
+        {
+          std::lock_guard<std::mutex> lock(audio_mutex_);
+          new_samples_.push_back(lambda_->getPressure(180, 160));
+        }
         fr_accum_ += 1.0;
       }
       publishImage();
-      // TODO(lucasw) config_.sample_rate
-      audio_.sample_rate = 16000;
-      if (audio_.data.size() > 8000)
+    }
+  }
+
+  void audio_update(const ros::TimerEvent& e)
+  {
+   // TODO(lucasw) config_.sample_rate
+    // TODO(lucasw) make this a rolling buffer instead, every few thousand
+    // after reaching some desired length
+    // pop the front few thousand off
+    audio_.sample_rate = 16000;
+
+    {
+      std::lock_guard<std::mutex> lock(audio_mutex_);
+      while (!new_samples_.empty())
       {
-        audio_pub_.publish(audio_);
-        audio_.data.resize(0);
+        audio_.data.push_back(new_samples_.front());
+        new_samples_.pop_front();
       }
+    }
+
+    audio_pub_.publish(audio_);
+
+    if (audio_.data.size() > audio_.sample_rate + 1000)
+    {
+      const size_t diff = audio_.data.size() - audio_.sample_rate;
+      std::vector<float>::const_iterator beg = audio_.data.begin() + diff;
+      std::vector<float>::const_iterator end = audio_.data.end();
+      audio_.data = std::vector<float>(beg, end);
     }
   }
 
@@ -237,7 +267,10 @@ private:
     config_ = config;
   }
 
+  std::mutex audio_mutex_;
+  std::list<float> new_samples_;
   ros::Timer update_timer_;
+  ros::Timer audio_update_timer_;
   ros::AsyncSpinner spinner_;
   geometry_msgs::PointConstPtr point_;
 };
