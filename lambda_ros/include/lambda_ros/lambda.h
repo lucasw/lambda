@@ -126,6 +126,7 @@ struct SimData {
   // otherwise move into node above
   bool *deadnode;    // array indicating "dead" nodes
   // same here- if many boundaries then move into Node
+  // seems much faster outside of node (but maybe didn't test correctly).
   bool *boundary;    // array indicating boundary nodes
   cv::Mat pressure_[3];  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector

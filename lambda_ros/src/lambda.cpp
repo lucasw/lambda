@@ -22,7 +22,7 @@
 #include <lambda_ros/lambda.h>
 
 SimData::SimData()
-    : boundary(nullptr), deadnode(nullptr) {}
+    : deadnode(nullptr) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
@@ -315,9 +315,6 @@ bool Lambda::initSimulationPre() {
 //  ----- PREPROCESSING OF THE ENVIRONMENT -----
 void Lambda::initEnvironment() {
   data.boundary = new bool[config.nNodes]; // mem for boundary indicator
-  for (int pos = 0; pos < config.nNodes; pos++) {
-    data.boundary[pos] = false;
-  }
   // data.deadnode=new bool[config.nNodes];              // mem for deadnode
   // indicator
   data.nodes_.reset(new Node[config.nNodes]);
@@ -328,6 +325,7 @@ void Lambda::initEnvironment() {
   for (int y = 0; y < config.nY; y++) {
     for (int x = 0; x < config.nX; x++) {
       const int pos = y * config.nX + x;
+      data.boundary[pos] = false;
       if ((y == 0) || (x == 0) || (y == config.nY - 1) ||
           (x == config.nX - 1)) // is this a simfield border node?
       {
@@ -932,7 +930,9 @@ void Lambda::processSim() {
 
       const std::array<int, 4> neighbors = {pos - 1, pos - config.nX,
                                             pos + 1, pos + config.nX};
-      if (data.boundary[pos]) // boundary? --> no standard propagation!
+      // boundary? --> no standard propagation!
+      if (data.boundary[pos])
+      // if (data.nodes_[pos].boundary_)
       {
         for (size_t d = 0; d < 4; ++d) {
           // TODO(lucasw) clean this up by make this a method of DirData?
