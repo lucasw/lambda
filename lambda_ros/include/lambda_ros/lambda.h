@@ -132,14 +132,6 @@ struct SimData {
   std::unique_ptr<Node[]> nodes_;
 };
 
-// Indices used during simulation process.
-struct Inci {
-  float *past_;
-  float *pres_;
-  float *futu_;
-  float *idxI[3];
-};
-
 #if 0
 // Source data.
 struct simSource {
