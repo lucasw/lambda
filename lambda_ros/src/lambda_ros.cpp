@@ -76,7 +76,7 @@ public:
       // std::cout << x << " " << y << "\n";
       for (int ox = 0; ox < 3; ++ox)
         for (int oy = 0; oy < 3; ++oy)
-          addWall(x + ox, y + oy, -1.0);
+          addWall(x + ox, y + oy, -0.98);
     }
     #endif
     #if 0
@@ -101,14 +101,13 @@ public:
 
     {
       ros::Time t0 = ros::Time::now();
-      const float num = 400.0;
+      const float num = 800.0;
       for (size_t i = 0; i < num; ++i)
       {
-        // 277 with process vis, 471 without
         lambda_->processSim();
-        // lambda_->processVis();
       }
       ros::Time t1 = ros::Time::now();
+      // this is currently around 1500
       ROS_INFO_STREAM("speed = " << num / (t1 - t0).toSec());
     }
 
@@ -119,11 +118,15 @@ public:
         boost::bind(&LambdaRos::reconfigureCallback, this, _1, _2);
     reconfigure_server_->setCallback(cbt);
 
+    // TODO(lucasw) need to adjust the timer based on publish rate
     update_timer_ = nh_.createTimer(ros::Duration(0.02),
         &LambdaRos::update, this);
 
     spinner_.start();
   }
+
+  float fr_accum_ = 0.0;
+  float new_fr_accum_ = 0.0;
 
   void update(const ros::TimerEvent& e)
   {
@@ -142,15 +145,16 @@ public:
 
     if (!config_.publish_rate == 0.0)
     {
-      lambda_->processSim();
+      const float fr = config_.update_rate / config_.publish_rate;
+      new_fr_accum_ += fr;
+      const int num = new_fr_accum_ - fr_accum_;
+      // no gaurantee this amount can be processed in time
+      for (size_t i = 0; i < num; ++i)
+      {
+        lambda_->processSim();
+        fr_accum_ += 1.0;
+      }
       publishImage();
-      // Can get 203 fps and 100% one cpu core with no sleeping
-      // 84 fps with this 5 ms sleep
-      ros::Duration(0.005).sleep();
-    }
-    else
-    {
-      ros::Duration(0.03).sleep();
     }
   }
 
