@@ -888,23 +888,22 @@ void Lambda::processSim() {
       // it would be easy to check here and update boundary if they aren't,
       // going the other way to set boundary true is the responsibility
       // of methods that alter filters.
-      if (data.boundary[pos])
-      // if (data.nodes_[pos].boundary_)
-      {
-
+      if (data.boundary[pos]) {
+      // if (data.nodes_[pos].boundary_) {
         for (size_t d = 0; d < 4; ++d) {
+          DirectionalFilter& filter = data.nodes_[pos].filter_[d];
           // TODO(lucasw) clean this up by make this a method of DirData?
           //  filter
-          if (data.nodes_[pos].filter_[d].filt_) {
+          if (filter.filt_) {
             // for filter processing it would pay to have a single
             // node data structure that holds most of the values below
             // adjacent in memory rather that in parallel arrays.
             // No neighboring nodes are used at all.
             bool debug = false;
             // calculate filter input
-            const float scat_futu = presPres[pos] - data.nodes_[pos].filter_[d].inci_[idxPres];
+            const float scat_futu = presPres[pos] - filter.inci_[idxPres];
             // calculate the digital filter
-            const float cb0 = data.nodes_[pos].filter_[d].coeffsB_[0];
+            const float cb0 = filter.coeffsB_[0];
             // filter output - why isn't ca0 used?
             float yn = scat_futu * cb0;
             #if 0
@@ -920,18 +919,18 @@ void Lambda::processSim() {
             }
             #endif
             // standard walls never have this many coefficients, only cb0 matters
-            for (int n = 1; n < data.nodes_[pos].filter_[d].numcoeffs_; n++) {
-              const float oldx = data.nodes_[pos].filter_[d].oldx_[n - 1];
-              const float cb = data.nodes_[pos].filter_[d].coeffsB_[n];
-              const float oldy = data.nodes_[pos].filter_[d].oldy_[n - 1];
-              const float ca = data.nodes_[pos].filter_[d].coeffsA_[n];
+            for (int n = 1; n < filter.numcoeffs_; n++) {
+              const float oldx = filter.oldx_[n - 1];
+              const float cb = filter.coeffsB_[n];
+              const float oldy = filter.oldy_[n - 1];
+              const float ca = filter.coeffsA_[n];
               if (debug) std::cout << n << ", oldx " << oldx << " cb " << cb
                   << ", oldy " << oldy << " " << ca << "\n";
               yn += oldx * cb - oldy * ca;
             }
             // add magnitude of a possible velocity source
             {
-              const float velo = data.nodes_[pos].filter_[d].velo_;
+              const float velo = filter.velo_;
               #if 0
               if (debug) std::cout << "velo " << velo << "\n";
               #endif
@@ -942,22 +941,22 @@ void Lambda::processSim() {
             // should be faster than all this copying.
             // But normal filter length 1 walls don't even use this.
             // rotate the filter memories
-            for (int n = data.nodes_[pos].filter_[d].numcoeffs_ - 2; n > 0; n--) {
-              data.nodes_[pos].filter_[d].oldx_[n] = data.nodes_[pos].filter_[d].oldx_[n - 1];
-              data.nodes_[pos].filter_[d].oldy_[n] = data.nodes_[pos].filter_[d].oldy_[n - 1];
+            for (int n = filter.numcoeffs_ - 2; n > 0; n--) {
+              filter.oldx_[n] = filter.oldx_[n - 1];
+              filter.oldy_[n] = filter.oldy_[n - 1];
             }
-            data.nodes_[pos].filter_[d].oldx_[0] = scat_futu;
-            data.nodes_[pos].filter_[d].oldy_[0] = yn;
+            filter.oldx_[0] = scat_futu;
+            filter.oldy_[0] = yn;
             // and write the filter output into the pressure matrix
-            data.nodes_[pos].filter_[d].inci_[idxFutu] = yn;
+            filter.inci_[idxFutu] = yn;
             presFutu[pos] += yn;
           } else {
             // TODO(lucasw) a proper setting of boundaries on the edges
             // of the grid means that neighbors[d] will never be out of bounds.
             // There is no filter in this direction
-            const float scat_pres = presPast[pos] - data.nodes_[pos].filter_[d].inci_[idxPast];
+            const float scat_pres = presPast[pos] - filter.inci_[idxPast];
             const float incis_futu = presPres[neighbors[d]] - scat_pres;
-            data.nodes_[pos].filter_[d].inci_[idxFutu] = incis_futu;
+            filter.inci_[idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
         } // dir loop
