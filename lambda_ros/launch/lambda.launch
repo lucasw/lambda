@@ -21,6 +21,16 @@
     </rosparam>
     </group>
 
+    <node name="view_audio" pkg="spectrogram_paint_ros"
+        type="view_audio.py"
+        output="screen" >
+    </node>
+
+    <node name="loop_audio" pkg="spectrogram_paint_ros"
+        type="loop_audio.py"
+        output="screen" >
+    </node>
+
   <node pkg="nodelet" type="nodelet" name="manager" args="manager"
       output="screen"/>
 

@@ -185,7 +185,7 @@ private:
 
   void initEnvironment();
 
-  // TODO(lucasw) do something with these
+  // TODO(lucasw) do something with these - at least make them unique_ptrs
   int *tmp_filtid = NULL;         // temporary filter ID array
   int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
   float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array

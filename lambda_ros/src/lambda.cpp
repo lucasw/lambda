@@ -674,14 +674,15 @@ float Lambda::getPressure(const size_t x, const size_t y)
     return 0.0;
 
   const size_t pos = y * config.nX + x;
-
+#if 0
   // print out filter information
   std::cout << "x: " << x <<  ", y: " << y << "\n";
-  for (size_t d = 0; d < 4; ++d)
+  for (size_t d = 0; d < data.nodes_[pos].filter_.size(); ++d)
   {
     std::cout << "    " << d <<  " ";
     data.nodes_[pos].filter_[d].print();
   }
+#endif
   return data.pressure_[idx].at<float>(y, x);
 }
 

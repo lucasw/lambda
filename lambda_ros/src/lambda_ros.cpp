@@ -6,6 +6,7 @@
 #include <memory>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <spectrogram_paint_ros/Audio.h>
 
 
 class LambdaRos
@@ -15,6 +16,7 @@ public:
     spinner_(3)
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
+    audio_pub_ = nh_.advertise<spectrogram_paint_ros::Audio>("audio", 1);
     point_sub_ = nh_.subscribe<geometry_msgs::Point>("pressure_image_mouse_left", 10,
         &LambdaRos::pointCallback, this);
     lambda_.reset(new Lambda());
@@ -152,9 +154,17 @@ public:
       for (size_t i = 0; i < num; ++i)
       {
         lambda_->processSim();
+        audio_.data.push_back(lambda_->getPressure(180, 160));
         fr_accum_ += 1.0;
       }
       publishImage();
+      // TODO(lucasw) config_.sample_rate
+      audio_.sample_rate = 16000;
+      if (audio_.data.size() > 8000)
+      {
+        audio_pub_.publish(audio_);
+        audio_.data.resize(0);
+      }
     }
   }
 
@@ -210,6 +220,8 @@ public:
 private:
   ros::NodeHandle nh_;
   ros::Publisher pressure_pub_;
+  spectrogram_paint_ros::Audio audio_;
+  ros::Publisher audio_pub_;
   ros::Subscriber point_sub_;
   cv_bridge::CvImage cv_image_;
   std::unique_ptr<Lambda> lambda_;

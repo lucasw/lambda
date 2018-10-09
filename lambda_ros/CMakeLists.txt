@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslint
   sensor_msgs
+  spectrogram_paint_ros
   std_msgs
 )
 
