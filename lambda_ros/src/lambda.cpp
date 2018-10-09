@@ -22,8 +22,7 @@
 #include <lambda_ros/lambda.h>
 
 SimData::SimData()
-    : boundary(nullptr), deadnode(nullptr),
-      inci(nullptr) {}
+    : boundary(nullptr), deadnode(nullptr) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
@@ -90,8 +89,11 @@ void Node::clear() {
 }
 
 void Node::reset() {
-  for (size_t d = 0; d < 4; ++d) {
+  for (size_t d = 0; d < filter_.size(); ++d) {
     filter_[d].reset();
+    for (size_t t = 0; t < inci_[d].size(); ++t) {
+      inci_[d][t] = 0.0;
+    }
   }
 }
 
@@ -118,11 +120,6 @@ void SimData::clear(const size_t num_nodes) {
 }
 
 void SimData::reset(const size_t num_nodes) {
-  if (inci != nullptr) {
-    delete[] inci;
-    inci = nullptr;
-  }
-
   // Delete bottom filter non-recursive memory
   for (int n = 0; n < num_nodes; n++) {
     nodes_[n].reset();
@@ -138,40 +135,11 @@ void Lambda::clear() {
   config.clear();
 }
 
-void simIndex::clear() {
-  reset();
-}
-
-void simIndex::reset() {
-  // Delete simulation environment data memory
-  // Reset pressure index pointers
-  presPast = nullptr;
-  presPres = nullptr;
-  presFutu = nullptr;
-
-  for (int x = 0; x < 3; x++) {
-    idxP[x] = 0;
-  }
-
-  for (const std::string& dir : dirs_) {
-    // Reset incident pressure index pointers (past)
-    inci_[dir].past_ = nullptr;
-    // Reset incident pressure index pointers (present)
-    inci_[dir].pres_ = nullptr;
-    // Reset incident pressure index pointers (future)
-    inci_[dir].pres_ = nullptr;
-    // Reset indices used during calculation
-    for (int x = 0; x < 3; x++) {
-      inci_[dir].idxI[x] = 0;
-    }
-  }
-}
 
 //   Resets variables and arrays used directly for simulation purposes.
 // Should be able to restart the simulation from time zero after this
 void Lambda::reset() {
   data.reset(config.nNodes);
-  index.reset();
   config.reset();
 }
 
@@ -678,19 +646,16 @@ void Lambda::initEnvironmentSetup() {
 bool Lambda::initSimulation() {
   config.n = 0;
   // incident pressure pulses
-  data.inci = new float[12 * config.nNodes];
-  for (int pos = 0; pos < 12 * config.nNodes; pos++) {
-    data.inci[pos] = 0;
+  for (size_t pos = 0; pos < config.nNodes; ++pos) {
+    for (size_t d = 0; d < data.nodes_[pos].inci_.size(); ++d) {
+      for (size_t t = 0; t < data.nodes_[pos].inci_[d].size(); ++t) {
+        data.nodes_[pos].inci_[d][t] = 0.0;
+      }
+    }
   }
   // set up indices needed for the simulation
   for (int x = 0; x < 3; x++) {
     data.pressure_[x] = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
-    index.idxP[x] = data.pressure_[x].ptr<float>(0);
-
-    index.inci_["left"].idxI[x] = data.inci + (x * 4 + 0) * config.nNodes;
-    index.inci_["top"].idxI[x] = data.inci + (x * 4 + 1) * config.nNodes;
-    index.inci_["right"].idxI[x] = data.inci + (x * 4 + 2) * config.nNodes;
-    index.inci_["bottom"].idxI[x] = data.inci + (x * 4 + 3) * config.nNodes;
   }
 
   // velocity sources
@@ -957,35 +922,19 @@ void Lambda::processSim() {
     // Set these pointers at the beginning of the iteration.
     // They would have to be calculated several times during the process
     // otherwise.
-    index.presPast = index.idxP[idxPast]; // past pressure index
-    index.presPres = index.idxP[idxPres]; // present pressure index
-    index.presFutu = index.idxP[idxFutu]; // future pressure index
-    // std::cout << index.presPast[0] << " " << index.presPres[1]
-    //    << " " << index.presFutu[2] << "\n";
-    float *index_presFutu = index.presFutu;
-    float *presPres = index.presPres;
-
-    for (const std::string& dir : dirs_) {
-      index.inci_[dir].past_ =
-          index.inci_[dir].idxI[idxPast]; // past left incident pressure index
-      index.inci_[dir].pres_ =
-          index.inci_[dir].idxI[idxPres]; // present left incident pressure index
-      index.inci_[dir].futu_ =
-          index.inci_[dir].idxI[idxFutu]; // future left incident pressure index
-    }
+    float* presPast = data.pressure_[idxPast].ptr<float>(0);
+    float* presPres = data.pressure_[idxPres].ptr<float>(0);
+    float* presFutu = data.pressure_[idxFutu].ptr<float>(0);
 
     // TODO(lucasw) map lookups are slow
 
     ////////////////////////////////////////////////////////////////////////
     // it's expensive to do a lot of map lookups in the big loop before,
-    // they don't get optimized out, so set up these temp arrays instead.
-    std::vector<Inci*> incis;
-    for (const std::string& dir : dirs_) {
-      incis.push_back(&index.inci_[dir]);
-    }
+    // they don't get optimized out.
+
     // Work through all the nodes in the environment
     for (int pos = 0; pos < config.nNodes; pos++) {
-      index_presFutu[pos] = 0.f;
+      presFutu[pos] = 0.f;
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!
         continue;
 
@@ -1005,7 +954,7 @@ void Lambda::processSim() {
             // No neighboring nodes are used at all.
             bool debug = false;
             // calculate filter input
-            const float scat_futu = presPres[pos] - incis[d]->pres_[pos];
+            const float scat_futu = presPres[pos] - data.nodes_[pos].inci_[d][idxPres];
             // calculate the digital filter
             const float cb0 = data.nodes_[pos].filter_[d].coeffsB_[0];
             // filter output - why isn't ca0 used?
@@ -1016,7 +965,7 @@ void Lambda::processSim() {
               const int y = (pos - x) / config.nX;
               std::cout << pos << ", " << x << " " << y << " : dir " << d << "\n";
               std::cout << "   scat futu " << scat_futu << " = " << presPres[pos]
-                  << " - " << incis[d]->pres_[pos] << "\n";
+                  << " - " << data.nodes_[pos].inci_[d][idxPres] << "\n";
               std::cout << "   "
                   << "yn " << yn << ", cb0 " << cb0 << "\n";
             }
@@ -1046,11 +995,11 @@ void Lambda::processSim() {
             data.nodes_[pos].filter_[d].oldx_[0] = scat_futu;
             data.nodes_[pos].filter_[d].oldy_[0] = yn;
             // and write the filter output into the pressure matrix
-            incis[d]->futu_[pos] = yn;
-            index_presFutu[pos] += incis[d]->futu_[pos];
+            data.nodes_[pos].inci_[d][idxFutu] = yn;
+            presFutu[pos] += yn;
           } else {
             // no filter in this direction
-            const float scat_pres = index.presPast[pos] - incis[d]->past_[pos];
+            const float scat_pres = presPast[pos] - data.nodes_[pos].inci_[d][idxPast];
 
             float incis_futu = 0.0;
             if (d == LEFT)
@@ -1062,11 +1011,11 @@ void Lambda::processSim() {
             else if (d == BOTTOM)
               incis_futu = presPres[pos_bottom] - scat_pres;
 
-            incis[d]->futu_[pos] = incis_futu;
-            index_presFutu[pos] += incis_futu;
+            data.nodes_[pos].inci_[d][idxFutu] = incis_futu;
+            presFutu[pos] += incis_futu;
           }
         } // dir loop
-        index_presFutu[pos] *= 0.5f;
+        presFutu[pos] *= 0.5f;
       } else {
         // TODO(lucasw) this is mostly likely getting executed the most,
         // so it pays to have all the pressures future past present and
@@ -1083,11 +1032,10 @@ void Lambda::processSim() {
         // in memory.
 
         // no boundary node: do the fast standard propagation
-        index_presFutu[pos] =
+        presFutu[pos] =
             (presPres[pos_left] + presPres[pos_top] +
              presPres[pos_right] + presPres[pos_bottom]) *
-                0.5f -
-            index.presPast[pos];
+                0.5f - presPast[pos];
       }  // boundary
     }  // loop through all nodes
     config.n++;

@@ -96,8 +96,12 @@ struct Node {
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
 
+  // TODO(lucasw) these are actually 4 groups of three (past pres future?) for each direction
+  // so make a data structure that reflects that instead of just 12 floats.
+  // array containing the incident node pressures
+  std::array<std::array<float, 3>, 4> inci_;
   // TODO(lucasw) keeping these performance notes around for future reference
-  // about 10% slower than float**
+  // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
   // these seem almost as fast as float**
   //std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
@@ -123,8 +127,6 @@ struct SimData {
   bool *deadnode;    // array indicating "dead" nodes
   // same here- if many boundaries then move into Node
   bool *boundary;    // array indicating boundary nodes
-  // definitely move into Node
-  float *inci;       // array containing the incident node pressures
   cv::Mat pressure_[3];  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector
   std::unique_ptr<Node[]> nodes_;
@@ -136,16 +138,6 @@ struct Inci {
   float *pres_;
   float *futu_;
   float *idxI[3];
-};
-
-struct simIndex {
-  void clear();
-  void reset();
-  float *presPast, *presPres, *presFutu;
-  // TODO(lwalter) replace with array with integers for LEFT, RIGHT etc.
-  const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
-  std::map<std::string, Inci> inci_;
-  float *idxP[3];
 };
 
 #if 0
@@ -171,6 +163,7 @@ public:
   // static constexpr std::array<char[7], 4> dirs_ = {"left", "right", "top", "bottom"};
   const std::vector<std::string> dirs_ = {"left", "right", "top", "bottom"};
 
+  typedef enum {PAST, PRES, FUTU, NUM_TIMES} times;
   typedef enum {LEFT, TOP, RIGHT, BOTTOM, NUM_DIRS} dir;
 
   //   Prepares variables needed for simulation.
@@ -284,7 +277,6 @@ private:
 
   simConfig config;
   SimData data;
-  simIndex index;
 
   static constexpr float rad_per_deg = M_PI / 180.f;
 };
