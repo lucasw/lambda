@@ -75,14 +75,20 @@ void DirectionalFilter::clear() {
 void DirectionalFilter::reset() {
   // oldx_.reset(nullptr);
   // oldy_.reset(nullptr);
-  oldx_ = {0.0, 0.0, 0.0, 0.0};
-  oldy_ = {0.0, 0.0, 0.0, 0.0};
+  for (size_t i = 0; i < oldx_.size(); ++i)
+    oldx_ = {0.0, 0.0, 0.0, 0.0};
+  for (size_t i = 0; i < oldy_.size(); ++i)
+    oldy_ = {0.0, 0.0, 0.0, 0.0};
   velo_ = 0.0;
+
+  for (size_t t = 0; t < inci_.size(); ++t) {
+    inci_[t] = 0.0;
+  }
 }
 
 void Node::clear() {
   reset();
-  for (size_t d = 0; d < 4; ++d) {
+  for (size_t d = 0; d < filter_.size(); ++d) {
     filter_[d].clear();
   }  // loop through directions
 }
@@ -90,9 +96,6 @@ void Node::clear() {
 void Node::reset() {
   for (size_t d = 0; d < filter_.size(); ++d) {
     filter_[d].reset();
-    for (size_t t = 0; t < inci_[d].size(); ++t) {
-      inci_[d][t] = 0.0;
-    }
   }
 }
 
@@ -617,9 +620,9 @@ bool Lambda::initSimulation() {
   config.n = 0;
   // incident pressure pulses
   for (size_t pos = 0; pos < config.nNodes; ++pos) {
-    for (size_t d = 0; d < data.nodes_[pos].inci_.size(); ++d) {
-      for (size_t t = 0; t < data.nodes_[pos].inci_[d].size(); ++t) {
-        data.nodes_[pos].inci_[d][t] = 0.0;
+    for (size_t d = 0; d < data.nodes_[pos].filter_.size(); ++d) {
+      for (size_t t = 0; t < data.nodes_[pos].filter_[d].inci_.size(); ++t) {
+        data.nodes_[pos].filter_[d].inci_[t] = 0.0;
       }
     }
   }
@@ -881,9 +884,14 @@ void Lambda::processSim() {
       const std::array<int, 4> neighbors = {pos - 1, pos - config.nX,
                                             pos + 1, pos + config.nX};
       // boundary? --> no standard propagation!
+      // data.boundary[pos] ought to be true if any of the filt_ are true.
+      // it would be easy to check here and update boundary if they aren't,
+      // going the other way to set boundary true is the responsibility
+      // of methods that alter filters.
       if (data.boundary[pos])
       // if (data.nodes_[pos].boundary_)
       {
+
         for (size_t d = 0; d < 4; ++d) {
           // TODO(lucasw) clean this up by make this a method of DirData?
           //  filter
@@ -894,11 +902,12 @@ void Lambda::processSim() {
             // No neighboring nodes are used at all.
             bool debug = false;
             // calculate filter input
-            const float scat_futu = presPres[pos] - data.nodes_[pos].inci_[d][idxPres];
+            const float scat_futu = presPres[pos] - data.nodes_[pos].filter_[d].inci_[idxPres];
             // calculate the digital filter
             const float cb0 = data.nodes_[pos].filter_[d].coeffsB_[0];
             // filter output - why isn't ca0 used?
             float yn = scat_futu * cb0;
+            #if 0
             debug = debug && std::abs(yn) > 0.00001;
             if (debug) {
               const int x = pos % config.nX;
@@ -909,6 +918,7 @@ void Lambda::processSim() {
               std::cout << "   "
                   << "yn " << yn << ", cb0 " << cb0 << "\n";
             }
+            #endif
             // standard walls never have this many coefficients, only cb0 matters
             for (int n = 1; n < data.nodes_[pos].filter_[d].numcoeffs_; n++) {
               const float oldx = data.nodes_[pos].filter_[d].oldx_[n - 1];
@@ -920,9 +930,13 @@ void Lambda::processSim() {
               yn += oldx * cb - oldy * ca;
             }
             // add magnitude of a possible velocity source
-            const float velo = data.nodes_[pos].filter_[d].velo_;
-            if (debug) std::cout << "velo " << velo << "\n";
-            yn += velo;
+            {
+              const float velo = data.nodes_[pos].filter_[d].velo_;
+              #if 0
+              if (debug) std::cout << "velo " << velo << "\n";
+              #endif
+              yn += velo;
+            }
             // TODO(lucasw) replace with an array that has a start index
             // that moves in a ring.
             // should be faster than all this copying.
@@ -935,15 +949,15 @@ void Lambda::processSim() {
             data.nodes_[pos].filter_[d].oldx_[0] = scat_futu;
             data.nodes_[pos].filter_[d].oldy_[0] = yn;
             // and write the filter output into the pressure matrix
-            data.nodes_[pos].inci_[d][idxFutu] = yn;
+            data.nodes_[pos].filter_[d].inci_[idxFutu] = yn;
             presFutu[pos] += yn;
           } else {
             // TODO(lucasw) a proper setting of boundaries on the edges
             // of the grid means that neighbors[d] will never be out of bounds.
             // There is no filter in this direction
-            const float scat_pres = presPast[pos] - data.nodes_[pos].inci_[d][idxPast];
+            const float scat_pres = presPast[pos] - data.nodes_[pos].filter_[d].inci_[idxPast];
             const float incis_futu = presPres[neighbors[d]] - scat_pres;
-            data.nodes_[pos].inci_[d][idxFutu] = incis_futu;
+            data.nodes_[pos].filter_[d].inci_[idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
         } // dir loop

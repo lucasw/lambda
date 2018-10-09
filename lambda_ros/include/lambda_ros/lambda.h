@@ -77,6 +77,9 @@ struct DirectionalFilter {
 
   void print();
 
+  // past, present, future incident pressure
+  std::array<float, 3> inci_;
+
   // array containing the actual velocity of velo sources from four directions
   float velo_;
 };
@@ -89,10 +92,6 @@ struct Node {
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
 
-  // TODO(lucasw) these are actually 4 groups of three (past pres future?) for each direction
-  // so make a data structure that reflects that instead of just 12 floats.
-  // array containing the incident node pressures
-  std::array<std::array<float, 3>, 4> inci_;
   // TODO(lucasw) keeping these performance notes around for future reference
   // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
