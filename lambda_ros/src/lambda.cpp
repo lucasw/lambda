@@ -948,9 +948,9 @@ void Lambda::processSources(float*& presPres) {
 void Lambda::processSim() {
   {
     // periodic cycling of time indices
-    int idxPast = ((config.n + 0) % 3); // past index
-    int idxPres = ((config.n + 1) % 3); // present index
-    int idxFutu = ((config.n + 2) % 3); // future index
+    const size_t idxPast = ((config.n + 0) % 3); // past index
+    const size_t idxPres = ((config.n + 1) % 3); // present index
+    const size_t idxFutu = ((config.n + 2) % 3); // future index
     // Set these pointers at the beginning of the iteration.
     // They would have to be calculated several times during the process
     // otherwise.
@@ -972,9 +972,6 @@ void Lambda::processSim() {
     }
 
     // TODO(lucasw) map lookups are slow
-    // future+present scattered pressure in each direction
-    std::map<std::string, float> scatFutu;
-    std::map<std::string, float> scatPres;
 
     ////////////////////////////////////////////////////////////////////////
     // it's expensive to do a lot of map lookups in the big loop before,
@@ -983,13 +980,16 @@ void Lambda::processSim() {
     for (const std::string& dir : dirs_) {
       incis.push_back(&index.inci_[dir]);
     }
-    int config_nX = config.nX;
     // Work through all the nodes in the environment
     for (int pos = 0; pos < config.nNodes; pos++) {
       index_presFutu[pos] = 0.f;
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!
         continue;
 
+      const int pos_left = pos - 1;
+      const int pos_top = pos - config.nX;
+      const size_t pos_right = pos + 1;
+      const size_t pos_bottom = pos + config.nX;
       if (data.boundary[pos]) // boundary? --> no standard propagation!
       {
         for (size_t d = 0; d < 4; ++d) {
@@ -1051,13 +1051,13 @@ void Lambda::processSim() {
 
             float incis_futu = 0.0;
             if (d == LEFT)
-              incis_futu = presPres[pos - 1] - scat_pres;
+              incis_futu = presPres[pos_left] - scat_pres;
             else if (d == TOP)
-              incis_futu = presPres[pos - config_nX] - scat_pres;
+              incis_futu = presPres[pos_top] - scat_pres;
             else if (d == RIGHT)
-              incis_futu = presPres[pos + 1] - scat_pres;
+              incis_futu = presPres[pos_right] - scat_pres;
             else if (d == BOTTOM)
-              incis_futu = presPres[pos + config_nX] - scat_pres;
+              incis_futu = presPres[pos_bottom] - scat_pres;
 
             incis[d]->futu_[pos] = incis_futu;
             index_presFutu[pos] += incis_futu;
@@ -1081,8 +1081,8 @@ void Lambda::processSim() {
 
         // no boundary node: do the fast standard propagation
         index_presFutu[pos] =
-            (presPres[pos - 1] + presPres[pos - config_nX] +
-             presPres[pos + 1] + presPres[pos + config_nX]) *
+            (presPres[pos_left] + presPres[pos_top] +
+             presPres[pos_right] + presPres[pos_bottom]) *
                 0.5f -
             index.presPast[pos];
       }  // boundary
