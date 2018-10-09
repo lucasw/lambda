@@ -62,6 +62,7 @@ void DirectionalFilter::clear() {
   // TODO(lucasw) make a function to eliminate redundant code-
   // make it a simData method.
   // delete A filter coefficient arrays
+  #if 0
   if (coeffsA_ != nullptr) {
     delete[] coeffsA_;
     coeffsA_ = nullptr;
@@ -70,12 +71,14 @@ void DirectionalFilter::clear() {
     delete[] coeffsB_;
     coeffsB_ = nullptr;
   }
-
+  #endif
 }
 
 void DirectionalFilter::reset() {
-  oldx_.reset(nullptr);
-  oldy_.reset(nullptr);
+  // oldx_.reset(nullptr);
+  // oldy_.reset(nullptr);
+  oldx_ = {0.0, 0.0, 0.0, 0.0};
+  oldy_ = {0.0, 0.0, 0.0, 0.0};
   velo_ = 0.0;
 }
 
@@ -709,8 +712,8 @@ void Lambda::setupOldXY(const size_t d, const int pos)
       memorycnt = 1; // memory; this spares an if-condition in the algorithm
     // data.nodes_[pos].filter_[d].oldx_.resize(memorycnt, 0.0f);
     // data.nodes_[pos].filter_[d].oldy_.resize(memorycnt, 0.0f);
-    data.nodes_[pos].filter_[d].oldx_.reset(new float[memorycnt]);
-    data.nodes_[pos].filter_[d].oldy_.reset(new float[memorycnt]);
+    // data.nodes_[pos].filter_[d].oldx_.reset(new float[memorycnt]);
+    // data.nodes_[pos].filter_[d].oldy_.reset(new float[memorycnt]);
   }
 }
 
@@ -1106,12 +1109,15 @@ void Lambda::processSim() {
 //   filter float*& dest_coeffsA   : array containig the new computed
 //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
 //   computed b-Filter-coefficients
-void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
-                                  float *&dest_coeffsB, float r, float alpha,
+void Lambda::adaptreflexionfactor(int &dest_numcoeffs,
+                                  std::array<float, 4>& dest_coeffsA,
+                                  std::array<float, 4>& dest_coeffsB,
+                                  float r, float alpha,
                                   simAngularType direction) {
   // new filter has got only one a- and one b-coefficient
   dest_numcoeffs = 1;
   // if a destination filter is already existing, then delete it
+  #if 0
   if (dest_coeffsA != nullptr)
     delete[] dest_coeffsA;
   if (dest_coeffsB != nullptr)
@@ -1119,6 +1125,7 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
   // reserve memory for the a- and b-coefficient
   dest_coeffsA = new float[1];
   dest_coeffsB = new float[1];
+  #endif
   // is alpha out of range? [-360..+360 degrees] -> yes, no preemphasis
   if ((alpha <= -360.f) || (alpha >= 360.f))
     direction = kNone;
@@ -1168,8 +1175,10 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
 //   filter float*& dest_coeffsA   : array containig the new computed
 //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
 //   computed b-Filter-coefficients
-void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
-                         float *&dest_coeffsB, int *src_id, int *src_numcoeffs,
+void Lambda::adaptfilter(int &dest_numcoeffs,
+                         std::array<float, 4>& dest_coeffsA,
+                         std::array<float, 4>& dest_coeffsB,
+                         int *src_id, int *src_numcoeffs,
                          float **src_coeffsA, float **src_coeffsB,
                          int src_numfilters, int id, float alpha,
                          simAngularType direction) {
@@ -1181,7 +1190,11 @@ void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
       actnum = kk;
   // get number of filter coefficients
   dest_numcoeffs = src_numcoeffs[actnum];
+  if ((src_numcoeffs[actnum]) > dest_coeffsA.size())
+    dest_numcoeffs = 4;
+
   // if a destination filter is already existing, then delete it
+  #if 0
   if (dest_coeffsA != nullptr)
     delete[] dest_coeffsA;
   if (dest_coeffsB != nullptr)
@@ -1189,6 +1202,7 @@ void Lambda::adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
   // reserve memory for the a- and b-coefficients
   dest_coeffsA = new float[src_numcoeffs[actnum]];
   dest_coeffsB = new float[src_numcoeffs[actnum]];
+  #endif
   // is alpha out of range? [-360..+360 degrees] -> yes, no preemphasis
   if ((alpha <= -360.f) || (alpha >= 360.f))
     direction = kNone;

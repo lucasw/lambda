@@ -68,10 +68,19 @@ struct DirectionalFilter {
   // but for now keep to with the dynamic memory
 
   int numcoeffs_ = 0;    // number of filter coeffs for filters
+
+  // Constant array size for now, later try to make it more dynamic
+  std::array<float, 4> oldx_;
+  std::array<float, 4> oldy_;
+  std::array<float, 4> coeffsA_;
+  std::array<float, 4> coeffsB_;
+
+#if 0
   std::unique_ptr<float[]> oldx_;          // filter non-recursive memory for filters
   std::unique_ptr<float[]> oldy_;          // filter non-recursive memory for filters
   float *coeffsA_ = nullptr;   // recursive filter coeffs for filters
   float *coeffsB_ = nullptr;   // non-recursive filter coeffs for filters
+#endif
 
   void print();
 
@@ -237,8 +246,10 @@ private:
   //   filter float*& dest_coeffsA   : array containig the new computed
   //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
   //   computed b-Filter-coefficients
-  virtual void adaptreflexionfactor(int &dest_numcoeffs, float *&dest_coeffsA,
-                                    float *&dest_coeffsB, float r, float alpha,
+  virtual void adaptreflexionfactor(int &dest_numcoeffs,
+                                    std::array<float, 4>& dest_coeffsA,
+                                    std::array<float, 4>& dest_coeffsB,
+                                    float r, float alpha,
                                     simAngularType direction);
 
   // PURPOSE
@@ -262,8 +273,11 @@ private:
   //   filter float*& dest_coeffsA   : array containig the new computed
   //   a-Filter-coefficients float*& dest_coeffsB   : array containig the new
   //   computed b-Filter-coefficients
-  virtual void adaptfilter(int &dest_numcoeffs, float *&dest_coeffsA,
-                           float *&dest_coeffsB, int *src_id,
+  // TODO(lucasw) make the 4 a template parameter
+  virtual void adaptfilter(int &dest_numcoeffs,
+                           std::array<float, 4>& dest_coeffsA,
+                           std::array<float, 4>& dest_coeffsB,
+                           int *src_id,
                            int *src_numcoeffs, float **src_coeffsA,
                            float **src_coeffsB, int src_numfilters, int id,
                            float alpha, simAngularType direction);
