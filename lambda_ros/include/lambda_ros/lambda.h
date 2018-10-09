@@ -63,10 +63,6 @@ struct DirectionalFilter {
   // whether to use a filter at this location at all
   bool filt_ = false;
 
-  // TODO(lucasw)
-  // maybe best to come up with a fixed max filter size and always allocate that
-  // but for now keep to with the dynamic memory
-
   int numcoeffs_ = 0;    // number of filter coeffs for filters
 
   // Constant array size for now, later try to make it more dynamic
@@ -78,13 +74,6 @@ struct DirectionalFilter {
   std::array<float, 4> oldy_;
   std::array<float, 4> coeffsA_;
   std::array<float, 4> coeffsB_;
-
-#if 0
-  std::unique_ptr<float[]> oldx_;          // filter non-recursive memory for filters
-  std::unique_ptr<float[]> oldy_;          // filter non-recursive memory for filters
-  float *coeffsA_ = nullptr;   // recursive filter coeffs for filters
-  float *coeffsB_ = nullptr;   // non-recursive filter coeffs for filters
-#endif
 
   void print();
 
