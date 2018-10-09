@@ -1,7 +1,0 @@
-*.o
-*.app
-*~*
-*.a
-*.log
-build
-dist
