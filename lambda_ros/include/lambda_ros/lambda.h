@@ -150,6 +150,14 @@ public:
 
   typedef enum {PAST, PRES, FUTU, NUM_TIMES} times;
   typedef enum {LEFT, TOP, RIGHT, BOTTOM, NUM_DIRS} dir;
+  simAngularType dirToPreemphasis(const int d)
+  {
+    if ((d == LEFT) || (d == RIGHT))
+      return kHorizontal;
+    if ((d == TOP) || (d == BOTTOM))
+      return kVertical;
+    return kNone;
+  }
 
   //   Prepares variables needed for simulation.
   // RETURN VALUE
@@ -170,7 +178,7 @@ public:
   }
   float getPressure(const size_t x, const size_t y);
 
-  void setWall(const size_t x, const size_t y, const float value);
+  bool setWall(const size_t x, const size_t y, const float value);
   void getEnvironment(cv::Mat& image)
   {
     image = data.envi;
@@ -195,6 +203,10 @@ private:
   float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
   int tmp_numfilters;             // temporary number of filters
 
+  void addFilter(const int x, const int y, const int d,
+    float envi, float angle);
+  void addNeighborFilter(const int x, const int y,
+    const float envi, const float angle);
   void processWall(const int x, const int y);
 
   //   Resets important variables, arrays and matrices to zero, e.g. before

@@ -320,223 +320,92 @@ void Lambda::initEnvironment() {
   // work through all nodes in the environment
   for (int y = 0; y < config.nY; y++) {
     for (int x = 0; x < config.nX; x++) {
-      const int pos = y * config.nX + x;
-      data.boundary[pos] = false;
-      if ((y == 0) || (x == 0) || (y == config.nY - 1) ||
-          (x == config.nX - 1)) // is this a simfield border node?
-      {
-        data.boundary[pos] = true;
-        if (x == 0) // left simfield border
-        {
-          data.nodes_[pos].filter_[LEFT].filt_ = true;
-          // apply a zero-reflection-filter to left border node
-          adaptreflexionfactor(
-              data.nodes_[pos].filter_[LEFT].numcoeffs_,
-              data.nodes_[pos].filter_[LEFT].coeffsA_,
-              data.nodes_[pos].filter_[LEFT].coeffsB_, 0.f, 180.f, kHorizontal);
-        }
-        if (y == 0) // top simfield border
-        {
-          data.nodes_[pos].filter_[TOP].filt_ = true;
-          // apply a zero-reflection-filter to top border node
-          adaptreflexionfactor(
-              data.nodes_[pos].filter_[TOP].numcoeffs_,
-              data.nodes_[pos].filter_[TOP].coeffsA_,
-              data.nodes_[pos].filter_[TOP].coeffsB_, 0.f, 270.f, kVertical);
-        }
-        if (x == config.nX - 1) // right simfield border
-        {
-          data.nodes_[pos].filter_[RIGHT].filt_ = true;
-          // apply a zero-reflection-filter to right border node
-          adaptreflexionfactor(
-              data.nodes_[pos].filter_[RIGHT].numcoeffs_,
-              data.nodes_[pos].filter_[RIGHT].coeffsA_,
-              data.nodes_[pos].filter_[RIGHT].coeffsB_, 0.f, 0.f, kHorizontal);
-        }
-        if (y == config.nY - 1) // bottom simfield border
-        {
-          data.nodes_[pos].filter_[BOTTOM].filt_ = true;
-          // apply a zero-reflection-filter to bottom border node
-          adaptreflexionfactor(
-              data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
-              data.nodes_[pos].filter_[BOTTOM].coeffsA_,
-              data.nodes_[pos].filter_[BOTTOM].coeffsB_, 0.f, 90.f, kVertical);
-        }
-      }
-      // is the actual node a real-valued-reflecting node?
       processWall(x, y);
     } // x-loop
   }   // y-loop
+}
+
+void Lambda::addFilter(const int x, const int y, const int d,
+    float envi, float angle) {
+  const int pos = y * config.nX + x;
+  if ((pos < 0) || (pos >= config.nNodes))
+    return;
+
+  // is it on simfield border?  In that case need to override
+  // the angle and envi even if this is a wall
+  bool border = true;
+  if ((d == LEFT) && (x == 0)) {
+    angle = 180.0f;
+  } else if ((d == TOP) && (y == 0)) {
+    angle = 270.0f;
+  } else if ((d == RIGHT) && (x == config.nX - 1)) {
+    angle = 0.0f;
+  } else if ((d == BOTTOM) && (y == config.nY - 1)) {
+    angle = 90.0f;
+  } else {
+    border = false;
+  }
+  if (border)
+    envi = 0.0;
+
+  if ((envi >= -1.0) && (envi <= 1.0)) {
+    if ((envi == 0.0) && (!border)) {
+      // TODO(lucasw) is this similar to envi=0.0 to adaptfilter, but more efficient?
+      data.nodes_[pos].filter_[d].numcoeffs_ = 0;
+    } else {
+      data.boundary[pos] = true;
+      adaptreflexionfactor(data.nodes_[pos].filter_[d].numcoeffs_,
+                           data.nodes_[pos].filter_[d].coeffsA_,
+                           data.nodes_[pos].filter_[d].coeffsB_,
+                           envi, angle, dirToPreemphasis(d));
+    }
+  } else if ((envi > 1.0) && (envi <= 1000.0)) {
+    data.boundary[pos] = true;
+    adaptfilter(
+          data.nodes_[pos].filter_[d].numcoeffs_,
+          data.nodes_[pos].filter_[d].coeffsA_,
+          data.nodes_[pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
+          tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+          (int)envi, angle, dirToPreemphasis(d));
+  } else if (envi == 0.0) {
+  }
+}
+
+// TODO(lucasw) if walls only reflected internally then there wouldn't
+// need to be neighbor walls
+void Lambda::addNeighborFilter(const int x, const int y,
+    const float envi, const float angle) {
+  // TODO(lucasw) if envi == 0.0 and the neighbor was a deadnode
+  // this may result in 'leaking' or otherwise be wrong.
+  // bounds are checked within addFilter
+  addFilter(x + 1, y, LEFT, envi, angle);
+  addFilter(x, y + 1, TOP, envi, angle);
+  addFilter(x - 1, y, RIGHT, envi, angle);
+  addFilter(x, y - 1, BOTTOM, envi, angle);
 }
 
 void Lambda::processWall(const int x, const int y) {
   const int pos = y * config.nX + x;
   const float envi = data.envi.ptr<float>(0)[pos];
   const float angle = data.angle.ptr<float>(0)[pos];
+
   // TODO(lucasw) is there any difference with the > 1.0 code below?
-  if ((envi >= -1.0) && (envi != 0.0) && (envi <= 1.0)) {
-    data.boundary[pos] = true;
-    data.nodes_[pos].filter_[LEFT].filt_ = true;
-    data.nodes_[pos].filter_[TOP].filt_ = true;
-    data.nodes_[pos].filter_[RIGHT].filt_ = true;
-    data.nodes_[pos].filter_[BOTTOM].filt_ = true;
-    // apply a left filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.nodes_[pos].filter_[LEFT].numcoeffs_,
-                         data.nodes_[pos].filter_[LEFT].coeffsA_,
-                         data.nodes_[pos].filter_[LEFT].coeffsB_, envi,
-                         angle, kHorizontal);
-    // apply a top filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.nodes_[pos].filter_[TOP].numcoeffs_,
-                         data.nodes_[pos].filter_[TOP].coeffsA_,
-                         data.nodes_[pos].filter_[TOP].coeffsB_, envi,
-                         angle, kVertical);
-    // apply a right filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.nodes_[pos].filter_[RIGHT].numcoeffs_,
-                         data.nodes_[pos].filter_[RIGHT].coeffsA_,
-                         data.nodes_[pos].filter_[RIGHT].coeffsB_, envi,
-                         angle, kHorizontal);
-    // apply a bottom filter with correspondig reflection factor to it
-    adaptreflexionfactor(data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
-                         data.nodes_[pos].filter_[BOTTOM].coeffsA_,
-                         data.nodes_[pos].filter_[BOTTOM].coeffsB_, envi,
-                         angle, kVertical);
-
-    if (x <
-        config.nX - 1) // apply a left filter to its right neighbour, if it
-    {                  // isn't outside the simfield
-      const int new_pos = pos + 1;
-      const size_t d = LEFT;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                           data.nodes_[new_pos].filter_[d].coeffsA_,
-                           data.nodes_[new_pos].filter_[d].coeffsB_, envi,
-                           angle, kHorizontal);
+  if ((envi >= -1.0) && (envi <= 1000.0)) {
+    if (envi != 0.0) {
+      data.deadnode[pos] = true;
+    } else {
+      // TODO(lucasw) can't do this if at the true boundary (x == 0, y == 0 etc)
+      // but in that case addFilter will override this boundary
+      data.boundary[pos] = false;
+      data.deadnode[pos] = false;
     }
-    if (y <
-        config.nY - 1) // apply a top filter to its bottom neighbour, if it
-    {                  // isn't outside the simfield
-      const int new_pos = pos + config.nX;
-      const size_t d = TOP;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                           data.nodes_[new_pos].filter_[d].coeffsA_,
-                           data.nodes_[new_pos].filter_[d].coeffsB_,
-                           envi, angle, kVertical);
+    for (size_t d = 0; d < 4; ++d) {
+      addFilter(x, y, d, envi, angle);
     }
-    if (x > 0) // apply a right filter to its left neighbour, if it
-    {          // isn't outside the simfield
-      const int new_pos = pos - 1;
-      const size_t d = RIGHT;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                           data.nodes_[new_pos].filter_[d].coeffsA_,
-                           data.nodes_[new_pos].filter_[d].coeffsB_, envi,
-                           angle, kHorizontal);
-    }
-    if (y > 0) // apply a bottom filter to its top neighbour, if it
-    {          // isn't outside the simfield
-      const int new_pos = pos - config.nX;
-      const size_t d = BOTTOM;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptreflexionfactor(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                           data.nodes_[new_pos].filter_[d].coeffsA_,
-                           data.nodes_[new_pos].filter_[d].coeffsB_,
-                           envi, angle, kVertical);
-    }
-  // is the actual node a filter-node?
-  } else if ((envi > 1.0) && (envi <= 1000.0)) {
-    data.boundary[pos] = true;
-    data.nodes_[pos].filter_[LEFT].filt_ = true;
-    data.nodes_[pos].filter_[TOP].filt_ = true;
-    data.nodes_[pos].filter_[RIGHT].filt_ = true;
-    data.nodes_[pos].filter_[BOTTOM].filt_ = true;
-    // apply the left filter with the correspondig ID to it
-    adaptfilter(data.nodes_[pos].filter_[LEFT].numcoeffs_,
-                data.nodes_[pos].filter_[LEFT].coeffsA_,
-                data.nodes_[pos].filter_[LEFT].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
-                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                (int)envi, angle, kHorizontal);
-    // apply the top filter with the correspondig ID to it
-    adaptfilter(data.nodes_[pos].filter_[TOP].numcoeffs_,
-                data.nodes_[pos].filter_[TOP].coeffsA_,
-                data.nodes_[pos].filter_[TOP].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
-                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                (int)envi, angle, kVertical);
-    // apply the right filter with the correspondig ID to it
-    adaptfilter(data.nodes_[pos].filter_[RIGHT].numcoeffs_,
-                data.nodes_[pos].filter_[RIGHT].coeffsA_,
-                data.nodes_[pos].filter_[RIGHT].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
-                tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-                (int)envi, angle, kHorizontal);
-    // apply the bottom filter with the correspondig ID to it
-    adaptfilter(data.nodes_[pos].filter_[BOTTOM].numcoeffs_,
-                data.nodes_[pos].filter_[BOTTOM].coeffsA_,
-                data.nodes_[pos].filter_[BOTTOM].coeffsB_,
-                tmp_filtid, tmp_filtnumcoeffs, tmp_filtcoeffsA,
-                tmp_filtcoeffsB, tmp_numfilters, (int)envi,
-                angle, kVertical);
-
-    if (x <
-        config.nX - 1) // apply a left filter to its right neighbour, if it
-    {                  // isn't outside the simfield
-      const int new_pos = pos + 1;
-      const size_t d = LEFT;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptfilter(
-          data.nodes_[new_pos].filter_[d].numcoeffs_,
-          data.nodes_[new_pos].filter_[d].coeffsA_,
-          data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
-          tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
-          (int)envi, angle, kHorizontal);
-    }
-    if (y <
-        config.nY - 1) // apply a top filter to its bottom neighbour, if it
-    {                  // isn't outside the simfield
-      const int new_pos = pos + config.nX;
-      const size_t d = TOP;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptfilter(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                  data.nodes_[new_pos].filter_[d].coeffsA_,
-                  data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid,
-                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                  tmp_numfilters, (int)envi, angle,
-                  kVertical);
-    }
-    if (x > 0) // apply a right filter to its left neighbour, if it
-    {          // isn't outside the simfield
-      const int new_pos = pos - 1;
-      const size_t d = RIGHT;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[d].filt_ = true;
-      adaptfilter(data.nodes_[new_pos].filter_[d].numcoeffs_,
-                  data.nodes_[new_pos].filter_[d].coeffsA_,
-                  data.nodes_[new_pos].filter_[d].coeffsB_, tmp_filtid,
-                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                  tmp_numfilters, (int)envi, angle,
-                  kHorizontal);
-    }
-    if (y > 0) // apply a bottom filter to its top neighbour, if it
-    {          // isn't outside the simfield
-      const int new_pos = pos - config.nX;
-      const size_t d = BOTTOM;
-      data.boundary[new_pos] = true;
-      data.nodes_[new_pos].filter_[BOTTOM].filt_ = true;
-      adaptfilter(data.nodes_[new_pos].filter_[BOTTOM].numcoeffs_,
-                  data.nodes_[new_pos].filter_[BOTTOM].coeffsA_,
-                  data.nodes_[new_pos].filter_[BOTTOM].coeffsB_, tmp_filtid,
-                  tmp_filtnumcoeffs, tmp_filtcoeffsA, tmp_filtcoeffsB,
-                  tmp_numfilters, (int)envi, angle,
-                  kVertical);
-    }
-  } else if (envi < -1.0) // is the actual node a receiver-node?
-  {
+    addNeighborFilter(x, y, envi, angle);
+  } else if (envi < -1.0) {
     // envi < -1.0 used to be used for recorders
+    // TODO(lucasw) does < -1.0 passed to adaptfilter do anything interesting?
   }
 }
 
@@ -690,15 +559,17 @@ float Lambda::getPressure(const size_t x, const size_t y)
   return data.pressure_[idx].at<float>(y, x);
 }
 
-// this has to be done before initSimulation
-void Lambda::setWall(const size_t x, const size_t y, const float value)
+bool Lambda::setWall(const size_t x, const size_t y, const float value)
 {
-  if (x >= config.nX)
-    return;
-  if (y >= config.nY)
-    return;
+  if (x >= data.envi.cols) {
+    return false;
+  }
+  if (y >= data.envi.rows) {
+    return false;
+  }
   data.envi.at<float>(y, x) = value;
   processWall(x, y);
+  return true;
 }
 
 // alpha is angle

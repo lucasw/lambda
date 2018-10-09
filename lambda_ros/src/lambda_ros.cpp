@@ -15,6 +15,7 @@ class LambdaRos
 {
 public:
   LambdaRos() :
+    nh_private_("~"),
     spinner_(3)
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
@@ -70,7 +71,7 @@ public:
     ROS_INFO_STREAM("init sim");
     lambda_->initSimulation();
 
-    #if 0
+    #if 1
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
@@ -104,7 +105,8 @@ public:
     }
     #endif
 
-    ROS_INFO_STREAM("start sim");
+    #if 0
+    ROS_INFO_STREAM("start TEST");
 
     {
       ros::Duration(1.0).sleep();
@@ -119,10 +121,15 @@ public:
       ROS_INFO_STREAM("speed = " << num / (t1 - t0).toSec());
       ros::Duration(1.0).sleep();
     }
+    #endif
 
-    addPressure(wd / 2, ht / 2, 1.0);
+    ROS_INFO_STREAM("start sim");
+    addPressure(wd / 2, ht / 2, 0.5);
+    // lambda_->processSim();
+    // lambda_->processSim();
+    // addPressure(wd / 2 + 6, ht / 2, 0.5);
 
-    reconfigure_server_.reset(new ReconfigureServer(dr_mutex_, nh_));
+    reconfigure_server_.reset(new ReconfigureServer(dr_mutex_, nh_private_));
     dynamic_reconfigure::Server<lambda_ros::LambdaConfig>::CallbackType cbt =
         boost::bind(&LambdaRos::reconfigureCallback, this, _1, _2);
     reconfigure_server_->setCallback(cbt);
@@ -155,11 +162,20 @@ public:
       wall_point_.reset();
     }
 
-    if (!config_.publish_rate == 0.0)
+    if ((config_.publish_rate != 0.0) || (config_.step))
     {
-      const float fr = config_.update_rate / config_.publish_rate;
-      new_fr_accum_ += fr;
-      const int num = new_fr_accum_ - fr_accum_;
+      int num = 0;
+      if (config_.publish_rate > 0.0)
+      {
+        const float fr = config_.update_rate / config_.publish_rate;
+        new_fr_accum_ += fr;
+        num = new_fr_accum_ - fr_accum_;
+      }
+      if (config_.step)
+      {
+        num = 1;
+        config_.step = false;
+      }
       // no gaurantee this amount can be processed in time
       for (size_t i = 0; i < num; ++i)
       {
@@ -204,7 +220,11 @@ public:
 
   void addWall(const float x, const float y, const float reflection)
   {
-    lambda_->setWall(x, y, reflection);
+    const bool rv = lambda_->setWall(x, y, reflection);
+    if (!rv)
+    {
+      ROS_ERROR_STREAM("bad wall " << x << " " << y << " " << reflection);
+    }
   }
 
   void addPressure(const float x, const float y, const float pressure)
@@ -267,6 +287,7 @@ public:
 
 private:
   ros::NodeHandle nh_;
+  ros::NodeHandle nh_private_;
   ros::Publisher pressure_pub_;
   ros::Publisher environment_pub_;
   spectrogram_paint_ros::Audio audio_;
@@ -285,6 +306,7 @@ private:
       uint32_t level)
   {
     config_ = config;
+    config.step = false;
   }
 
   std::mutex audio_mutex_;

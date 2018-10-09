@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_rate" default="30"/>
-  <arg name="width" default="400"/>
-  <arg name="height" default="400"/>
+  <arg name="width" default="50"/>
+  <arg name="height" default="50"/>
+  <arg name="use_audio" default="false"/>
 
   <group ns="lambda">
     <node pkg="lambda_ros" type="lambda_ros" name="lambda"
@@ -10,6 +11,7 @@
       <remap from="pressure_image_mouse_left" to="scaled_pressure_image_mouse_left" />
       <param name="width" value="$(arg width)" />
       <param name="height" value="$(arg height)" />
+      <param name="update_rate" value="0.0" />
     </node>
 
     <group ns="image_raw">
@@ -21,15 +23,17 @@
     </rosparam>
     </group>
 
-    <node name="view_audio" pkg="spectrogram_paint_ros"
-        type="view_audio.py"
-        output="screen" >
-    </node>
+    <group if="$(arg use_audio)">
+      <node name="view_audio" pkg="spectrogram_paint_ros"
+          type="view_audio.py"
+          output="screen" >
+      </node>
 
-    <node name="loop_audio" pkg="spectrogram_paint_ros"
-        type="loop_audio.py"
-        output="screen" >
-    </node>
+      <node name="loop_audio" pkg="spectrogram_paint_ros"
+          type="loop_audio.py"
+          output="screen" >
+      </node>
+    </group>
 
   <node pkg="nodelet" type="nodelet" name="manager" args="manager"
       output="screen"/>
