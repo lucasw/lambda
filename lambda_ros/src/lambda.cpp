@@ -336,7 +336,7 @@ void Lambda::getFilterImage(cv::Mat& image, const int d, const std::string type,
       //   continue;
       if (i >= data.nodes_[pos].filter_[d].coeffsA_.size())
         continue;
-      float value;
+      float value = 0.0;
       if (type == "f")
         value = data.nodes_[pos].filter_[d].filt_ ? 1.0 : 0.0;
       else if (type == "a")
@@ -351,6 +351,8 @@ void Lambda::getFilterImage(cv::Mat& image, const int d, const std::string type,
         value = data.nodes_[pos].filter_[d].inci_[i];
       else if (type == "c")
         value = data.nodes_[pos].filter_[d].numcoeffs_;
+      else
+        continue;
       // std::cout << y << " " << x << " " << value << std::endl;
       image.at<float>(y, x) = value;
     }

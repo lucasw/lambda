@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_rate" default="30"/>
-  <arg name="width" default="500"/>
-  <arg name="height" default="500"/>
+  <arg name="width" default="400"/>
+  <arg name="height" default="400"/>
   <arg name="use_audio" default="false"/>
 
   <group ns="lambda">
@@ -11,7 +11,8 @@
       <remap from="pressure_image_mouse_left" to="scaled_pressure_image_mouse_left" />
       <param name="width" value="$(arg width)" />
       <param name="height" value="$(arg height)" />
-      <param name="update_rate" value="0.0" />
+      <param name="update_rate" value="1000.0" />
+      <param name="test_cycles" value="0" />
     </node>
 
     <group ns="image_raw">

@@ -108,23 +108,22 @@ public:
     }
     #endif
 
-    #if 0
-    ROS_INFO_STREAM("start TEST");
-
+    int test_cycles = 0;
+    ros::param::get("~test_cycles", test_cycles);
+    if (test_cycles > 0)
     {
+      ROS_INFO_STREAM("start TEST " << test_cycles);
       ros::Duration(1.0).sleep();
       ros::Time t0 = ros::Time::now();
-      const float num = 2800;
-      for (size_t i = 0; i < num; ++i)
+      for (size_t i = 0; i < test_cycles; ++i)
       {
         lambda_->processSim();
       }
       ros::Time t1 = ros::Time::now();
       // this is currently around 1500
-      ROS_INFO_STREAM("speed = " << num / (t1 - t0).toSec());
+      ROS_INFO_STREAM("speed = " << test_cycles / (t1 - t0).toSec());
       ros::Duration(1.0).sleep();
     }
-    #endif
 
     ROS_INFO_STREAM("start sim");
     addPressure(wd / 2, ht / 2, 0.5);
@@ -142,6 +141,8 @@ public:
         &LambdaRos::update, this);
     audio_update_timer_ = nh_.createTimer(ros::Duration(1.0),
         &LambdaRos::audio_update, this);
+    vis_update_timer_ = nh_.createTimer(ros::Duration(0.25),
+        &LambdaRos::vis_update, this);
 
     spinner_.start();
   }
@@ -155,14 +156,6 @@ public:
     {
       addPressure(point_->x, point_->y, config_.click_value);
       point_.reset();
-    }
-
-    if (wall_point_)
-    {
-      for (int ox = -2; ox < 3; ++ox)
-        for (int oy = -2; oy < 3; ++oy)
-          addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
-      wall_point_.reset();
     }
 
     if ((config_.publish_rate != 0.0) || (config_.step))
@@ -191,6 +184,18 @@ public:
       }
       publishImage();
     }
+  }
+
+  void vis_update(const ros::TimerEvent& e)
+  {
+    if (wall_point_)
+    {
+      for (int ox = -2; ox < 3; ++ox)
+        for (int oy = -2; oy < 3; ++oy)
+          addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
+      wall_point_.reset();
+    }
+    publishVisImage();
   }
 
   void audio_update(const ros::TimerEvent& e)
@@ -288,33 +293,38 @@ public:
       cv_image_.encoding = "32FC1";
       pressure_pub_.publish(cv_image_.toImageMsg());
     }
+  }
+
+  void publishVisImage()
+  {
+    cv_bridge::CvImage cv_image;
     {
-      cv_image_.header.stamp = ros::Time::now();
-      lambda_->getEnvironment(cv_image_.image);
-      cv_image_.encoding = "32FC1";
-      environment_pub_.publish(cv_image_.toImageMsg());
+      cv_image.header.stamp = ros::Time::now();
+      lambda_->getEnvironment(cv_image.image);
+      cv_image.encoding = "32FC1";
+      environment_pub_.publish(cv_image.toImageMsg());
     }
 
     if (config_.vis_mode != "")
     {
-      cv_image_.header.stamp = ros::Time::now();
-      lambda_->getFilterImage(cv_image_.image, config_.dir, config_.vis_mode, config_.ind);
-      cv_image_.encoding = "32FC1";
-      vis_pub_.publish(cv_image_.toImageMsg());
+      cv_image.header.stamp = ros::Time::now();
+      lambda_->getFilterImage(cv_image.image, config_.dir, config_.vis_mode, config_.ind);
+      cv_image.encoding = "32FC1";
+      vis_pub_.publish(cv_image.toImageMsg());
       if (vis_point_)
       {
         int y = vis_point_->y;
         if (y < 0)
           y = 0;
-        if (y > cv_image_.image.cols - 1)
-          y = cv_image_.image.cols - 1;
+        if (y > cv_image.image.cols - 1)
+          y = cv_image.image.cols - 1;
         int x = vis_point_->x;
         if (x < 0)
           x = 0;
-        if (x > cv_image_.image.rows - 1)
-          x = cv_image_.image.rows - 1;
+        if (x > cv_image.image.rows - 1)
+          x = cv_image.image.rows - 1;
         ROS_INFO_STREAM(config_.vis_mode << " " << y << " " << x << " : "
-            << cv_image_.image.at<float>(y, x));
+            << cv_image.image.at<float>(y, x));
         vis_point_.reset();
       }
     }
@@ -349,6 +359,7 @@ private:
   std::mutex audio_mutex_;
   std::list<float> new_samples_;
   ros::Timer update_timer_;
+  ros::Timer vis_update_timer_;
   ros::Timer audio_update_timer_;
   ros::AsyncSpinner spinner_;
   geometry_msgs::PointConstPtr point_;
