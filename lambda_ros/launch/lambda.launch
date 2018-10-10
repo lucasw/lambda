@@ -3,7 +3,7 @@
   <arg name="frame_rate" default="30"/>
   <arg name="width" default="400"/>
   <arg name="height" default="400"/>
-  <arg name="use_audio" default="false"/>
+  <arg name="use_audio" default="true"/>
 
   <group ns="lambda">
     <node pkg="lambda_ros" type="lambda_ros" name="lambda"
