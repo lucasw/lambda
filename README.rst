@@ -48,5 +48,5 @@ Copyright (C) 2008-2009 Marco Ruhland, Matthias Blau, IHA Oldenburg
 
 LICENSE_
 
-.. _LICENSE: lambda/LICENSE.md
-.. _manual: lambda/doc/lambda-manual.md
+.. _LICENSE: LICENSE.md
+.. _manual: doc/lambda-manual.md
