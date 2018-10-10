@@ -321,6 +321,27 @@ void Lambda::initEnvironment() {
   for (int y = 0; y < config.nY; y++) {
     for (int x = 0; x < config.nX; x++) {
       processWall(x, y);
+
+      const int pos = y * config.nX + x;
+      if (x > 0)
+        data.nodes_[pos].neighbors_[LEFT] = y * config.nX + (x - 1);
+      else if ((x == 0) && wrap_)
+        data.nodes_[pos].neighbors_[LEFT] = y * config.nX + config.nX - 1;  // TODO %?
+
+      if ((y > 0))
+        data.nodes_[pos].neighbors_[TOP] = ((y - 1) % config.nY) * config.nX + x;
+      else if ((y == 0) && wrap_)
+        data.nodes_[pos].neighbors_[TOP] = (config.nY - 1) * config.nX + x;  // TODO %?
+
+      if (x < config.nY - 1)
+        data.nodes_[pos].neighbors_[RIGHT] = y * config.nX + x + 1;
+      else if ((x == config.nY - 1) && (wrap_))
+        data.nodes_[pos].neighbors_[RIGHT] = y * config.nX;  // TODO %?
+
+      if (y < config.nY - 1)
+        data.nodes_[pos].neighbors_[BOTTOM] = (y + 1) * config.nX + x;
+      else if ((y == config.nY - 1) && (wrap_))
+        data.nodes_[pos].neighbors_[BOTTOM] = x;  // TODO %?
     } // x-loop
   }   // y-loop
 }
@@ -366,11 +387,22 @@ void Lambda::addFilter(const int x, const int y, const int d,
   if ((y < 0) || (y >= config.nY))
     return;
   const int pos = y * config.nX + x;
+  addFilter(pos, d, envi, angle);
+}
 
+void Lambda::addFilter(const int pos, const int d,
+    float envi, float angle) {
+  if ((pos < 0) || (pos >= config.nNodes))
+    return;
+
+  const int x = pos % config.nX;
+  const int y = (pos - x) / config.nY;
   // is it on simfield border?  In that case need to override
   // thye angle and envi even if this is a wall
   bool border = true;
-  if ((d == LEFT) && (x == 0)) {
+  if (wrap_) {
+    border = false;
+  } else if ((d == LEFT) && (x == 0)) {
     angle = 180.0f;
   } else if ((d == TOP) && (y == 0)) {
     angle = 270.0f;
@@ -417,10 +449,11 @@ void Lambda::addNeighborFilter(const int x, const int y,
   // TODO(lucasw) if envi == 0.0 and the neighbor was a deadnode
   // this may result in 'leaking' or otherwise be wrong.
   // bounds are checked within addFilter
-  addFilter(x + 1, y, LEFT, envi, angle);
-  addFilter(x, y + 1, TOP, envi, angle);
-  addFilter(x - 1, y, RIGHT, envi, angle);
-  addFilter(x, y - 1, BOTTOM, envi, angle);
+  const int pos = y * config.nX + x;
+  addFilter(data.nodes_[pos].neighbors_[RIGHT], LEFT, envi, angle);
+  addFilter(data.nodes_[pos].neighbors_[BOTTOM], TOP, envi, angle);
+  addFilter(data.nodes_[pos].neighbors_[LEFT], RIGHT, envi, angle);
+  addFilter(data.nodes_[pos].neighbors_[TOP], BOTTOM, envi, angle);
 }
 
 void Lambda::processWall(const int x, const int y) {
@@ -797,8 +830,6 @@ void Lambda::processSim() {
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!
         continue;
 
-      const std::array<int, 4> neighbors = {pos - 1, pos - config.nX,
-                                            pos + 1, pos + config.nX};
       // boundary? --> no standard propagation!
       // data.boundary[pos] ought to be true if any of the filt_ are true.
       // it would be easy to check here and update boundary if they aren't,
@@ -871,7 +902,7 @@ void Lambda::processSim() {
             // of the grid means that neighbors[d] will never be out of bounds.
             // There is no filter in this direction
             const float scat_pres = presPast[pos] - filter.inci_[idxPast];
-            const float incis_futu = presPres[neighbors[d]] - scat_pres;
+            const float incis_futu = presPres[data.nodes_[pos].neighbors_[d]] - scat_pres;
             filter.inci_[idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
@@ -894,8 +925,10 @@ void Lambda::processSim() {
 
         // no boundary node: do the fast standard propagation
         presFutu[pos] =
-            (presPres[neighbors[LEFT]] + presPres[neighbors[TOP]] +
-             presPres[neighbors[RIGHT]] + presPres[neighbors[BOTTOM]]) *
+            (presPres[data.nodes_[pos].neighbors_[LEFT]] +
+             presPres[data.nodes_[pos].neighbors_[TOP]] +
+             presPres[data.nodes_[pos].neighbors_[RIGHT]] +
+             presPres[data.nodes_[pos].neighbors_[BOTTOM]]) *
                 0.5f - presPast[pos];
       }  // boundary
     }  // loop through all nodes

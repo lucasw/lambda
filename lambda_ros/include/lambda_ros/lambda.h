@@ -92,6 +92,9 @@ struct Node {
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
 
+  // TODO(lucasw) maybe put these in DirectionalFilter
+  std::array<int, 4> neighbors_ = {-1, -1, -1, -1};
+
   // TODO(lucasw) keeping these performance notes around for future reference
   // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
@@ -190,6 +193,7 @@ public:
   bool setNX(const int value);
   bool setNY(const int value);
   bool setNNodes(const int value);
+  bool wrap_ = true;
 
 private:
   //   This function intializes all the important variables, arrays and
@@ -206,6 +210,8 @@ private:
   int tmp_numfilters;             // temporary number of filters
 
   void addFilter(const int x, const int y, const int d,
+    float envi, float angle);
+  void addFilter(const int pos, const int d,
     float envi, float angle);
   void addNeighborFilter(const int x, const int y,
     const float envi, const float angle);

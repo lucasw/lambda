@@ -4,6 +4,7 @@
   <arg name="width" default="400"/>
   <arg name="height" default="400"/>
   <arg name="use_audio" default="true"/>
+  <arg name="test_cycles" default="0"/>
 
   <group ns="lambda">
     <node pkg="lambda_ros" type="lambda_ros" name="lambda"
@@ -12,7 +13,7 @@
       <param name="width" value="$(arg width)" />
       <param name="height" value="$(arg height)" />
       <param name="update_rate" value="1000.0" />
-      <param name="test_cycles" value="0" />
+      <param name="test_cycles" value="$(arg test_cycles)" />
     </node>
 
     <group ns="image_raw">
