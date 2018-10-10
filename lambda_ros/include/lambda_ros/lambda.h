@@ -169,6 +169,8 @@ public:
   //   Processes the next simulation iteration.
   void processSim();
 
+  void getFilterImage(cv::Mat& image, const int d, const std::string type, const int i=0);
+
   void setPressure(const size_t x, const size_t y, const float value);
   void addPressure(const size_t x, const size_t y, const float value);
   void getPressure(cv::Mat& image)

@@ -20,11 +20,14 @@ public:
   {
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
     environment_pub_ = nh_.advertise<sensor_msgs::Image>("environment_image", 1);
+    vis_pub_ = nh_.advertise<sensor_msgs::Image>("vis_image", 1);
     audio_pub_ = nh_.advertise<spectrogram_paint_ros::Audio>("audio", 1);
     point_sub_ = nh_.subscribe<geometry_msgs::Point>("pressure_image_mouse_left", 10,
         &LambdaRos::pointCallback, this);
     wall_point_sub_ = nh_.subscribe<geometry_msgs::Point>("environment_image_mouse_left", 10,
         &LambdaRos::wallPointCallback, this);
+    vis_point_sub_ = nh_.subscribe<geometry_msgs::Point>("vis_image_mouse_left", 10,
+        &LambdaRos::visPointCallback, this);
     lambda_.reset(new Lambda());
 
     // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
@@ -177,7 +180,7 @@ public:
         config_.step = false;
       }
       // no gaurantee this amount can be processed in time
-      for (size_t i = 0; i < num; ++i)
+      for (int i = 0; i < num; ++i)
       {
         lambda_->processSim();
         {
@@ -207,7 +210,8 @@ public:
       }
     }
 
-    audio_pub_.publish(audio_);
+    if (audio_.data.size() > 2000)
+      audio_pub_.publish(audio_);
 
     if (audio_.data.size() > audio_.sample_rate + 1000)
     {
@@ -223,7 +227,7 @@ public:
     const bool rv = lambda_->setWall(x, y, reflection);
     if (!rv)
     {
-      ROS_ERROR_STREAM("bad wall " << x << " " << y << " " << reflection);
+      // ROS_ERROR_STREAM("bad wall " << x << " " << y << " " << reflection);
     }
   }
 
@@ -269,6 +273,13 @@ public:
     wall_point_ = msg;
   }
 
+  void visPointCallback(const geometry_msgs::PointConstPtr& msg)
+  {
+    // ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
+    vis_point_ = msg;
+  }
+
+
   void publishImage()
   {
     {
@@ -283,6 +294,30 @@ public:
       cv_image_.encoding = "32FC1";
       environment_pub_.publish(cv_image_.toImageMsg());
     }
+
+    if (config_.vis_mode != "")
+    {
+      cv_image_.header.stamp = ros::Time::now();
+      lambda_->getFilterImage(cv_image_.image, config_.dir, config_.vis_mode, config_.ind);
+      cv_image_.encoding = "32FC1";
+      vis_pub_.publish(cv_image_.toImageMsg());
+      if (vis_point_)
+      {
+        int y = vis_point_->y;
+        if (y < 0)
+          y = 0;
+        if (y > cv_image_.image.cols - 1)
+          y = cv_image_.image.cols - 1;
+        int x = vis_point_->x;
+        if (x < 0)
+          x = 0;
+        if (x > cv_image_.image.rows - 1)
+          x = cv_image_.image.rows - 1;
+        ROS_INFO_STREAM(config_.vis_mode << " " << y << " " << x << " : "
+            << cv_image_.image.at<float>(y, x));
+        vis_point_.reset();
+      }
+    }
   }
 
 private:
@@ -290,10 +325,12 @@ private:
   ros::NodeHandle nh_private_;
   ros::Publisher pressure_pub_;
   ros::Publisher environment_pub_;
+  ros::Publisher vis_pub_;
   spectrogram_paint_ros::Audio audio_;
   ros::Publisher audio_pub_;
   ros::Subscriber point_sub_;
   ros::Subscriber wall_point_sub_;
+  ros::Subscriber vis_point_sub_;
   cv_bridge::CvImage cv_image_;
   std::unique_ptr<Lambda> lambda_;
 
@@ -316,6 +353,7 @@ private:
   ros::AsyncSpinner spinner_;
   geometry_msgs::PointConstPtr point_;
   geometry_msgs::PointConstPtr wall_point_;
+  geometry_msgs::PointConstPtr vis_point_;
 };
 
 int main(int argc, char* argv[])

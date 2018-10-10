@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="frame_rate" default="30"/>
-  <arg name="width" default="50"/>
-  <arg name="height" default="50"/>
+  <arg name="width" default="500"/>
+  <arg name="height" default="500"/>
   <arg name="use_audio" default="false"/>
 
   <group ns="lambda">

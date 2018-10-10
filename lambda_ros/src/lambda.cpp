@@ -325,14 +325,48 @@ void Lambda::initEnvironment() {
   }   // y-loop
 }
 
+void Lambda::getFilterImage(cv::Mat& image, const int d, const std::string type, const int i)
+{
+  image = cv::Mat(cv::Size(config.nX, config.nY), CV_32FC1, cv::Scalar::all(0));
+
+  for (size_t y = 0; y < config.nY; ++y) {
+    for (size_t x = 0; x < config.nX; ++x) {
+      const int pos = y * config.nX + x;
+      // if (!data.nodes_[pos].filter_[d].filt_)
+      //   continue;
+      if (i >= data.nodes_[pos].filter_[d].coeffsA_.size())
+        continue;
+      float value;
+      if (type == "f")
+        value = data.nodes_[pos].filter_[d].filt_ ? 1.0 : 0.0;
+      else if (type == "a")
+        value = data.nodes_[pos].filter_[d].coeffsA_[i];
+      else if (type == "b")
+        value = data.nodes_[pos].filter_[d].coeffsB_[i];
+      else if (type == "x")
+        value = data.nodes_[pos].filter_[d].oldx_[i];
+      else if (type == "y")
+        value = data.nodes_[pos].filter_[d].oldy_[i];
+      else if ((type == "i") && (i < data.nodes_[pos].filter_[d].inci_.size()))
+        value = data.nodes_[pos].filter_[d].inci_[i];
+      else if (type == "c")
+        value = data.nodes_[pos].filter_[d].numcoeffs_;
+      // std::cout << y << " " << x << " " << value << std::endl;
+      image.at<float>(y, x) = value;
+    }
+  }
+}
+
 void Lambda::addFilter(const int x, const int y, const int d,
     float envi, float angle) {
-  const int pos = y * config.nX + x;
-  if ((pos < 0) || (pos >= config.nNodes))
+  if ((x < 0) || (x >= config.nX))
     return;
+  if ((y < 0) || (y >= config.nY))
+    return;
+  const int pos = y * config.nX + x;
 
   // is it on simfield border?  In that case need to override
-  // the angle and envi even if this is a wall
+  // thye angle and envi even if this is a wall
   bool border = true;
   if ((d == LEFT) && (x == 0)) {
     angle = 180.0f;
@@ -352,8 +386,10 @@ void Lambda::addFilter(const int x, const int y, const int d,
     if ((envi == 0.0) && (!border)) {
       // TODO(lucasw) is this similar to envi=0.0 to adaptfilter, but more efficient?
       data.nodes_[pos].filter_[d].numcoeffs_ = 0;
+      data.nodes_[pos].filter_[d].filt_ = false;
     } else {
       data.boundary[pos] = true;
+      data.nodes_[pos].filter_[d].filt_ = true;
       adaptreflexionfactor(data.nodes_[pos].filter_[d].numcoeffs_,
                            data.nodes_[pos].filter_[d].coeffsA_,
                            data.nodes_[pos].filter_[d].coeffsB_,
@@ -361,13 +397,14 @@ void Lambda::addFilter(const int x, const int y, const int d,
     }
   } else if ((envi > 1.0) && (envi <= 1000.0)) {
     data.boundary[pos] = true;
+    data.nodes_[pos].filter_[d].filt_ = true;
     adaptfilter(
           data.nodes_[pos].filter_[d].numcoeffs_,
           data.nodes_[pos].filter_[d].coeffsA_,
           data.nodes_[pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
           tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
           (int)envi, angle, dirToPreemphasis(d));
-  } else if (envi == 0.0) {
+  } else {
   }
 }
 
@@ -401,6 +438,8 @@ void Lambda::processWall(const int x, const int y) {
     }
     for (size_t d = 0; d < 4; ++d) {
       addFilter(x, y, d, envi, angle);
+      // std::cout << y << " " << x << " ";
+      // data.nodes_[pos].filter_[d].print();
     }
     addNeighborFilter(x, y, envi, angle);
   } else if (envi < -1.0) {
