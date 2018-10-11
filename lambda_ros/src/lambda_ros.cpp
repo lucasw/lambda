@@ -184,7 +184,8 @@ public:
         lambda_->processSim();
         {
           std::lock_guard<std::mutex> lock(audio_mutex_);
-          new_samples_.push_back(lambda_->getPressure(200, 200));
+          new_samples_left_.push_back(lambda_->getPressure(210, 200));
+          new_samples_right_.push_back(lambda_->getPressure(225, 200));
         }
         fr_accum_ += 1.0;
       }
@@ -210,21 +211,26 @@ public:
     // TODO(lucasw) make this a rolling buffer instead, every few thousand
     // after reaching some desired length
     // pop the front few thousand off
-    audio_.sample_rate = 16000;
-
+    audio_.sample_rate = config_.audio_rate;
+    audio_.stereo = true;
     {
       std::lock_guard<std::mutex> lock(audio_mutex_);
-      while (!new_samples_.empty())
+      while (!new_samples_left_.empty())
       {
-        audio_.data.push_back(new_samples_.front());
-        new_samples_.pop_front();
+        audio_.data.push_back(new_samples_left_.front());
+        new_samples_left_.pop_front();
+      }
+      while (!new_samples_right_.empty())
+      {
+        audio_.data_right.push_back(new_samples_right_.front());
+        new_samples_right_.pop_front();
       }
     }
 
     if (audio_.data.size() > 2000)
       audio_pub_.publish(audio_);
 
-    if (audio_.data.size() > audio_.sample_rate + 1000)
+    if (audio_.data.size() > audio_.sample_rate * 2)
     {
       const size_t diff = audio_.data.size() - audio_.sample_rate;
       std::vector<float>::const_iterator beg = audio_.data.begin() + diff;
@@ -363,7 +369,8 @@ private:
   }
 
   std::mutex audio_mutex_;
-  std::list<float> new_samples_;
+  std::list<float> new_samples_left_;
+  std::list<float> new_samples_right_;
   ros::Timer update_timer_;
   ros::Timer vis_update_timer_;
   ros::Timer audio_update_timer_;
