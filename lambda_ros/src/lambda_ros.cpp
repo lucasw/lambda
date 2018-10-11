@@ -38,6 +38,9 @@ public:
     int ht = 5;
     ros::param::get("~height", ht);
     lambda_->setNY(ht);
+
+    ros::param::get("~wrap", lambda_->wrap_);
+    ROS_INFO_STREAM("using wrap " << lambda_->wrap_);
     // rho doesn't change the sim at all, it is for the internal sources
     // float rho = 0.01;
     // ros::param::get("~rho", rho);
