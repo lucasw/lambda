@@ -189,10 +189,15 @@ public:
     image = data.envi;
   }
 
-  // TODO(lucasw) size_t
+  // TODO(lucasw) need to make these set only a temp variable,
+  // and only when the user request a reconfiguration with the new
+  // values take effect- if a simulation is already in progress.
   bool setNX(const int value);
   bool setNY(const int value);
   bool setNNodes(const int value);
+  // have the waves wrap left-right and top-bottom -
+  // corresponds to a torus, not really that physical but neat
+  // to experiment with.
   bool wrap_ = true;
 
 private:
