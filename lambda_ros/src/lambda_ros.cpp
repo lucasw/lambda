@@ -112,7 +112,9 @@ public:
     ros::param::get("~test_cycles", test_cycles);
     if (test_cycles > 0)
     {
-      ROS_INFO_STREAM("start TEST " << test_cycles);
+      for (size_t j = 0; j < 4; ++j)
+      {
+      ROS_INFO_STREAM("start TEST " << test_cycles << " " << wd * ht);
       ros::Duration(1.0).sleep();
       ros::Time t0 = ros::Time::now();
       for (size_t i = 0; i < test_cycles; ++i)
@@ -123,6 +125,7 @@ public:
       // this is currently around 1500
       ROS_INFO_STREAM("speed = " << test_cycles / (t1 - t0).toSec());
       ros::Duration(1.0).sleep();
+      }
     }
 
     ROS_INFO_STREAM("start sim");
