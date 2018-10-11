@@ -322,6 +322,7 @@ void Lambda::initEnvironment() {
     for (int x = 0; x < config.nX; x++) {
       processWall(x, y);
 
+      #if USE_WRAP
       const int pos = y * config.nX + x;
       if (x > 0)
         data.nodes_[pos].neighbors_[LEFT] = y * config.nX + (x - 1);
@@ -342,6 +343,7 @@ void Lambda::initEnvironment() {
         data.nodes_[pos].neighbors_[BOTTOM] = (y + 1) * config.nX + x;
       else if ((y == config.nY - 1) && (wrap_))
         data.nodes_[pos].neighbors_[BOTTOM] = x;  // TODO %?
+      #endif
     } // x-loop
   }   // y-loop
 }
@@ -400,9 +402,12 @@ void Lambda::addFilter(const int pos, const int d,
   // is it on simfield border?  In that case need to override
   // thye angle and envi even if this is a wall
   bool border = true;
+  #if USE_WRAP
   if (wrap_) {
     border = false;
-  } else if ((d == LEFT) && (x == 0)) {
+  } else
+  #endif
+  if ((d == LEFT) && (x == 0)) {
     angle = 180.0f;
   } else if ((d == TOP) && (y == 0)) {
     angle = 270.0f;
@@ -450,10 +455,15 @@ void Lambda::addNeighborFilter(const int x, const int y,
   // this may result in 'leaking' or otherwise be wrong.
   // bounds are checked within addFilter
   const int pos = y * config.nX + x;
-  addFilter(data.nodes_[pos].neighbors_[RIGHT], LEFT, envi, angle);
-  addFilter(data.nodes_[pos].neighbors_[BOTTOM], TOP, envi, angle);
-  addFilter(data.nodes_[pos].neighbors_[LEFT], RIGHT, envi, angle);
-  addFilter(data.nodes_[pos].neighbors_[TOP], BOTTOM, envi, angle);
+#if USE_WRAP
+  const std::array<int, 4>& neighbors = data.nodes_[pos].neighbors_;
+#else
+  const std::array<int, 4> neighbors = {pos - 1, pos - config.nX, pos + 1, pos + config.nX};
+#endif
+  addFilter(neighbors[RIGHT], LEFT, envi, angle);
+  addFilter(neighbors[BOTTOM], TOP, envi, angle);
+  addFilter(neighbors[LEFT], RIGHT, envi, angle);
+  addFilter(neighbors[TOP], BOTTOM, envi, angle);
 }
 
 void Lambda::processWall(const int x, const int y) {
@@ -830,6 +840,15 @@ void Lambda::processSim() {
       if (data.deadnode[pos]) // deadnode? --> no calculation needed!
         continue;
 
+      // neighbor indices that can be anything really slow down the simulation-
+      // by about 4x- is it because the compiler can't predict where in memory
+      // the indices might go?
+      #if USE_WRAP
+      const std::array<int, 4>& neighbors = data.nodes_[pos].neighbors_;
+      #else
+      const std::array<int, 4> neighbors = {pos - 1, pos - config.nX, pos + 1, pos + config.nX};
+      #endif
+
       // boundary? --> no standard propagation!
       // data.boundary[pos] ought to be true if any of the filt_ are true.
       // it would be easy to check here and update boundary if they aren't,
@@ -902,7 +921,7 @@ void Lambda::processSim() {
             // of the grid means that neighbors[d] will never be out of bounds.
             // There is no filter in this direction
             const float scat_pres = presPast[pos] - filter.inci_[idxPast];
-            const float incis_futu = presPres[data.nodes_[pos].neighbors_[d]] - scat_pres;
+            const float incis_futu = presPres[neighbors[d]] - scat_pres;
             filter.inci_[idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
@@ -925,10 +944,10 @@ void Lambda::processSim() {
 
         // no boundary node: do the fast standard propagation
         presFutu[pos] =
-            (presPres[data.nodes_[pos].neighbors_[LEFT]] +
-             presPres[data.nodes_[pos].neighbors_[TOP]] +
-             presPres[data.nodes_[pos].neighbors_[RIGHT]] +
-             presPres[data.nodes_[pos].neighbors_[BOTTOM]]) *
+            (presPres[neighbors[LEFT]] +
+             presPres[neighbors[TOP]] +
+             presPres[neighbors[RIGHT]] +
+             presPres[neighbors[BOTTOM]]) *
                 0.5f - presPast[pos];
       }  // boundary
     }  // loop through all nodes

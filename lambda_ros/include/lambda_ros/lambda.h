@@ -93,7 +93,9 @@ struct Node {
   std::array<DirectionalFilter, 4> filter_;
 
   // TODO(lucasw) maybe put these in DirectionalFilter
+  #if USE_WRAP
   std::array<int, 4> neighbors_ = {-1, -1, -1, -1};
+  #endif
 
   // TODO(lucasw) keeping these performance notes around for future reference
   // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
