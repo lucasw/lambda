@@ -227,15 +227,24 @@ public:
       }
     }
 
-    if (audio_.data.size() > 2000)
+    if (audio_.data.size() > audio_.sample_rate)
       audio_pub_.publish(audio_);
 
     if (audio_.data.size() > audio_.sample_rate * 2)
     {
-      const size_t diff = audio_.data.size() - audio_.sample_rate;
-      std::vector<float>::const_iterator beg = audio_.data.begin() + diff;
-      std::vector<float>::const_iterator end = audio_.data.end();
-      audio_.data = std::vector<float>(beg, end);
+      {
+        const size_t diff = audio_.data.size() - audio_.sample_rate;
+        std::vector<float>::const_iterator beg = audio_.data.begin() + diff;
+        std::vector<float>::const_iterator end = audio_.data.end();
+        audio_.data = std::vector<float>(beg, end);
+      }
+      {
+        const size_t diff = audio_.data_right.size() - audio_.sample_rate;
+        std::vector<float>::const_iterator beg = audio_.data_right.begin() + diff;
+        std::vector<float>::const_iterator end = audio_.data_right.end();
+        audio_.data_right = std::vector<float>(beg, end);
+      }
+
     }
   }
 
