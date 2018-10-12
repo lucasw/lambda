@@ -21,63 +21,36 @@ public:
     pressure_pub_ = nh_.advertise<sensor_msgs::Image>("pressure_image", 1);
     environment_pub_ = nh_.advertise<sensor_msgs::Image>("environment_image", 1);
     vis_pub_ = nh_.advertise<sensor_msgs::Image>("vis_image", 1);
-    audio_pub_ = nh_.advertise<spectrogram_paint_ros::Audio>("audio", 1);
+    audio_pub_ = nh_.advertise<spectrogram_paint_ros::Audio>("audio", 4);
+    audio_sub_ = nh_.subscribe<spectrogram_paint_ros::Audio>("audio_source", 4,
+        &LambdaRos::audioCallback, this);
     point_sub_ = nh_.subscribe<geometry_msgs::Point>("pressure_image_mouse_left", 10,
         &LambdaRos::pointCallback, this);
     wall_point_sub_ = nh_.subscribe<geometry_msgs::Point>("environment_image_mouse_left", 10,
         &LambdaRos::wallPointCallback, this);
     vis_point_sub_ = nh_.subscribe<geometry_msgs::Point>("vis_image_mouse_left", 10,
         &LambdaRos::visPointCallback, this);
-    lambda_.reset(new Lambda());
 
     // assumine the speed of sound is 343 m/s, and that the sample rate is 44100 samples/s
     // the width of each cell is 343.0 / 44100.0 = 0.0078 meters, or 1/3"
     int wd = 5;
     ros::param::get("~width", wd);
-    lambda_->setNX(wd);
     int ht = 5;
     ros::param::get("~height", ht);
-    lambda_->setNY(ht);
+    lambda_.reset(new Lambda(wd, ht));
 
+    #if USE_WRAP
     ros::param::get("~wrap", lambda_->wrap_);
     ROS_INFO_STREAM("using wrap " << lambda_->wrap_);
+    #else
+    // TODO(lucasw) warn user if they try to set it?
+    #endif
     // rho doesn't change the sim at all, it is for the internal sources
     // float rho = 0.01;
     // ros::param::get("~rho", rho);
     // lambda_->set("rho", rho);
 
-    lambda_->initSimulationPre();
-
     #if 0
-    {
-      // debug - look at initial pressures
-      lambda_->processSim();
-      std::cout << "no wall\n";
-      lambda_->getPressure(10, 10);
-      std::cout << "top wall\n";
-      lambda_->getPressure(30, 0);
-      lambda_->getPressure(30, 1);
-      std::cout << "left wall\n";
-      lambda_->getPressure(0, 30);
-      lambda_->getPressure(1, 30);
-      std::cout << "pos\n";
-      lambda_->getPressure(20, 30);
-      lambda_->getPressure(19, 30);
-      lambda_->getPressure(20, 29);
-      std::cout << "neg\n";
-      lambda_->getPressure(350, 100);
-      lambda_->getPressure(349, 100);
-      std::cout << "absorb\n";
-      lambda_->getPressure(50, 390);
-      lambda_->getPressure(50, 389);
-    }
-    #endif
-    ROS_INFO_STREAM("init environment");
-    lambda_->initEnvironmentSetup();
-    ROS_INFO_STREAM("init sim");
-    lambda_->initSimulation();
-
-    #if 1
     ROS_INFO_STREAM("setup walls");
     // env [-1.0 - 1.0] but excluding 0.0 is a wall
     // 1.0 - 1000.0 is something else- another kind of wall
@@ -158,11 +131,13 @@ public:
 
   void update(const ros::TimerEvent& e)
   {
+    #if 0
     if (point_)
     {
       addPressure(point_->x, point_->y, config_.click_value);
       point_.reset();
     }
+    #endif
 
     if ((config_.publish_rate != 0.0) || (config_.step))
     {
@@ -181,6 +156,16 @@ public:
       // no gaurantee this amount can be processed in time
       for (int i = 0; i < num; ++i)
       {
+        {
+          std::lock_guard<std::mutex> lock(audio_source_mutex_);
+          if (audio_source_msg_ && audio_source_point_ &&
+              (audio_source_index_ <  audio_source_msg_->data.size()))
+          {
+            addPressure(audio_source_point_->x,
+              audio_source_point_->y, audio_source_msg_->data[audio_source_index_]);
+            ++audio_source_index_;
+          }
+        }
         lambda_->processSim();
         {
           std::lock_guard<std::mutex> lock(audio_mutex_);
@@ -259,14 +244,14 @@ public:
 
   void addPressure(const float x, const float y, const float pressure)
   {
-    const float cur_pressure = lambda_->getPressure(x, y);
-    ROS_INFO_STREAM("pressure point " << x << " " << y
-        << " " << pressure << ", cur pressure " << cur_pressure);
+    // const float cur_pressure = lambda_->getPressure(x, y);
+    // ROS_INFO_STREAM("pressure point " << x << " " << y
+    //    << " " << pressure << ", cur pressure " << cur_pressure);
     // TODO(lucasw) make a circle  with 1.0/distance from the center
     // as a modifier on point_pressure_
-    for (int i = -1; i < 2; ++i)
-      for (int j = -1; j < 2; ++j)
-        lambda_->addPressure(x + i, y + j, pressure);
+    // for (int i = -1; i < 2; ++i)
+    //  for (int j = -1; j < 2; ++j)
+    //    lambda_->addPressure(x + i, y + j, pressure);
     lambda_->addPressure(x, y, pressure);
 
     // temp
@@ -287,10 +272,20 @@ public:
     #endif
   }
 
+  void audioCallback(const spectrogram_paint_ros::AudioConstPtr& msg)
+  {
+    ROS_INFO_STREAM("new audio source " << msg->data.size());
+    std::lock_guard<std::mutex> lock(audio_source_mutex_);
+    audio_source_msg_ = msg;
+    audio_source_index_ = 0;
+  }
+
   void pointCallback(const geometry_msgs::PointConstPtr& msg)
   {
+    std::lock_guard<std::mutex> lock(audio_source_mutex_);
     // ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
-    point_ = msg;
+    audio_source_point_ = msg;
+    audio_source_index_ = 0;
   }
 
   void wallPointCallback(const geometry_msgs::PointConstPtr& msg)
@@ -359,6 +354,7 @@ private:
   ros::Publisher vis_pub_;
   spectrogram_paint_ros::Audio audio_;
   ros::Publisher audio_pub_;
+  ros::Subscriber audio_sub_;
   ros::Subscriber point_sub_;
   ros::Subscriber wall_point_sub_;
   ros::Subscriber vis_point_sub_;
@@ -377,14 +373,19 @@ private:
     config.step = false;
   }
 
+  size_t audio_source_index_ = 0;
+  geometry_msgs::PointConstPtr audio_source_point_;
+  spectrogram_paint_ros::AudioConstPtr audio_source_msg_;
+
   std::mutex audio_mutex_;
+  std::mutex audio_source_mutex_;
   std::list<float> new_samples_left_;
   std::list<float> new_samples_right_;
   ros::Timer update_timer_;
   ros::Timer vis_update_timer_;
   ros::Timer audio_update_timer_;
   ros::AsyncSpinner spinner_;
-  geometry_msgs::PointConstPtr point_;
+  // geometry_msgs::PointConstPtr point_;
   geometry_msgs::PointConstPtr wall_point_;
   geometry_msgs::PointConstPtr vis_point_;
 };

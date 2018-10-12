@@ -35,14 +35,9 @@
 
 // This struct contains all the simulation config data.
 struct simConfig {
-  // clear is for starting from scratch, also resets
-  void clear();
   // reset is just for restarting the current sim
   void reset();
-  int n;         // actual iteration #
-  int nX;        // number of nodes in X-direction
-  int nY;        // number of nodes in Y-direction
-  int nNodes;    // total number of nodes
+  int n = 0;         // actual iteration #
 #if 0
   float cTube;   // sound speed in the tubes in meters/sec.
   float lTube;   // tube length in meters
@@ -58,22 +53,22 @@ struct simConfig {
 // so that it is all close together in memory.
 // Initially just the filter data.
 struct DirectionalFilter {
-  void clear();
   void reset();
   // whether to use a filter at this location at all
   bool filt_ = false;
 
   int numcoeffs_ = 0;    // number of filter coeffs for filters
 
+  static const size_t length_ = 4;
   // Constant array size for now, later try to make it more dynamic
   // TODO(lucasw) need a small array optimization if size 0..4 or some other
   // low value use a std::array, but still allow special large filters
   // that use dynamic memory
   // which should be fine if not on too many nodes.
-  std::array<float, 4> oldx_;
-  std::array<float, 4> oldy_;
-  std::array<float, 4> coeffsA_;
-  std::array<float, 4> coeffsB_;
+  std::array<float, length_> oldx_;
+  std::array<float, length_> oldy_;
+  std::array<float, length_> coeffsA_;
+  std::array<float, length_> coeffsB_;
 
   void print();
 
@@ -87,7 +82,6 @@ struct DirectionalFilter {
 // TODO(lucasw) instead of the below being all independent arrays (and therefore widely
 // spaced in memory), make them all in the same data structure per node.
 struct Node {
-  void clear();
   void reset();
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
@@ -102,32 +96,6 @@ struct Node {
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
   // these seem almost as fast as float**
   //std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
-};
-
-// TODO(lucasw) make an array of SimDatas of length n Nodes instead
-// of many many individual arrays - or will that hurt performance?
-// This struct contains specific data about the simulation environment.
-struct SimData {
-  SimData();
-  void clear(const size_t num_nodes);
-  void reset(const size_t num_nodes);
-  // the location of these in memory is not that important because
-  // they aren't accessed during the sim update.
-  // use cv::Mat 32F for these?  Do a speed comparison before and after
-  // the conversion.
-  cv::Mat envi;       // simulation environment - the walls
-  cv::Mat angle;      // angle matrix as loaded from the .sim-file
-
-  // these are important to keep together.
-  // if there a lot of dead nodes, then better to kepep them in own array,
-  // otherwise move into node above
-  std::unique_ptr<bool[]> deadnode;    // array indicating "dead" nodes
-  // same here- if many boundaries then move into Node
-  // seems much faster outside of node (but maybe didn't test correctly).
-  std::unique_ptr<bool[]> boundary;    // array indicating boundary nodes
-  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
-  // TODO(lucasw) test smart pointer to array vs vector
-  std::unique_ptr<Node[]> nodes_;
 };
 
 #if 0
@@ -147,7 +115,7 @@ typedef enum { kHorizontal = 0, kVertical, kNone } simAngularType;
 
 class Lambda {
 public:
-  Lambda();
+  Lambda(const size_t width, const size_t height);
 
   // TODO(lucasw) 3D add up and down?
   // static constexpr std::array<char[7], 4> dirs_ = {"left", "right", "top", "bottom"};
@@ -167,9 +135,7 @@ public:
   //   Prepares variables needed for simulation.
   // RETURN VALUE
   //   return true if no error occured, false identfier otherwise.
-  bool initSimulationPre();
-  void initEnvironmentSetup();
-  bool initSimulation();
+  bool init();
   void setVel(const int& srcxy, const float& magnitude, const float& alpha);
   //   Processes the next simulation iteration.
   void processSim();
@@ -181,26 +147,22 @@ public:
   void getPressure(cv::Mat& image)
   {
     const int idx = ((config.n + 1) % 3); // present index
-    image = data.pressure_[idx];
+    image = pressure_[idx];
   }
   float getPressure(const size_t x, const size_t y);
 
   bool setWall(const size_t x, const size_t y, const float value);
   void getEnvironment(cv::Mat& image)
   {
-    image = data.envi;
+    image = envi_;
   }
 
-  // TODO(lucasw) need to make these set only a temp variable,
-  // and only when the user request a reconfiguration with the new
-  // values take effect- if a simulation is already in progress.
-  bool setNX(const int value);
-  bool setNY(const int value);
-  bool setNNodes(const int value);
+#if USE_WRAP
   // have the waves wrap left-right and top-bottom -
   // corresponds to a torus, not really that physical but neat
   // to experiment with.
   bool wrap_ = true;
+#endif
 
 private:
   //   This function intializes all the important variables, arrays and
@@ -222,11 +184,6 @@ private:
     float envi, float angle);
   void addNeighborFilter(const int x, const int y,
     const float envi, const float angle);
-  void processWall(const int x, const int y);
-
-  //   Resets important variables, arrays and matrices to zero, e.g. before
-  //   starting new simulation runs.
-  virtual void clear();
 
   //   Resets variables and arrays used directly for simulation purposes.
   virtual void reset();
@@ -282,9 +239,31 @@ private:
                            float alpha, simAngularType direction);
 
   simConfig config;
-  SimData data;
 
   static constexpr float rad_per_deg = M_PI / 180.f;
+
+  const int width_;
+  const int height_;
+  const int num_;
+
+  void processWall(const int x, const int y);
+  // the location of these in memory is not that important because
+  // they aren't accessed during the sim update.
+  // use cv::Mat 32F for these?  Do a speed comparison before and after
+  // the conversion.
+  cv::Mat envi_;       // simulation environment - the walls
+  cv::Mat angle_;      // angle matrix as loaded from the .sim-file
+
+  // these are important to keep together.
+  // if there a lot of dead nodes, then better to kepep them in own array,
+  // otherwise move into node above
+  std::unique_ptr<bool[]> deadnode;    // array indicating "dead" nodes
+  // same here- if many boundaries then move into Node
+  // seems much faster outside of node (but maybe didn't test correctly).
+  std::unique_ptr<bool[]> boundary;    // array indicating boundary nodes
+  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
+  // TODO(lucasw) test smart pointer to array vs vector
+  std::unique_ptr<Node[]> nodes_;
 };
 
 #endif
