@@ -15,6 +15,6 @@ audio = Audio()
 num = rospy.get_param("~length", 100)
 period = rospy.get_param("~period", 6.0)
 for i in range(num):
-    fr = float(i) % period / period
+    fr = float(i) % period / period - 0.5
     audio.data.append(fr)
 pub.publish(audio)

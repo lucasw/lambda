@@ -26,19 +26,6 @@
 //   Constructor for the program's main class, initializes program and builds up
 Lambda::Lambda(const size_t width, const size_t height) :
     width_(width), height_(height), num_(width * height) {
-  envi_ = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(0));
-  // 400.0f means no preemphasis is done on the nodes)
-  angle_ = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(400.0f));
-
-  deadnode.reset(new bool[num_]); // reserve mem for deadnode matrix
-  boundary.reset(new bool[num_]);
-  for (size_t pos = 0; pos < num_; pos++) {
-    deadnode[pos] = false;
-    boundary[pos] = false;
-  }
-
-  nodes_.reset(new Node[num_]);
-
   init();
   // TODO(lucasw) let something else determine whether or not to randomize like
   // this
@@ -49,9 +36,12 @@ void simConfig::reset() {
   n = 0;
 }
 
-void DirectionalFilter::reset() {
-  // oldx_.reset(nullptr);
-  // oldy_.reset(nullptr);
+DirectionalFilter::DirectionalFilter() {
+  resetEnvironment();
+  resetPressure();
+}
+
+void DirectionalFilter::resetPressure() {
   for (size_t i = 0; i < oldx_.size(); ++i)
     oldx_[i] = 0.0;
   for (size_t i = 0; i < oldy_.size(); ++i)
@@ -63,21 +53,55 @@ void DirectionalFilter::reset() {
   }
 }
 
-void Node::reset() {
+void Node::resetPressure() {
   for (size_t d = 0; d < filter_.size(); ++d) {
-    filter_[d].reset();
+    filter_[d].resetPressure();
   }
 }
 
 //   Resets variables and arrays used directly for simulation purposes.
 // Should be able to restart the simulation from time zero after this
-void Lambda::reset() {
+void Lambda::resetPressure() {
   // Delete bottom filter non-recursive memory
   for (size_t n = 0; n < num_; n++) {
-    nodes_[n].reset();
+    nodes_[n].resetPressure();
+  }
+
+  for (size_t i = 0; i < pressure_.size(); ++i) {
+    pressure_[i] = cv::Scalar::all(0.0);
   }
 
   config.reset();
+}
+
+void DirectionalFilter::resetEnvironment() {
+  filt_ = false;
+  numcoeffs_ = 0;
+  for (size_t i = 0; i < length_; ++i) {
+    coeffsA_[i] = 0.0;
+    coeffsB_[i] = 0.0;
+  }
+}
+
+void Node::resetEnvironment() {
+  for (size_t d = 0; d < filter_.size(); ++d) {
+    filter_[d].resetEnvironment();
+  }
+}
+
+void Lambda::resetEnvironment() {
+  for (size_t n = 0; n < num_; n++) {
+    nodes_[n].resetEnvironment();
+  }
+
+  envi_ = cv::Scalar::all(0.0);
+  angle_ = cv::Scalar::all(0.0);
+  for (size_t pos = 0; pos < num_; pos++) {
+    deadnode[pos] = false;
+    boundary[pos] = false;
+  }
+
+  processWalls();
 }
 
 #if 0
@@ -188,6 +212,14 @@ bool Lambda::init() {
   if (num_ < 1)
     return false;
 
+  envi_ = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(0));
+  // 400.0f means no preemphasis is done on the nodes)
+  angle_ = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(400.0f));
+
+  deadnode.reset(new bool[num_]);
+  boundary.reset(new bool[num_]);
+  nodes_.reset(new Node[num_]);
+
   tmp_filtid_[0] = 0;
   tmp_filters_[0].numcoeffs_ = 1;
   tmp_filters_[0].coeffsA_[0] = 1.f;
@@ -199,6 +231,11 @@ bool Lambda::init() {
     pressure_[x] = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(0));
   }
 
+  resetEnvironment();
+  return true;
+}
+
+void Lambda::processWalls() {
   // work through all nodes in the environment
   for (int y = 0; y < height_; y++) {
     for (int x = 0; x < width_; x++) {
@@ -229,11 +266,19 @@ bool Lambda::init() {
     } // x-loop
   }   // y-loop
 
-  return true;
+  return;
 }
 
-void Lambda::getFilterImage(cv::Mat& image, const int d, const std::string type, const int i)
-{
+void Lambda::print(const size_t x, const size_t y) {
+  const size_t pos = y * width_ + x;
+  if (pos >= num_) {
+    std::cerr << pos << " >= " << num_ << "\n";
+    return;
+  }
+  nodes_[pos].print();
+}
+
+void Lambda::getFilterImage(cv::Mat& image, const int d, const std::string type, const int i) {
   image = cv::Mat(cv::Size(width_, height_), CV_32FC1, cv::Scalar::all(0));
 
   for (size_t y = 0; y < height_; ++y) {
@@ -305,7 +350,7 @@ void Lambda::addFilter(const int pos, const int d,
   if (border)
     envi = 0.0;
 
-  if ((envi >= -1.0) && (envi <= 1.0)) {
+  if ((envi > -1.0) && (envi < 1.0)) {
     if ((envi == 0.0) && (!border)) {
       // TODO(lucasw) is this similar to envi=0.0 to adaptfilter, but more efficient?
       nodes_[pos].filter_[d].numcoeffs_ = 0;
@@ -318,7 +363,8 @@ void Lambda::addFilter(const int pos, const int d,
                            nodes_[pos].filter_[d].coeffsB_,
                            envi, angle, dirToPreemphasis(d));
     }
-  } else if ((envi > 1.0) && (envi <= 1000.0)) {
+  // } else if ((envi >= 1.0) && (envi <= 1000.0)) {
+  } else {
     boundary[pos] = true;
     nodes_[pos].filter_[d].filt_ = true;
     adaptfilter(
@@ -327,7 +373,7 @@ void Lambda::addFilter(const int pos, const int d,
           nodes_[pos].filter_[d].coeffsB_,
           tmp_filtid_, tmp_filters_,
           (int)envi, angle, dirToPreemphasis(d));
-  } else {
+  // } else {
   }
 }
 
@@ -338,11 +384,12 @@ void Lambda::addNeighborFilter(const int x, const int y,
   // TODO(lucasw) if envi == 0.0 and the neighbor was a deadnode
   // this may result in 'leaking' or otherwise be wrong.
   // bounds are checked within addFilter
-  const int pos = y * width_ + x;
+  const int wd = static_cast<int>(width_);
+  const int pos = y * wd + x;
 #if USE_WRAP
   const std::array<int, 4>& neighbors = nodes_[pos].neighbors_;
 #else
-  const std::array<int, 4> neighbors = {pos - 1, pos - width_, pos + 1, pos + width_};
+  const std::array<int, 4> neighbors = {pos - 1, pos - wd, pos + 1, pos + wd};
 #endif
   addFilter(neighbors[RIGHT], LEFT, envi, angle);
   addFilter(neighbors[BOTTOM], TOP, envi, angle);
@@ -350,13 +397,30 @@ void Lambda::addNeighborFilter(const int x, const int y,
   addFilter(neighbors[TOP], BOTTOM, envi, angle);
 }
 
-void Lambda::processWall(const int x, const int y) {
-  const int pos = y * width_ + x;
+bool Lambda::processWall(const size_t x, const size_t y) {
+  if (x >= envi_.cols) {
+    return false;
+  }
+  if (y >= envi_.rows) {
+    return false;
+  }
+  if (x >= angle_.cols) {
+    return false;
+  }
+  if (y >= angle_.rows) {
+    return false;
+  }
+
+  const size_t pos = y * width_ + x;
+  // TODO(lucasw) throw an exception, should never return false here
+  // unless misconfigured
+  if (pos >= num_)
+    return false;
+
   const float envi = envi_.ptr<float>(0)[pos];
   const float angle = angle_.ptr<float>(0)[pos];
 
-  // TODO(lucasw) is there any difference with the > 1.0 code below?
-  if ((envi >= -1.0) && (envi <= 1000.0)) {
+  // if ((envi > -1.0) && (envi <= 1000.0)) {
     if (envi != 0.0) {
       deadnode[pos] = true;
     } else {
@@ -371,10 +435,12 @@ void Lambda::processWall(const int x, const int y) {
       // nodes_[pos].filter_[d].print();
     }
     addNeighborFilter(x, y, envi, angle);
-  } else if (envi < -1.0) {
+ #if 0
+  } else if (envi <= -1.0) {
     // envi < -1.0 used to be used for recorders
     // TODO(lucasw) does < -1.0 passed to adaptfilter do anything interesting?
   }
+  #endif
 }
 
 #if 0
@@ -456,11 +522,26 @@ void DirectionalFilter::print()
       << numcoeffs_ << "\n";
   for (size_t i = 0; i < numcoeffs_; ++i)
   {
-    std::cout << "        " << coeffsA_[i] << " "
-       << coeffsB_[i] << "\n";
+    std::cout << "        "
+        << coeffsA_[i] << " " << coeffsB_[i] << " "
+        << oldx_[i] << " " << oldy_[i] << " "
+        << "\n";
     // std::cout << "        " << coeffsA_ << " " << coeffsA_[i] << " "
     //     << coeffsB_ << " " << coeffsB_[i] << "\n";
     // TODO(lucasw) print out oldx and oldy also?
+  }
+  std::cout << "incident ";
+  for (size_t i = 0; i < inci_.size(); ++i)
+    std::cout << inci_[i] << " ";
+  std::cout << "\n";
+}
+
+void Node::print() {
+  for (size_t d = 0; d < filter_.size(); ++d) {
+#if USE_WRAP
+    std::cout << "neighbor " << neighbors_[d] << "\n";
+#endif
+    filter_[d].print();
   }
 }
 
@@ -494,8 +575,7 @@ bool Lambda::setWall(const size_t x, const size_t y, const float value)
     return false;
   }
   envi_.at<float>(y, x) = value;
-  processWall(x, y);
-  return true;
+  return processWall(x, y);
 }
 
 // alpha is angle
@@ -688,7 +768,8 @@ void Lambda::processSim() {
       #if USE_WRAP
       const std::array<int, 4>& neighbors = nodes_[pos].neighbors_;
       #else
-      const std::array<int, 4> neighbors = {pos - 1, pos - width_, pos + 1, pos + width_};
+      const int wd = static_cast<int>(width_);
+      const std::array<int, 4> neighbors = {pos - 1, pos - wd, pos + 1, pos + wd};
       #endif
 
       // boundary? --> no standard propagation!
@@ -815,27 +896,17 @@ void Lambda::processSim() {
 void Lambda::adaptreflexionfactor(int &dest_numcoeffs,
                                   std::array<float, 4>& dest_coeffsA,
                                   std::array<float, 4>& dest_coeffsB,
-                                  float r, float alpha,
+                                  const float r, const float alpha,
                                   simAngularType direction) {
   // new filter has got only one a- and one b-coefficient
   dest_numcoeffs = 1;
-  // if a destination filter is already existing, then delete it
-  #if 0
-  if (dest_coeffsA != nullptr)
-    delete[] dest_coeffsA;
-  if (dest_coeffsB != nullptr)
-    delete[] dest_coeffsB;
-  // reserve memory for the a- and b-coefficient
-  dest_coeffsA = new float[1];
-  dest_coeffsB = new float[1];
-  #endif
   // is alpha out of range? [-360..+360 degrees] -> yes, no preemphasis
   if ((alpha <= -360.f) || (alpha >= 360.f))
     direction = kNone;
-  float a, b, anew, bnew;
+  float anew, bnew;
   // set the temporary filter coeffs (a0=1, b0=reflexion factor)
-  a = 1.f;
-  b = r;
+  const float a = 1.f;
+  const float b = r;
   if (direction == kHorizontal) {
     // do horizontal preemphasis
     anew =
@@ -855,6 +926,14 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs,
   }
   // normalize the filter coefficients
   dest_coeffsA[0] = 1.f;
+  if (anew == 0.0) {
+    // TODO(lucasw) how did r = -1.0 for kVertical ever work?  it will always be zero
+    std::stringstream ss;
+    ss << "direction " << direction << ", r " << r << ", alpha " << alpha
+        << ", anew " << anew << ", bnew " << bnew
+        << ", a " << a << ", b " << b;
+    throw std::runtime_error("anew is zero " + ss.str());
+  }
   dest_coeffsB[0] = bnew / anew;
 }
 
@@ -924,8 +1003,15 @@ void Lambda::adaptfilter(int &dest_numcoeffs,
     dest_coeffsA[kk] = anew;
     dest_coeffsB[kk] = bnew;
   }
+  // TODO(lucasw) check for zero, avoid uninitialized
   // normalize the filter coefficients
-  float a0 = dest_coeffsA[0];
+  const float a0 = dest_coeffsA[0];
+
+  if (a0 == 0.0) {
+    std::cerr << id << " " << alpha << " " << a0 << std::endl;
+    throw std::runtime_error("a0 is zero");
+  }
+
   for (int kk = 0; kk < src_filters_[actnum].numcoeffs_; kk++) {
     dest_coeffsA[kk] /= a0;
     dest_coeffsB[kk] /= a0;

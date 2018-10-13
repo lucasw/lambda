@@ -53,7 +53,9 @@ struct simConfig {
 // so that it is all close together in memory.
 // Initially just the filter data.
 struct DirectionalFilter {
-  void reset();
+  DirectionalFilter();
+  void resetPressure();
+  void resetEnvironment();
   // whether to use a filter at this location at all
   bool filt_ = false;
 
@@ -81,7 +83,8 @@ struct DirectionalFilter {
 // TODO(lucasw) instead of the below being all independent arrays (and therefore widely
 // spaced in memory), make them all in the same data structure per node.
 struct Node {
-  void reset();
+  void resetPressure();
+  void resetEnvironment();
   // TODO(lucasw) maybe this is bad if frequently sparse filters
   std::array<DirectionalFilter, 4> filter_;
 
@@ -89,6 +92,8 @@ struct Node {
   #if USE_WRAP
   std::array<int, 4> neighbors_ = {-1, -1, -1, -1};
   #endif
+
+  void print();
 
   // TODO(lucasw) keeping these performance notes around for future reference
   // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
@@ -135,10 +140,15 @@ public:
   // RETURN VALUE
   //   return true if no error occured, false identfier otherwise.
   bool init();
+  //   Resets variables and arrays used directly for simulation purposes.
+  virtual void resetPressure();
+  virtual void resetEnvironment();
+
   void setVel(const int& srcxy, const float& magnitude, const float& alpha);
   //   Processes the next simulation iteration.
   void processSim();
 
+  void print(const size_t x, const size_t y);
   void getFilterImage(cv::Mat& image, const int d, const std::string type, const int i=0);
 
   void setPressure(const size_t x, const size_t y, const float value);
@@ -163,6 +173,10 @@ public:
   bool wrap_ = true;
 #endif
 
+  const size_t width_;
+  const size_t height_;
+  const size_t num_;
+
 private:
   //   This function intializes all the important variables, arrays and
   //   matrices. Sets pointers to NULL. Called only one single time at startup.
@@ -181,9 +195,6 @@ private:
     float envi, float angle);
   void addNeighborFilter(const int x, const int y,
     const float envi, const float angle);
-
-  //   Resets variables and arrays used directly for simulation purposes.
-  virtual void reset();
 
   //   Creates a new digital filter for a given real-valued reflexion factor and
   //   preemphases the filter coefficients due to a given sonic incidence angle
@@ -239,11 +250,8 @@ private:
 
   static constexpr float rad_per_deg = M_PI / 180.f;
 
-  const int width_;
-  const int height_;
-  const int num_;
-
-  void processWall(const int x, const int y);
+  void processWalls();
+  bool processWall(const size_t x, const size_t y);
   // the location of these in memory is not that important because
   // they aren't accessed during the sim update.
   // use cv::Mat 32F for these?  Do a speed comparison before and after
@@ -258,7 +266,7 @@ private:
   // same here- if many boundaries then move into Node
   // seems much faster outside of node (but maybe didn't test correctly).
   std::unique_ptr<bool[]> boundary;    // array indicating boundary nodes
-  cv::Mat pressure_[3];  // array containing the actual node pressure distribution
+  std::array<cv::Mat, 3> pressure_;  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector
   std::unique_ptr<Node[]> nodes_;
 };

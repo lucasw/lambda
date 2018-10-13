@@ -66,22 +66,6 @@ public:
     // lambda_->set("rho", rho);
 
     #if 0
-    ROS_INFO_STREAM("setup walls");
-    // env [-1.0 - 1.0] but excluding 0.0 is a wall
-    // 1.0 - 1000.0 is something else- another kind of wall
-    const float radius = wd * 0.4;
-    for (size_t i = 0; i < 250; ++i)
-    {
-      const float angle = i * 0.02;
-      const int x = wd * 0.5 + radius * cos(angle);
-      const int y = ht * 0.5 + radius * sin(angle);
-      // std::cout << x << " " << y << "\n";
-      for (int ox = 0; ox < 3; ++ox)
-        for (int oy = 0; oy < 3; ++oy)
-          addWall(x + ox, y + oy, -0.98);
-    }
-    #endif
-    #if 0
     for (size_t i = 0; i < 90; ++i)
     {
       for (size_t j = 0; j < 4; ++j)
@@ -103,27 +87,18 @@ public:
     ros::param::get("~test_cycles", test_cycles);
     if (test_cycles > 0)
     {
-      for (size_t j = 0; j < 4; ++j)
-      {
-      ROS_INFO_STREAM("start TEST " << test_cycles << " " << wd * ht);
-      ros::Duration(1.0).sleep();
-      ros::Time t0 = ros::Time::now();
-      for (size_t i = 0; i < test_cycles; ++i)
-      {
-        lambda_->processSim();
-      }
-      ros::Time t1 = ros::Time::now();
-      // this is currently around 1500
-      ROS_INFO_STREAM("speed = " << test_cycles / (t1 - t0).toSec());
-      ros::Duration(1.0).sleep();
-      }
+      speedTest(test_cycles);
+    }
+
+    {
+      // debug -1.0 vs. -0.99
+      addWall(40, 40, -0.99);
+      lambda_->print(40, 40);
+      addWall(20, 20, -1.0);
+      lambda_->print(20, 20);
     }
 
     ROS_INFO_STREAM("start sim");
-    addPressure(wd / 2, ht / 2, 0.5);
-    // lambda_->processSim();
-    // lambda_->processSim();
-    // addPressure(wd / 2 + 6, ht / 2, 0.5);
 
     reconfigure_server_.reset(new ReconfigureServer(dr_mutex_, nh_private_));
     dynamic_reconfigure::Server<lambda_ros::LambdaConfig>::CallbackType cbt =
@@ -141,11 +116,61 @@ public:
     spinner_.start();
   }
 
+  void speedTest(const size_t test_cycles)
+  {
+    ROS_INFO_STREAM("setup test walls");
+    // env [-1.0 - 1.0] but excluding 0.0 is a wall
+    // 1.0 - 1000.0 is something else- another kind of wall
+    const size_t wd = lambda_->width_;
+    const size_t ht = lambda_->height_;
+    const float radius = wd * 0.4;
+    for (size_t i = 0; i < 250; ++i)
+    {
+      const float angle = i * 0.02;
+      const int x = wd * 0.5 + radius * cos(angle);
+      const int y = ht * 0.5 + radius * sin(angle);
+      // std::cout << x << " " << y << "\n";
+      for (int ox = 0; ox < 3; ++ox)
+        for (int oy = 0; oy < 3; ++oy)
+          addWall(x + ox, y + oy, -1.0);
+    }
+
+    addPressure(wd / 2 + 6, ht / 2, 2.0);
+
+    for (size_t j = 0; j < 4; ++j)
+    {
+    ROS_INFO_STREAM("start TEST " << test_cycles << " " << wd * ht);
+    ros::Duration(1.0).sleep();
+    ros::Time t0 = ros::Time::now();
+    for (size_t i = 0; i < test_cycles; ++i)
+    {
+      lambda_->processSim();
+    }
+    ros::Time t1 = ros::Time::now();
+    // this is currently around 1500
+    ROS_INFO_STREAM("speed = " << test_cycles / (t1 - t0).toSec());
+    ros::Duration(1.0).sleep();
+    }
+
+    // TODO(lucasw)
+    // lambda_->resetEnvironment()
+  }
+
   float fr_accum_ = 0.0;
   float new_fr_accum_ = 0.0;
 
   void update(const ros::TimerEvent& e)
   {
+    if (config_.reset_pressure)
+    {
+      lambda_->resetPressure();
+      config_.reset_pressure = false;
+    }
+    if (config_.reset_environment)
+    {
+      lambda_->resetEnvironment();
+      config_.reset_environment = false;
+    }
     #if 0
     if (point_)
     {
@@ -197,9 +222,14 @@ public:
   {
     if (wall_point_)
     {
+      bool rv = true;
       for (int ox = -2; ox < 3; ++ox)
+      {
         for (int oy = -2; oy < 3; ++oy)
-          addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
+        {
+          rv &= addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
+        }
+      }
       wall_point_.reset();
     }
     publishVisImage();
@@ -248,13 +278,14 @@ public:
     }
   }
 
-  void addWall(const float x, const float y, const float reflection)
+  bool addWall(const float x, const float y, const float reflection)
   {
     const bool rv = lambda_->setWall(x, y, reflection);
     if (!rv)
     {
       // ROS_ERROR_STREAM("bad wall " << x << " " << y << " " << reflection);
     }
+    return rv;
   }
 
   void addPressure(const float x, const float y, const float pressure)
@@ -385,6 +416,11 @@ private:
       uint32_t level)
   {
     config_ = config;
+    // it's somewhat misleading to set these false here so the ui sees them
+    // toggle off as if they have already been processed, but the copy
+    // of them in config_ may get clobbered or ignored before being used.
+    config.reset_pressure = false;
+    config.reset_environment = false;
     config.step = false;
   }
 
