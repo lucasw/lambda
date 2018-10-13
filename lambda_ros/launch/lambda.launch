@@ -52,6 +52,11 @@
     <remap from="image_out" to="scaled_pressure_image"/>
   </node>
 
+  <node name="sine" pkg="lambda_ros" type="sine.py" >
+    <param name="length" value="20" />
+    <param name="period" value="6" />
+  </node>
+
   </group>
 
   <node name="rqt_lambda" pkg="rqt_gui" type="rqt_gui"

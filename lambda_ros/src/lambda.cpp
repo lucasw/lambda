@@ -188,20 +188,11 @@ bool Lambda::init() {
   if (num_ < 1)
     return false;
 
-  tmp_numfilters = 1;                   // if yes, initialize only the 0 filter
-  tmp_filtid = new int[tmp_numfilters]; // reserve memory for the 0 filter
-  tmp_filtnumcoeffs =
-      new int[tmp_numfilters]; // reserve memory for the 0 filter
-  tmp_filtcoeffsA =
-      new float *[tmp_numfilters]; // reserve memory for the 0 filter
-  tmp_filtcoeffsB =
-      new float *[tmp_numfilters];   // reserve memory for the 0 filter
-  tmp_filtid[0] = 0;                 // set up the 0 filter
-  tmp_filtnumcoeffs[0] = 1;          // set up the 0 filter
-  tmp_filtcoeffsA[0] = new float[1]; // set up the 0 filter
-  tmp_filtcoeffsB[0] = new float[1]; // set up the 0 filter
-  tmp_filtcoeffsA[0][0] = 1.f;       // set up the 0 filter
-  tmp_filtcoeffsB[0][0] = 0.f;       // set up the 0 filter
+  tmp_filtid_[0] = 0;
+  tmp_filters_[0].numcoeffs_ = 1;
+  tmp_filters_[0].coeffsA_[0] = 1.f;
+  tmp_filters_[0].coeffsB_[0] = 0.f;
+  tmp_filters_[0].print();
 
   // set up indices needed for the simulation
   for (int x = 0; x < 3; x++) {
@@ -333,8 +324,8 @@ void Lambda::addFilter(const int pos, const int d,
     adaptfilter(
           nodes_[pos].filter_[d].numcoeffs_,
           nodes_[pos].filter_[d].coeffsA_,
-          nodes_[pos].filter_[d].coeffsB_, tmp_filtid, tmp_filtnumcoeffs,
-          tmp_filtcoeffsA, tmp_filtcoeffsB, tmp_numfilters,
+          nodes_[pos].filter_[d].coeffsB_,
+          tmp_filtid_, tmp_filters_,
           (int)envi, angle, dirToPreemphasis(d));
   } else {
   }
@@ -890,40 +881,31 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs,
 void Lambda::adaptfilter(int &dest_numcoeffs,
                          std::array<float, 4>& dest_coeffsA,
                          std::array<float, 4>& dest_coeffsB,
-                         int *src_id, int *src_numcoeffs,
-                         float **src_coeffsA, float **src_coeffsB,
-                         int src_numfilters, int id, float alpha,
+                         const std::array<size_t, num_tmp_filters_>& src_id,
+                         const std::array<DirectionalFilter, num_tmp_filters_>& src_filters_,
+                         const int id,
+                         const float alpha,
                          simAngularType direction) {
   // search for the filter ID in the source filter array
   // (if no matching ID is found, set ID to 0 which is the standard 0 filter)
   int actnum = 0;
-  for (int kk = 0; kk < src_numfilters; kk++)
+  for (int kk = 0; kk < src_id.size(); kk++)
     if (src_id[kk] == id)
       actnum = kk;
   // get number of filter coefficients
-  dest_numcoeffs = src_numcoeffs[actnum];
-  if ((src_numcoeffs[actnum]) > dest_coeffsA.size())
+  dest_numcoeffs = src_filters_[actnum].numcoeffs_;
+  if (src_filters_[actnum].numcoeffs_ > dest_coeffsA.size())
     dest_numcoeffs = 4;
 
-  // if a destination filter is already existing, then delete it
-  #if 0
-  if (dest_coeffsA != nullptr)
-    delete[] dest_coeffsA;
-  if (dest_coeffsB != nullptr)
-    delete[] dest_coeffsB;
-  // reserve memory for the a- and b-coefficients
-  dest_coeffsA = new float[src_numcoeffs[actnum]];
-  dest_coeffsB = new float[src_numcoeffs[actnum]];
-  #endif
   // is alpha out of range? [-360..+360 degrees] -> yes, no preemphasis
   if ((alpha <= -360.f) || (alpha >= 360.f))
     direction = kNone;
   // preemphase all filter coefficients
-  for (int kk = 0; kk < src_numcoeffs[actnum]; kk++) {
-    float a, b, anew, bnew;
+  for (int kk = 0; kk < src_filters_[actnum].numcoeffs_; kk++) {
+    float anew, bnew;
     // get one pair of the temporary filter coeffs
-    a = src_coeffsA[actnum][kk];
-    b = src_coeffsB[actnum][kk];
+    const float a = src_filters_[actnum].coeffsA_[kk];
+    const float b = src_filters_[actnum].coeffsB_[kk];
     if (direction == kHorizontal) {
       // do horizontal preemphasis
       const float ca = M_SQRT2 * abs(cos(alpha * rad_per_deg)) * (a - b);
@@ -944,7 +926,7 @@ void Lambda::adaptfilter(int &dest_numcoeffs,
   }
   // normalize the filter coefficients
   float a0 = dest_coeffsA[0];
-  for (int kk = 0; kk < src_numcoeffs[actnum]; kk++) {
+  for (int kk = 0; kk < src_filters_[actnum].numcoeffs_; kk++) {
     dest_coeffsA[kk] /= a0;
     dest_coeffsB[kk] /= a0;
   }

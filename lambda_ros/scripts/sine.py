@@ -7,7 +7,7 @@ from spectrogram_paint_ros.msg import Audio
 
 rospy.init_node("sine")
 
-pub = rospy.Publisher("/lambda/audio_source", Audio, queue_size=3)
+pub = rospy.Publisher("audio_source", Audio, queue_size=3, latch=True)
 rospy.sleep(0.5)
 
 audio = Audio()
@@ -18,4 +18,6 @@ for i in range(num):
     fr = math.sin(i * math.pi * 0.5 / num)
     val = math.sin(i * math.pi / period) * fr
     audio.data.append(val)
+
 pub.publish(audio)
+rospy.sleep(1.0)

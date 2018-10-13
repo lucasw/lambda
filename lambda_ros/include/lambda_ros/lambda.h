@@ -57,9 +57,8 @@ struct DirectionalFilter {
   // whether to use a filter at this location at all
   bool filt_ = false;
 
-  int numcoeffs_ = 0;    // number of filter coeffs for filters
-
   static const size_t length_ = 4;
+  int numcoeffs_ = 0;  // number of filter coeffs for filters, has to be <= length_ above
   // Constant array size for now, later try to make it more dynamic
   // TODO(lucasw) need a small array optimization if size 0..4 or some other
   // low value use a std::array, but still allow special large filters
@@ -171,12 +170,10 @@ private:
 
   void initEnvironment();
 
-  // TODO(lucasw) do something with these - at least make them unique_ptrs
-  int *tmp_filtid = NULL;         // temporary filter ID array
-  int *tmp_filtnumcoeffs = NULL;  // temporary filter numcoeffs array
-  float **tmp_filtcoeffsA = NULL; // temporary filter a-coeffs array
-  float **tmp_filtcoeffsB = NULL; // temporary filter b-coeffs array
-  int tmp_numfilters;             // temporary number of filters
+  // Not sure if this ought to be dynamic, modifiable?
+  static const size_t num_tmp_filters_ = 1;
+  std::array<DirectionalFilter, num_tmp_filters_> tmp_filters_;
+  std::array<size_t, num_tmp_filters_> tmp_filtid_;         // temporary filter ID array
 
   void addFilter(const int x, const int y, const int d,
     float envi, float angle);
@@ -233,10 +230,10 @@ private:
   virtual void adaptfilter(int &dest_numcoeffs,
                            std::array<float, 4>& dest_coeffsA,
                            std::array<float, 4>& dest_coeffsB,
-                           int *src_id,
-                           int *src_numcoeffs, float **src_coeffsA,
-                           float **src_coeffsB, int src_numfilters, int id,
-                           float alpha, simAngularType direction);
+                           const std::array<size_t, num_tmp_filters_>& src_id,
+                           const std::array<DirectionalFilter, num_tmp_filters_>& src_filters_,
+                           const int id,
+                           const float alpha, simAngularType direction);
 
   simConfig config;
 

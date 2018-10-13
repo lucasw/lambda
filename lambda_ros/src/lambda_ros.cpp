@@ -39,6 +39,21 @@ public:
     ros::param::get("~height", ht);
     lambda_.reset(new Lambda(wd, ht));
 
+    // default source signal
+    #if 0
+    // TODO(lucasw) need way around const-ness
+    {
+      audio_source_msg_.reset(new spectrogram_paint_ros::Audio);
+      float val = 2.0;
+      for (size_t i = 0; i < 4; ++i)
+      {
+        audio_source_msg_->data.push_back(-val);
+        audio_source_msg_->data.push_back(val);
+        val *= 0.5;
+      }
+    }
+    #endif
+
     #if USE_WRAP
     ros::param::get("~wrap", lambda_->wrap_);
     ROS_INFO_STREAM("using wrap " << lambda_->wrap_);
