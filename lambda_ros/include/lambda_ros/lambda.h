@@ -160,7 +160,8 @@ public:
   }
   float getPressure(const size_t x, const size_t y);
 
-  bool setWall(const size_t x, const size_t y, const float value);
+  bool setWall(const size_t x, const size_t y, const float value,
+      const float base_pressure=0.0);
   void getEnvironment(cv::Mat& image)
   {
     image = envi_;

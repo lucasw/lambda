@@ -566,14 +566,36 @@ float Lambda::getPressure(const size_t x, const size_t y)
   return pressure_[idx].at<float>(y, x);
 }
 
-bool Lambda::setWall(const size_t x, const size_t y, const float value)
-{
+bool Lambda::setWall(const size_t x, const size_t y, const float value,
+    const float base_pressure) {
   if (x >= envi_.cols) {
     return false;
   }
   if (y >= envi_.rows) {
     return false;
   }
+  #if 1
+  const size_t pos = y * width_ + x;
+  // an empty node is being replaced with a wall
+  // (can a node not be a wall but just modulate waves passing through it?)
+  if ((!deadnode[pos]) && (value != 0.0)) {
+    const size_t idx = ((config.n + 1) % 3); // present index
+    const float pressure = base_pressure + getPressure(x, y);
+    setPressure(x, y, 0.0);
+    // push what pressure was here onto surrounding nodes
+    // (and ignore if those surrounding nodes are dead or out of bounds for now)
+    // std::cout << "dispersing pressure around new wall " << x << " " << y
+    //     << " " << pressure << "\n";
+    addPressure(x - 1, y, pressure / 4.0);
+    addPressure(x, y - 1, pressure / 4.0);
+    addPressure(x + 1, y, pressure / 4.0);
+    addPressure(x, y + 1, pressure / 4.0);
+  } else if ((deadnode[pos]) && (value == 0.0)) {
+    // std::cout << "creating vaccuum where wall used to be " << x << " " << y
+    //     << " " << -base_pressure << "\n";
+    setPressure(x, y, -base_pressure);
+  }
+  #endif
   envi_.at<float>(y, x) = value;
   return processWall(x, y);
 }

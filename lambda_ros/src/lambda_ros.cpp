@@ -215,6 +215,22 @@ public:
                it = audio_sources_.erase(it);
             }
           }
+
+          // temp test a moving wall
+          #if 1
+          {
+            static size_t seq = 0;
+            const size_t ind = seq;  // / 2;
+            const size_t y = 100;
+            addWall((ind + 5) % lambda_->width_, y, 1);
+            addWall((ind + 4) % lambda_->width_, y, 1);
+            addWall((ind + 3) % lambda_->width_, y, 1);
+            addWall((ind + 2) % lambda_->width_, y, 0);
+            addWall((ind + 1) % lambda_->width_, y, 0);
+            addWall((ind + 0) % lambda_->width_, y, 0);
+            seq += 2;
+          }
+          #endif
         }
         lambda_->processSim();
         {
@@ -233,9 +249,11 @@ public:
     if (wall_point_)
     {
       bool rv = true;
-      for (int ox = -2; ox < 3; ++ox)
+      int ox = 0;
+      int oy = 0;
+      // for (int ox = -2; ox < 3; ++ox)
       {
-        for (int oy = -2; oy < 3; ++oy)
+        // for (int oy = -2; oy < 3; ++oy)
         {
           rv &= addWall(wall_point_->x + ox, wall_point_->y + oy, config_.click_value);
         }
@@ -290,7 +308,7 @@ public:
 
   bool addWall(const float x, const float y, const float reflection)
   {
-    const bool rv = lambda_->setWall(x, y, reflection);
+    const bool rv = lambda_->setWall(x, y, reflection, config_.base_pressure);
     if (!rv)
     {
       // ROS_ERROR_STREAM("bad wall " << x << " " << y << " " << reflection);
