@@ -1,0 +1,3 @@
+spectrogram_paint_ros/Audio sample
+geometry_msgs/Point position
+geometry_msgs/Vector3 velocity

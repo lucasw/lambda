@@ -32,10 +32,10 @@ generate_dynamic_reconfigure_options(
   cfg/Lambda.cfg
 )
 
-# add_message_files(
-#   FILES
-#   Force.msg
-# )
+add_message_files(
+  FILES
+  AudioSource.msg
+)
 
 # add_service_files(
 #   FILES
