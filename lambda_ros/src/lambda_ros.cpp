@@ -10,6 +10,11 @@
 #include <sensor_msgs/Image.h>
 #include <spectrogram_paint_ros/Audio.h>
 
+struct AudioSource {
+  size_t index_ = 0;
+  geometry_msgs::PointConstPtr point_;
+  spectrogram_paint_ros::AudioConstPtr sample_;
+};
 
 class LambdaRos
 {
@@ -193,17 +198,22 @@ public:
         num = 1;
         config_.step = false;
       }
-      // no gaurantee this amount can be processed in time
+      // no guarantee this amount can be processed in time
       for (int i = 0; i < num; ++i)
       {
         {
           std::lock_guard<std::mutex> lock(audio_source_mutex_);
-          if (audio_source_msg_ && audio_source_point_ &&
-              (audio_source_index_ <  audio_source_msg_->data.size()))
+          for (auto it = audio_sources_.begin(); it != audio_sources_.end();)
           {
-            addPressure(audio_source_point_->x,
-              audio_source_point_->y, audio_source_msg_->data[audio_source_index_]);
-            ++audio_source_index_;
+            if (it->index_ < it->sample_->data.size())
+            {
+              addPressure(it->point_->x, it->point_->y,
+                  it->sample_->data[it->index_]);
+              ++(it->index_);
+              ++it;
+            } else {
+               it = audio_sources_.erase(it);
+            }
           }
         }
         lambda_->processSim();
@@ -322,16 +332,22 @@ public:
   {
     ROS_INFO_STREAM("new audio source " << msg->data.size());
     std::lock_guard<std::mutex> lock(audio_source_mutex_);
-    audio_source_msg_ = msg;
-    audio_source_index_ = 0;
+    audio_source_sample_ = msg;
   }
 
   void pointCallback(const geometry_msgs::PointConstPtr& msg)
   {
+    if (!audio_source_sample_)
+    {
+      // nothing to do without sample data to emit here
+      return;
+    }
     std::lock_guard<std::mutex> lock(audio_source_mutex_);
     // ROS_INFO_STREAM("point " << msg->x << " " << msg->y);
-    audio_source_point_ = msg;
-    audio_source_index_ = 0;
+    AudioSource audio_source;
+    audio_source.point_ = msg;
+    audio_source.sample_ = audio_source_sample_;
+    audio_sources_.push_back(audio_source);
   }
 
   void wallPointCallback(const geometry_msgs::PointConstPtr& msg)
@@ -424,12 +440,11 @@ private:
     config.step = false;
   }
 
-  size_t audio_source_index_ = 0;
-  geometry_msgs::PointConstPtr audio_source_point_;
-  spectrogram_paint_ros::AudioConstPtr audio_source_msg_;
+  std::mutex audio_source_mutex_;
+  spectrogram_paint_ros::AudioConstPtr audio_source_sample_;
+  std::list<AudioSource> audio_sources_;
 
   std::mutex audio_mutex_;
-  std::mutex audio_source_mutex_;
   std::list<float> new_samples_left_;
   std::list<float> new_samples_right_;
   ros::Timer update_timer_;
