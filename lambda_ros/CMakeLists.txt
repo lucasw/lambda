@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+find_package(OpenCL REQUIRED)
+
 set (CMAKE_CXX_STANDARD 11)
 
 find_package(OpenMP)
@@ -57,15 +59,19 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCL_INCLUDE_DIRS}
 #   ${lambda_INCLUDE_DIRES}
 )
 
 add_library(lambda_synth
   src/lambda.cpp
+  # TODO(lucasw) make this optional
+  src/ocl_lambda.cpp
 )
 
-# TODO(lucasw) replace cimg with opencv and eliminate this X11
-target_link_libraries(lambda_synth ${catkin_LIBRARIES} X11)
+target_link_libraries(lambda_synth ${catkin_LIBRARIES}
+  ${OpenCL_LIBRARIES})
+
 # add_dependencies(lambda_synth ${PROJECT_NAME}_gencpp)
 
 add_executable(${PROJECT_NAME} src/lambda_ros.cpp)
