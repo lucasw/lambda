@@ -24,8 +24,14 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
-Lambda::Lambda(const size_t width, const size_t height) :
+Lambda::Lambda(const size_t width, const size_t height, const std::string cl_file) :
     width_(width), height_(height), num_(width * height) {
+
+  if (cl_file != "") {
+    ocl_lambda_.reset(new OclLambda(cl_file, width_, height_));
+    use_opencl_ = true;
+  }
+
   init();
   // TODO(lucasw) let something else determine whether or not to randomize like
   // this
@@ -763,8 +769,19 @@ void Lambda::processSources(float*& presPres) {
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+void Lambda::processSimOpenCL(const size_t loops) {
+  if (!ocl_lambda_)
+    return;
+
+  ocl_lambda_->update(loops, pressure_);
+}
+
 //   Processes the next simulation iteration.
 void Lambda::processSim() {
+  if (ocl_lambda_) {
+    return;
+  }
+
   {
     // periodic cycling of time indices
     const size_t idxPast = ((config.n + 0) % 3); // past index

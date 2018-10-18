@@ -135,14 +135,15 @@ bool OclLambda::init(const std::string cl_file, const size_t width, const size_t
       }
     } catch (cl::Error err) {
       std::cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << "\n";
-      return EXIT_FAILURE;
+      return false;
     }
 
     std::string old_text = "";
 
+    std::cout << cl_file << "\n";
     cl_int rv = loadProg(devices, context_, program_, old_text, cl_file);
     if (rv != CL_SUCCESS) {
-      return EXIT_FAILURE;
+      return false;
     }
     try {
       for (size_t i = 0; i < kernels_.size(); ++i) {
@@ -150,13 +151,13 @@ bool OclLambda::init(const std::string cl_file, const size_t width, const size_t
         kernels_[i].setArg(0, cl_image_[i]);
         kernels_[i].setArg(1, cl_image_[(i + 1) % kernels_.size()]);
         kernels_[i].setArg(2, cl_image_[(i + 2) % kernels_.size()]);
-        kernels_[i].setArg(3, width);
-        kernels_[i].setArg(4, height);
+        kernels_[i].setArg(3, static_cast<int>(width));
+        kernels_[i].setArg(4, static_cast<int>(height));
       }
     } catch (cl::Error err) {
       std::cerr << "ERROR: " << err.what() << "(" << err.err()
                                  << ")" << "\n";
-      return EXIT_FAILURE;
+      return false;
     }
   } catch (cl::Error err) {
     std::cerr << "ERROR: " << err.what() << "(" << err.err() << ")" << "\n";
@@ -164,12 +165,16 @@ bool OclLambda::init(const std::string cl_file, const size_t width, const size_t
   }
 
   global_size_ = cl::NDRange(width * height);
-
+  std::cout << "global size " << global_size_ << " " << local_size_ << "\n";
+  init_done_ = true;
   return true;
 }
 
 bool OclLambda::update(const size_t num_kernel_loops,
     std::array<cv::Mat, 3>& pressure) {
+  if (!init_done_) {
+    return false;
+  }
   // ROS_DEBUG_STREAM("step " << outer_loops_ << " " << inner_loops_);
   size_t cur_inner_loops = 0;
 

@@ -19,6 +19,9 @@ class OclLambda {
 public:
   // std::string cl_file = "buffer.cl";
   OclLambda(const std::string cl_file, const size_t width, const size_t height);
+
+  bool update(const size_t num_kernel_loops,
+      std::array<cv::Mat, 3>& pressure);
 private:
   bool init(const std::string cl_file, const size_t width, const size_t height);
 
@@ -50,6 +53,5 @@ private:
   int outer_loops_ = 0;
   int inner_loops_ = 0;
 
-  bool update(const size_t num_kernel_loops,
-      std::array<cv::Mat, 3>& pressure);
+  bool init_done_ = false;
 };

@@ -25,6 +25,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <lambda_ros/ocl_lambda.hpp>
 #include <math.h>
 #include <memory>
 #include <map>
@@ -119,7 +120,8 @@ typedef enum { kHorizontal = 0, kVertical, kNone } simAngularType;
 
 class Lambda {
 public:
-  Lambda(const size_t width, const size_t height);
+  Lambda(const size_t width, const size_t height, const std::string cl_file = "");
+  bool use_opencl_ = false;
 
   // TODO(lucasw) 3D add up and down?
   // static constexpr std::array<char[7], 4> dirs_ = {"left", "right", "top", "bottom"};
@@ -147,6 +149,7 @@ public:
   void setVel(const int& srcxy, const float& magnitude, const float& alpha);
   //   Processes the next simulation iteration.
   void processSim();
+  void processSimOpenCL(const size_t loops);
 
   void print(const size_t x, const size_t y);
   void getFilterImage(cv::Mat& image, const int d, const std::string type, const int i=0);
@@ -270,6 +273,8 @@ private:
   std::array<cv::Mat, 3> pressure_;  // array containing the actual node pressure distribution
   // TODO(lucasw) test smart pointer to array vs vector
   std::unique_ptr<Node[]> nodes_;
+
+  std::unique_ptr<OclLambda> ocl_lambda_;
 };
 
 #endif

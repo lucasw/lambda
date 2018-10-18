@@ -4,6 +4,8 @@
   <arg name="width" default="400"/>
   <arg name="height" default="400"/>
   <arg name="use_audio" default="true"/>
+  <arg name="use_opencl" default="false"/>
+  <arg name="cl_file" default="$(find lambda_ros)/src/lambda.cl" />
   <arg name="test_cycles" default="0"/>
 
   <group ns="lambda">
@@ -15,6 +17,8 @@
       <param name="update_rate" value="1000.0" />
       <param name="test_cycles" value="$(arg test_cycles)" />
       <param name="audio_rate" value="4000" />
+      <param name="use_opencl" value="$(arg use_opencl)" />
+      <param name="cl_file" value="$(arg cl_file)" />
     </node>
 
     <group ns="image_raw">

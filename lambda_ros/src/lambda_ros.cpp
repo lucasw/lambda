@@ -42,7 +42,14 @@ public:
     ros::param::get("~width", wd);
     int ht = 5;
     ros::param::get("~height", ht);
-    lambda_.reset(new Lambda(wd, ht));
+
+    std::string cl_file = "";
+    ros::param::get("~cl_file", cl_file);
+    bool use_opencl = false;
+    ros::param::get("~use_opencl", use_opencl);
+    if (!use_opencl)
+      cl_file = "";
+    lambda_.reset(new Lambda(wd, ht, cl_file));
 
     // default source signal
     #if 0
@@ -95,6 +102,7 @@ public:
       speedTest(test_cycles);
     }
 
+#if 0
     {
       // debug -1.0 vs. -0.99
       addWall(40, 40, -0.99);
@@ -102,6 +110,7 @@ public:
       addWall(20, 20, -1.0);
       lambda_->print(20, 20);
     }
+#endif
 
     ROS_INFO_STREAM("start sim");
 
@@ -199,6 +208,31 @@ public:
         config_.step = false;
       }
       // no guarantee this amount can be processed in time
+      // TODO(lucasw) need to refactor so that both updates update
+      // num times and return all audio and input all samples
+      if (lambda_->use_opencl_) {
+
+        {
+          // TODO(lucasw) slow samples- need to make a buffer to pass
+          // into opencl of everything to happen in the next set of loops
+          std::lock_guard<std::mutex> lock(audio_source_mutex_);
+          for (auto it = audio_sources_.begin(); it != audio_sources_.end();)
+          {
+            if (it->index_ < it->sample_->data.size())
+            {
+              addPressure(it->point_->x, it->point_->y,
+                  it->sample_->data[it->index_]);
+              ++(it->index_);
+              ++it;
+            } else {
+               it = audio_sources_.erase(it);
+            }
+          }
+        }
+        lambda_->processSimOpenCL(num);
+      }
+      else
+      {
       for (int i = 0; i < num; ++i)
       {
         {
@@ -217,7 +251,7 @@ public:
           }
 
           // temp test a moving wall
-          #if 1
+          #if 0
           {
             static size_t seq = 0;
             const size_t ind = seq;  // / 2;
@@ -239,6 +273,7 @@ public:
           new_samples_right_.push_back(lambda_->getPressure(225, 200));
         }
         fr_accum_ += 1.0;
+      }
       }
       publishImage();
     }
