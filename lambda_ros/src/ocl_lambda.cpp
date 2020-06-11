@@ -1,9 +1,15 @@
+/**
+ * Copyright 2018-2020 Lucas Walter
+ */
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <lambda_ros/ocl_lambda.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <string>
+#include <utility>
+#include <vector>
 
 // load the opencl program from the disk
 // TBD optionally provide the old program, if it hasn't changed
@@ -11,7 +17,6 @@
 bool loadProg(std::vector<cl::Device> &devices, cl::Context &context,
               cl::Program &program, std::string &old_text,
               const std::string cl_name) {
-
   // look at using inotfiy to see changes to file
   // http://stackoverflow.com/questions/4664975/monitoring-file-using-inotify
   // http://en.highscore.de/cpp/boost/asio.html
@@ -19,7 +24,7 @@ bool loadProg(std::vector<cl::Device> &devices, cl::Context &context,
   // http://stackoverflow.com/questions/12564039/alternatives-to-inotify-to-detect-when-a-new-file-is-created-under-a-folder/24970801#24970801
   try {
     std::ifstream cl_file;
-    cl_file.open(cl_name.c_str()); //, std::ios::in);
+    cl_file.open(cl_name.c_str());  //, std::ios::in);
     if (!cl_file.is_open()) {
       std::cerr << "Could not open " << cl_name.c_str() << "\n";
       return false;
@@ -90,7 +95,7 @@ bool OclLambda::init(const std::string cl_file, const size_t width, const size_t
 
     cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, (cl_context_properties)(platforms[0])(),
-        0 // the callback
+        0  // the callback
     };
     context_ = cl::Context(CL_DEVICE_TYPE_GPU, properties);
     std::vector<cl::Device> devices = context_.getInfo<CL_CONTEXT_DEVICES>();
@@ -128,9 +133,9 @@ bool OclLambda::init(const std::string cl_file, const size_t width, const size_t
     try {
       for (size_t i = 0; i < cl_image_.size(); ++i) {
         cl_image_[i] = cl::Buffer(context_,
-                              0,  // CL_MEM_READ_ONLY, // | CL_MEM_COPY_HOST_PTR,
-                              buffer_size,  // TODO(lucasw) * sizeof(float) when using float
-                              (void *)NULL, //(void*) &im, // some random memory
+                              0,  // CL_MEM_READ_ONLY,  // | CL_MEM_COPY_HOST_PTR,
+                              buffer_size,   // TODO(lucasw) * sizeof(float) when using float
+                              (void *)NULL,  // (void*) &im,  // some random memory
                               &err);
       }
     } catch (cl::Error err) {
@@ -182,12 +187,11 @@ bool OclLambda::update(const size_t num_kernel_loops,
     // now write the circle to the 'present' buffer
     for (size_t i = 0; i < cl_image_.size(); ++i) {
       queue_.enqueueWriteBuffer(cl_image_[i],
-                               CL_TRUE, // blocking write
-                               origin_, region_,
-                               pressure[i].data //,
-                                        // NULL,
-                                        //&event
-      );
+                                CL_TRUE,  // blocking write
+                                origin_, region_,
+                                pressure[i].data);  // ,
+                                // NULL,
+                                // &event);
     }
     queue_.enqueueBarrierWithWaitList();
 
@@ -208,12 +212,11 @@ bool OclLambda::update(const size_t num_kernel_loops,
     }
     for (size_t i = 0; i < cl_image_.size(); ++i) {
       queue_.enqueueReadBuffer(cl_image_[i],
-                              CL_TRUE,  // blocking read
-                              origin_, region_,
-                              pressure[i].data
-                                // NULL,
-                                //&event
-      );
+                               CL_TRUE,  // blocking read
+                               origin_, region_,
+                               pressure[i].data);
+                               // NULL,
+                               // &event);
     }
     ++outer_loops_;
   } catch (cl::Error err) {

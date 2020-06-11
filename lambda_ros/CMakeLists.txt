@@ -26,6 +26,12 @@ if (OPENMP_FOUND)
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+# TODO(lucasw) dial back some of these
+set(
+  ROSLINT_CPP_OPTS
+  "--extensions=cpp,h,hpp" "--filter=-whitespace/braces,-runtime/references,-readability/casting,-runtime/threadsafe_fn,-build/c++11"
+)
+
 roslint_cpp()
 
 # find_package(lambda REQUIRED)

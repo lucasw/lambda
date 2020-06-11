@@ -1,5 +1,10 @@
+/**
+ * Copyright 2018-2020 Lucas Walter
+ */
+
 #include <opencv2/core.hpp>
 #include <ros/ros.h>
+#include <vector>
 
 int main(int argc, char* argv[])
 {
@@ -83,5 +88,4 @@ int main(int argc, char* argv[])
 
     ROS_INFO_STREAM(count / diff << ", " << sum);
   }
-
 }

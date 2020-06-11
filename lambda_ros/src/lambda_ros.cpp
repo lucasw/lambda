@@ -1,14 +1,21 @@
+/**
+ * Copyright 2018-2020 Lucas Walter
+ */
+
 #include <cv_bridge/cv_bridge.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/Point.h>
 #include <lambda_ros/LambdaConfig.h>
 #include <lambda_ros/lambda.h>
+#include <list>
 #include <memory>
 #include <mutex>
 #include <omp.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <spectrogram_paint_ros/Audio.h>
+#include <string>
+#include <vector>
 
 struct AudioSource {
   size_t index_ = 0;
@@ -211,7 +218,6 @@ public:
       // TODO(lucasw) need to refactor so that both updates update
       // num times and return all audio and input all samples
       if (lambda_->use_opencl_) {
-
         {
           // TODO(lucasw) slow samples- need to make a buffer to pass
           // into opencl of everything to happen in the next set of loops
@@ -300,7 +306,7 @@ public:
 
   void audio_update(const ros::TimerEvent& e)
   {
-   // TODO(lucasw) config_.sample_rate
+    // TODO(lucasw) config_.sample_rate
     // TODO(lucasw) make this a rolling buffer instead, every few thousand
     // after reaching some desired length
     // pop the front few thousand off
@@ -337,7 +343,6 @@ public:
         std::vector<float>::const_iterator end = audio_.data_right.end();
         audio_.data_right = std::vector<float>(beg, end);
       }
-
     }
   }
 

@@ -19,8 +19,8 @@
 //  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //  or visit http://www.gnu.org/licenses/gpl.html
 
-#ifndef LAMBDA_H
-#define LAMBDA_H
+#ifndef LAMBDA_ROS_LAMBDA_H
+#define LAMBDA_ROS_LAMBDA_H
 
 #include <ctime>
 #include <fstream>
@@ -33,6 +33,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <time.h>
+#include <vector>
 
 // This struct contains all the simulation config data.
 struct simConfig {
@@ -40,13 +41,13 @@ struct simConfig {
   void reset();
   int n = 0;         // actual iteration #
 #if 0
-  float cTube;   // sound speed in the tubes in meters/sec.
-  float lTube;   // tube length in meters
-  float rho;     // air density in kg/m^3, needed for velocity sources
-  float tSample; // tsample=1/fsample, sampling period
-  float fSample; // sampling frequency in Hz
-  int nSamples;  // number of embedded samples for sources
-  double t0;     // last time, used to check render speed
+  float cTube;    // sound speed in the tubes in meters/sec.
+  float lTube;    // tube length in meters
+  float rho;      // air density in kg/m^3, needed for velocity sources
+  float tSample;  // tsample=1/fsample, sampling period
+  float fSample;  // sampling frequency in Hz
+  int nSamples;   // number of embedded samples for sources
+  double t0;      // last time, used to check render speed
 #endif
 };
 
@@ -100,18 +101,18 @@ struct Node {
   // std::vector about 10% slower than float** or unique_ptr of of unique_ptr float*
   // std::vector<std::vector<float> > oldx_;          // filter non-recursive memory for filters
   // these seem almost as fast as float**
-  //std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;          // filter non-recursive memory for filters
+  // std::unique_ptr<std::unique_ptr<float[]>[]> oldx_;  // filter non-recursive memory for filters
 };
 
 #if 0
 // Source data.
 struct simSource {
-  float y;     // y-position of source
-  float x;     // x-position of source
-  float type;  // type of source
-  float amp;   // amplitude of source in Pascal or in m/s for velo sources
-  float freq;  // frequency of source
-  float phase; // phase angle of source
+  float y;      // y-position of source
+  float x;      // x-position of source
+  float type;   // type of source
+  float amp;    // amplitude of source in Pascal or in m/s for velo sources
+  float freq;   // frequency of source
+  float phase;  // phase angle of source
 };
 #endif
 
@@ -152,19 +153,19 @@ public:
   void processSimOpenCL(const size_t loops);
 
   void print(const size_t x, const size_t y);
-  void getFilterImage(cv::Mat& image, const int d, const std::string type, const int i=0);
+  void getFilterImage(cv::Mat& image, const int d, const std::string type, const int i = 0);
 
   void setPressure(const size_t x, const size_t y, const float value);
   void addPressure(const size_t x, const size_t y, const float value);
   void getPressure(cv::Mat& image)
   {
-    const int idx = ((config.n + 1) % 3); // present index
+    const int idx = ((config.n + 1) % 3);  // present index
     image = pressure_[idx];
   }
   float getPressure(const size_t x, const size_t y);
 
   bool setWall(const size_t x, const size_t y, const float value,
-      const float base_pressure=0.0);
+               const float base_pressure = 0.0);
   void getEnvironment(cv::Mat& image)
   {
     image = envi_;
@@ -204,8 +205,8 @@ private:
   //   preemphases the filter coefficients due to a given sonic incidence angle
   //   and horizontal/vertical alignment of the filter.
   // INPUT
-  //   float r    	: desired real-valued reflexion factor
-  //   float alpha	: angle of incidence for the desired filter, needed for
+  //   float r      : desired real-valued reflexion factor
+  //   float alpha  : angle of incidence for the desired filter, needed for
   //   preemphasis simAngularType direction : sets whether the filter is used in
   //   horizontal or vertical tubes, needed for preemphasis
   //
@@ -223,16 +224,16 @@ private:
   // PURPOSE
   //   Creates a new digital filter from a given digital filter ID and
   //   preemphases the filter coefficients due to a given sonic incidence angle
-  //	 and horizontal/vertical alignment of the filter.
+  //   and horizontal/vertical alignment of the filter.
   //
   // INPUT
-  //	 int* src_id    		: pointer on source filter ID array
-  //   int* src_numcoeffs 	: pointer on source filter numcoeffs array
-  //   float** src_coeffsA	: pointer on 2-Dim filter a-coeff Matrix
-  //   float** src_coeffsB	: pointer on 2-Dim filter b-coeff Matrix
+  //   int* src_id        : pointer on source filter ID array
+  //   int* src_numcoeffs   : pointer on source filter numcoeffs array
+  //   float** src_coeffsA  : pointer on 2-Dim filter a-coeff Matrix
+  //   float** src_coeffsB  : pointer on 2-Dim filter b-coeff Matrix
   //   int src_numfilters     : number of filters in the srcfilter-Arrays
-  //   int id    				: desired filter ID
-  //   float alpha			: angle of incidence for the desired filter, needed for
+  //   int id            : desired filter ID
+  //   float alpha      : angle of incidence for the desired filter, needed for
   //   preemphasis simAngularType direction : sets whether the filter is used in
   //   horizontal or vertical tubes, needed for preemphasis
   //
@@ -277,4 +278,4 @@ private:
   std::unique_ptr<OclLambda> ocl_lambda_;
 };
 
-#endif
+#endif  // LAMBDA_ROS_LAMBDA_H

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2018-2020 Lucas Walter
+ */
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -5,6 +9,8 @@
 #include <iostream>
 #include <lambda_ros/ocl.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <string>
+#include <vector>
 
 // load the opencl program from the disk
 // TBD optionally provide the old program, if it hasn't changed
@@ -22,6 +28,7 @@ public:
 
   bool update(const size_t num_kernel_loops,
       std::array<cv::Mat, 3>& pressure);
+
 private:
   bool init(const std::string cl_file, const size_t width, const size_t height);
 

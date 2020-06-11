@@ -21,12 +21,12 @@
 
 #include <lambda_ros/lambda.h>
 #include <omp.h>
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
 //   Constructor for the program's main class, initializes program and builds up
 Lambda::Lambda(const size_t width, const size_t height, const std::string cl_file) :
     width_(width), height_(height), num_(width * height) {
-
   if (cl_file != "") {
     ocl_lambda_.reset(new OclLambda(cl_file, width_, height_));
     use_opencl_ = true;
@@ -252,25 +252,25 @@ void Lambda::processWalls() {
       if (x > 0)
         nodes_[pos].neighbors_[LEFT] = y * width_ + (x - 1);
       else if ((x == 0) && wrap_)
-        nodes_[pos].neighbors_[LEFT] = y * width_ + width_ - 1;  // TODO %?
+        nodes_[pos].neighbors_[LEFT] = y * width_ + width_ - 1;  // TODO(lucasw) %?
 
       if ((y > 0))
         nodes_[pos].neighbors_[TOP] = ((y - 1) % height_) * width_ + x;
       else if ((y == 0) && wrap_)
-        nodes_[pos].neighbors_[TOP] = (height_ - 1) * width_ + x;  // TODO %?
+        nodes_[pos].neighbors_[TOP] = (height_ - 1) * width_ + x;  // TODO(lucasw) %?
 
       if (x < height_ - 1)
         nodes_[pos].neighbors_[RIGHT] = y * width_ + x + 1;
       else if ((x == height_ - 1) && (wrap_))
-        nodes_[pos].neighbors_[RIGHT] = y * width_;  // TODO %?
+        nodes_[pos].neighbors_[RIGHT] = y * width_;  // TODO(lucasw) %?
 
       if (y < height_ - 1)
         nodes_[pos].neighbors_[BOTTOM] = (y + 1) * width_ + x;
       else if ((y == height_ - 1) && (wrap_))
-        nodes_[pos].neighbors_[BOTTOM] = x;  // TODO %?
+        nodes_[pos].neighbors_[BOTTOM] = x;  // TODO(lucasw) %?
       #endif
-    } // x-loop
-  }   // y-loop
+    }  // x-loop
+  }  // y-loop
 
   return;
 }
@@ -441,7 +441,7 @@ bool Lambda::processWall(const size_t x, const size_t y) {
       // nodes_[pos].filter_[d].print();
     }
     addNeighborFilter(x, y, envi, angle);
- #if 0
+  #if 0
   } else if (envi <= -1.0) {
     // envi < -1.0 used to be used for recorders
     // TODO(lucasw) does < -1.0 passed to adaptfilter do anything interesting?
@@ -456,32 +456,32 @@ bool Lambda::processWall(const size_t x, const size_t y) {
   for (int y = 0; y < height_; y++) {
     for (int x = 0; x < width_; x++) {
       if (isvelosource[y * width_ +
-                       x]) // is actual node a velocity source node?
+                       x])  // is actual node a velocity source node?
       {
         const int pos_left = y * width_ + x - 1;
         const int pos_top = (y - 1) * width_ + x;
         const int pos_right = y * width_ + x + 1;
         const int pos_bottom = (y + 1) * width_ + x;
         if (x > 0)
-          if (isvelosource[pos_left]) // is left neighbour a velo src?
+          if (isvelosource[pos_left])  // is left neighbour a velo src?
             nodes_[pos_left].filter_[LEFT].filt_ =
-                false; // yes, disable left filter
+                false;  // yes, disable left filter
         if (y > 0)
-          if (isvelosource[pos_top]) // is top neighbour a velo src?
-            nodes_[pos_top].filter_[TOP].filt_ = false; // yes, disable top filter
+          if (isvelosource[pos_top])  // is top neighbour a velo src?
+            nodes_[pos_top].filter_[TOP].filt_ = false;  // yes, disable top filter
         if (x < width_ - 1)
-          if (isvelosource[pos_right]) // is right neighbour a velo src?
+          if (isvelosource[pos_right])  // is right neighbour a velo src?
             nodes_[pos_right].filter_[RIGHT].filt_ =
-                false; // yes, disable right filter
+                false;  // yes, disable right filter
         if (y < height_ - 1)
-          if (isvelosource[pos_bottom]) // is bottom neighbour a velo src?
+          if (isvelosource[pos_bottom])  // is bottom neighbour a velo src?
             nodes_[pos_bottom].filter_[BOTTOM].filt_ =
-                false; // yes, disable bottom filter
+                false;  // yes, disable bottom filter
       }
     }
   }
-  delete[] isvelosource; // the temporary isvelosource-array is now not needed
-                         // any longer.
+  delete[] isvelosource;  // the temporary isvelosource-array is now not needed
+                          // any longer.
 
   //  ----- DEADNODE SCANNER -----
   // search the environment for "dead" nodes. a dead node is a node which is
@@ -497,7 +497,7 @@ bool Lambda::processWall(const size_t x, const size_t y) {
         (nodes_[pos].filter_[TOP].filt_) &&
         (nodes_[pos].filter_[RIGHT].filt_) &&
         (nodes_[pos].filter_[BOTTOM].filt_)) {
-      deadnode[pos] = true; // ---> yes, it's a deadnode
+      deadnode[pos] = true;  // ---> yes, it's a deadnode
     }
   }
 #endif
@@ -508,7 +508,7 @@ void Lambda::setPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= height_)
     return;
-  int idx = ((config.n + 1) % 3); // current index
+  int idx = ((config.n + 1) % 3);  // current index
   pressure_[idx].at<float>(y, x) = value;
 }
 
@@ -518,7 +518,7 @@ void Lambda::addPressure(const size_t x, const size_t y, const float value)
     return;
   if (y >= height_)
     return;
-  int idx = ((config.n + 1) % 3); // current index
+  int idx = ((config.n + 1) % 3);  // current index
   pressure_[idx].at<float>(y, x) += value;
 }
 
@@ -553,7 +553,7 @@ void Node::print() {
 
 float Lambda::getPressure(const size_t x, const size_t y)
 {
-  const int idx = ((config.n + 1) % 3); // present index
+  const int idx = ((config.n + 1) % 3);  // present index
   if (x >= pressure_[idx].cols)
     return 0.0;
   if (y >= pressure_[idx].rows)
@@ -585,7 +585,7 @@ bool Lambda::setWall(const size_t x, const size_t y, const float value,
   // an empty node is being replaced with a wall
   // (can a node not be a wall but just modulate waves passing through it?)
   if ((!deadnode[pos]) && (value != 0.0)) {
-    const size_t idx = ((config.n + 1) % 3); // present index
+    const size_t idx = ((config.n + 1) % 3);  // present index
     const float pressure = base_pressure + getPressure(x, y);
     setPressure(x, y, 0.0);
     // push what pressure was here onto surrounding nodes
@@ -632,7 +632,7 @@ void Lambda::setVel(const int& srcxy, const float& magnitude, const float& alpha
 }
 
 #if 0
-// TODO(lucasw probably going to delete this once confident
+// TODO(lucasw) probably going to delete this once confident
 // all the nuance of these sources can be handled externally
 void Lambda::processSources(float*& presPres) {
     // TODO(lucasw) is there anything special about these sources vs.
@@ -641,7 +641,7 @@ void Lambda::processSources(float*& presPres) {
     for (int src = 0; src < config.nSrc; src++) {
       int srcpos = src * 6;
       int srcxy = (int)srcs[srcpos] +
-                  (int)srcs[srcpos + 1]; // get actual source pos.
+                  (int)srcs[srcpos + 1];  // get actual source pos.
       presPres[srcxy] = 0;
     }
     // then calculate press for each.
@@ -649,13 +649,13 @@ void Lambda::processSources(float*& presPres) {
     for (int src = 0; src < config.nSrc; src++) {
       register int srcpos = src * 6;
       int srcxy = (int)srcs[srcpos] +
-                  (int)srcs[srcpos + 1]; // get actual source pos.
+                  (int)srcs[srcpos + 1];  // get actual source pos.
       int type = (int)srcs[srcpos + 2];  // get actual source type
       float amp = srcs[srcpos + 3];      // get actual source amplitude
       float freq = srcs[srcpos + 4];     // get actual source frequency
       float phi = srcs[srcpos + 5];      // get actual source phase offset
-      float alpha = angle_.ptr<float>(0)[srcxy]; // get actual source angle of incidence
-      if ((alpha < 0.f) || (alpha >= 360.f)) // angle out of bounds?
+      float alpha = angle_.ptr<float>(0)[srcxy];  // get actual source angle of incidence
+      if ((alpha < 0.f) || (alpha >= 360.f))  // angle out of bounds?
         alpha = 0.f;
       float t = (float)config.n / (float)config.fSample;
       float twopi = 6.2831853f;
@@ -670,77 +670,77 @@ void Lambda::processSources(float*& presPres) {
       int samplepos, mempos;
       simSample *sample;
       switch (type) {
-      case 1: // sinusoidal source
+      case 1:  // sinusoidal source
         // index.presPres[srcxy]=amp*sin(twopi*freq*t+onepi*phi/180.f);
         presPres[srcxy] += amp * sin(twopi_freq * t + onepi_phi_180);
         break;
-      case 2: // rectangular source
+      case 2:  // rectangular source
         if ((int)(2.f * (freq * t + phi / 360.f)) % 2 == 0)
           presPres[srcxy] += amp;
         else
           presPres[srcxy] -= amp;
         break;
-      case 3: // delta-pulse source
+      case 3:  // delta-pulse source
         if (config.n == 0)
           presPres[srcxy] += amp;
         break;
-      case 4: // exponential decay source (not working correctly yet!!!)
+      case 4:  // exponential decay source (not working correctly yet!!!)
         presPres[srcxy] += amp * exp(-(float)config.n);
         break;
-      case 5: // hann-windowed sinusoidal source
+      case 5:  // hann-windowed sinusoidal source
         if (t < 0.f)
           hann = 0.f;
         else if (t > (T / 2.f))
           hann = 1.f;
         else {
           hann =
-              (float)cos(M_PI * (t + T / 2.f) / T); // compute hann window
+              (float)cos(M_PI * (t + T / 2.f) / T);  // compute hann window
           hann *= hann;
         }
         presPres[srcxy] +=
             hann * amp * (float)sin(twopi_freq * t + onepi_phi_180);
         break;
-      case 6: // sinusoidal velocity source
+      case 6:  // sinusoidal velocity source
         magnitude = config.rho * config.cTube * amp *
                     sin(twopi_freq * t + onepi_phi_180);
         // TODO(lucasw) all this is duplicate code for the next few cases
         // only the magnitude changes
         break;
-      case 7: // rectangular velocity source
+      case 7:  // rectangular velocity source
         if ((int)(2.f * (freq * t + phi / 360.f)) % 2 == 0)
           magnitude = config.rho * config.cTube * amp;
         else
           magnitude = -config.rho * config.cTube * amp;
         setVel(srcxy, magnitude, alpha);
         break;
-      case 8: // delta-pulse velocity source
+      case 8:  // delta-pulse velocity source
         if (config.n == 0)
           magnitude = config.rho * config.cTube * amp;
         setVel(srcxy, magnitude, alpha);
         break;
-      case 9: // exponential decay velocity source (not working correctly
-              // yet!!!)
+      case 9:  // exponential decay velocity source (not working correctly
+               // yet!!!)
         magnitude = config.rho * config.cTube * amp * exp(-(float)config.n);
         setVel(srcxy, magnitude, alpha);
         break;
-      case 10: // hann-windowed sinusoidal velocity source
+      case 10:  // hann-windowed sinusoidal velocity source
         if (t < 0.f)
           hann = 0.f;
         else if (t > (T / 2.f))
           hann = 1.f;
         else {
           hann =
-              (float)cos(M_PI * (t + T / 2.f) / T); // compute hann window
+              (float)cos(M_PI * (t + T / 2.f) / T);  // compute hann window
           hann *= hann;
         }
         magnitude = config.rho * config.cTube * hann * amp *
                     (float)sin(twopi * freq * t + M_PI * phi / 180.f);
         setVel(srcxy, magnitude, alpha);
         break;
-      case 20: // white-noise
+      case 20:  // white-noise
         presPres[srcxy] += amp * ((rand() % 32767) / 32767.f * 2.f - 1.f);
         break;
-      case 21: // pink noise
+      case 21:  // pink noise
         mempos = src * MEMSRC;
         white = amp * ((rand() % 32767) / 32767.f * 2.f - 1.f);
         b0 = mem[mempos];
@@ -754,15 +754,15 @@ void Lambda::processSources(float*& presPres) {
         mem[mempos + 1] = b1;
         mem[mempos + 2] = b2;
         break;
-      case 30: // sample
+      case 30:  // sample
         mempos = src * MEMSRC;
         sample = samples[(int)freq];  // freq contains the sample id
-        samplepos = (int)mem[mempos]; // read position
+        samplepos = (int)mem[mempos];  // read position
         presPres[srcxy] = sample->data[samplepos] *
-                          amp; // read individual sample, scale it to amp
+                          amp;  // read individual sample, scale it to amp
         mem[mempos] =
             (float)((samplepos + 1) %
-                    sample->nsamples); // advance read position, loop if at end
+                    sample->nsamples);  // advance read position, loop if at end
       }
     }
 }
@@ -784,9 +784,9 @@ void Lambda::processSim() {
 
   {
     // periodic cycling of time indices
-    const size_t idxPast = ((config.n + 0) % 3); // past index
-    const size_t idxPres = ((config.n + 1) % 3); // present index
-    const size_t idxFutu = ((config.n + 2) % 3); // future index
+    const size_t idxPast = ((config.n + 0) % 3);  // past index
+    const size_t idxPres = ((config.n + 1) % 3);  // present index
+    const size_t idxFutu = ((config.n + 2) % 3);  // future index
 
     float* presPast = pressure_[idxPast].ptr<float>(0);
     float* presPres = pressure_[idxPres].ptr<float>(0);
@@ -798,7 +798,7 @@ void Lambda::processSim() {
     // # pragma omp parallel for schedule(dynamic, 400)
     for (int pos = 0; pos < num_; pos++) {
       presFutu[pos] = 0.f;
-      if (deadnode[pos]) // deadnode? --> no calculation needed!
+      if (deadnode[pos])  // deadnode? --> no calculation needed!
         continue;
 
       // neighbor indices that can be anything really slow down the simulation-
@@ -887,7 +887,7 @@ void Lambda::processSim() {
             filter.inci_[idxFutu] = incis_futu;
             presFutu[pos] += incis_futu;
           }
-        } // dir loop
+        }  // dir loop
         presFutu[pos] *= 0.5f;
       } else {  // not a boundary
         // TODO(lucasw) this is mostly likely getting executed the most,
@@ -922,8 +922,8 @@ void Lambda::processSim() {
 //   and horizontal/vertical alignment of the filter.
 //
 // INPUT
-//   float r    	: desired real-valued reflexion factor
-//   float alpha	: angle of incidence for the desired filter, needed for
+//   float r      : desired real-valued reflexion factor
+//   float alpha  : angle of incidence for the desired filter, needed for
 //   preemphasis simAngularType direction : sets whether the filter is used in
 //   horizontal or vertical tubes, needed for preemphasis
 //
@@ -978,16 +978,16 @@ void Lambda::adaptreflexionfactor(int &dest_numcoeffs,
 
 //   Creates a new digital filter from a given digital filter ID and
 //   preemphases the filter coefficients due to a given sonic incidence angle
-//	 and horizontal/vertical alignment of the filter.
+//   and horizontal/vertical alignment of the filter.
 //
 // INPUT
-//	 int* src_id    		: pointer on source filter ID array
-//   int* src_numcoeffs 	: pointer on source filter numcoeffs array
-//   float** src_coeffsA	: pointer on 2-Dim filter a-coeff Matrix
-//   float** src_coeffsB	: pointer on 2-Dim filter b-coeff Matrix
+//   int* src_id        : pointer on source filter ID array
+//   int* src_numcoeffs   : pointer on source filter numcoeffs array
+//   float** src_coeffsA  : pointer on 2-Dim filter a-coeff Matrix
+//   float** src_coeffsB  : pointer on 2-Dim filter b-coeff Matrix
 //   int src_numfilters     : number of filters in the srcfilter-Arrays
-//   int id    				: desired filter ID
-//   float alpha			: angle of incidence for the desired filter,
+//   int id            : desired filter ID
+//   float alpha      : angle of incidence for the desired filter,
 //   needed for preemphasis simAngularType direction : sets whether the filter
 //   is used in horizontal or vertical tubes, needed for preemphasis
 //
